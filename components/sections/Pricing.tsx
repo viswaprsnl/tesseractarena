@@ -59,7 +59,7 @@ export function Pricing() {
               </div>
 
               <div className="mb-8">
-                <span className="text-4xl font-bold">${tier.price}</span>
+                <span className="text-4xl font-bold">&#8377;{tier.price}</span>
                 <span className="text-sm text-muted-foreground ml-2">
                   {tier.unit}
                 </span>

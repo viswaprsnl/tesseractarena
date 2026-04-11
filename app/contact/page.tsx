@@ -22,9 +22,9 @@ const contactSchema = z.object({
 type ContactForm = z.infer<typeof contactSchema>;
 
 const contactInfo = [
-  { icon: MapPin, label: "Address", value: "123 Innovation Way, Fremont, CA 94538" },
-  { icon: Phone, label: "Phone", value: "(510) 555-0199" },
-  { icon: Mail, label: "Email", value: "hello@tesseractarena.com" },
+  { icon: MapPin, label: "Address", value: "Block 3, Flat 1202, My Home Tarkshya, Golden Mile Road, Kokapet, Hyderabad 500075" },
+  { icon: Phone, label: "Phone", value: "+91 89256 66211" },
+  { icon: Mail, label: "Email", value: "venkattessearact@gmail.com / viswatesseract@gmail.com" },
   { icon: Clock, label: "Hours", value: "Mon-Sun: 10AM - 10PM" },
 ];
 

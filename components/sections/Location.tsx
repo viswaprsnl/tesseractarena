@@ -11,17 +11,17 @@ const contactInfo = [
   {
     icon: MapPin,
     label: "Address",
-    value: "123 Innovation Way, Fremont, CA 94538",
+    value: "Block 3, Flat 1202, My Home Tarkshya, Golden Mile Road, Kokapet, Hyderabad 500075",
   },
   {
     icon: Phone,
     label: "Phone",
-    value: "(510) 555-0199",
+    value: "+91 89256 66211",
   },
   {
     icon: Mail,
     label: "Email",
-    value: "hello@tesseractarena.com",
+    value: "venkattessearact@gmail.com / viswatesseract@gmail.com",
   },
   {
     icon: Clock,
@@ -45,8 +45,8 @@ export function Location() {
             Find <span className="gradient-text">Us</span>
           </h2>
           <p className="text-muted-foreground max-w-xl mx-auto">
-            Located in the heart of Fremont — easy access from anywhere in the
-            Bay Area
+            Located in Kokapet, Hyderabad — easy access from anywhere in
+            India
           </p>
         </motion.div>
 
@@ -84,7 +84,7 @@ export function Location() {
 
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <a
-                href="https://maps.google.com/?q=Fremont+CA"
+                href="https://maps.google.com/?q=Kokapet+Hyderabad+India"
                 target="_blank"
                 rel="noopener noreferrer"
                 className={cn(
@@ -120,7 +120,7 @@ export function Location() {
                   Interactive Map
                 </p>
                 <p className="text-xs text-muted-foreground/60 mt-1">
-                  123 Innovation Way, Fremont, CA
+                  Kokapet, Hyderabad, India
                 </p>
               </div>
             </div>

@@ -69,7 +69,7 @@ export default function AboutPage() {
           <h2 className="text-2xl sm:text-3xl font-bold mb-6">Our Mission</h2>
           <p className="text-muted-foreground leading-relaxed text-lg">
             To make world-class VR entertainment accessible to everyone in the
-            Bay Area. We partner with the best VR game studios on the planet and
+            India. We partner with the best VR game studios on the planet and
             invest in premium standalone hardware so you can walk in, gear up,
             and step into another world — no experience or equipment needed.
           </p>

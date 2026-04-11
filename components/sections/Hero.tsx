@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
@@ -15,26 +16,37 @@ const ParticleField = dynamic(
 
 export function Hero() {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Background layers */}
-      <div className="absolute inset-0 bg-background" />
-      <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-background" />
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+      {/* Background photo */}
+      <div className="absolute inset-0">
+        <Image
+          src="https://images.pexels.com/photos/6498959/pexels-photo-6498959.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop"
+          alt="Friends playing virtual reality game together in arena"
+          fill
+          className="object-cover"
+          priority
+        />
+      </div>
+      {/* Dark overlay for readability */}
+      <div className="absolute inset-0 bg-background/75" />
+      {/* Particle field on top */}
       <ParticleField />
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
+      {/* Bottom gradient fade */}
+      <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
 
       {/* Content */}
       <motion.div
         variants={staggerContainer}
         initial="hidden"
         animate="visible"
-        className="relative z-10 max-w-4xl mx-auto px-4 text-center"
+        className="relative z-10 max-w-4xl mx-auto px-4 text-center [text-shadow:0_2px_20px_rgba(0,0,0,0.8)]"
       >
         <motion.div variants={fadeInUp}>
           <Badge
             variant="outline"
             className="mb-6 px-4 py-1.5 text-xs font-medium tracking-wider uppercase border-primary/30 text-primary bg-primary/5"
           >
-            Now Open in Fremont, CA
+            Now Open in India
           </Badge>
         </motion.div>
 
@@ -49,9 +61,9 @@ export function Hero() {
 
         <motion.p
           variants={fadeInUp}
-          className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
+          className="text-lg sm:text-xl text-foreground/90 max-w-2xl mx-auto mb-10 leading-relaxed"
         >
-          Fremont&apos;s first multi-game standalone VR arena — up to 4 players,
+          India&apos;s first multi-game standalone VR arena — up to 10 players,
           zero PC required. Premium free-roam experiences that put you inside the
           game.
         </motion.p>

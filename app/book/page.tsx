@@ -128,7 +128,7 @@ export default function BookPage() {
               <Input
                 id="phone"
                 type="tel"
-                placeholder="(510) 555-0199"
+                placeholder="+91 89256 66211"
                 className="bg-card/60 border-white/10"
                 {...register("phone")}
               />
@@ -209,9 +209,9 @@ export default function BookPage() {
                   {...register("package")}
                 >
                   <option value="">Select a package</option>
-                  <option value="solo">Solo — $35/person</option>
-                  <option value="squad">Squad — $30/person</option>
-                  <option value="party">Party — $25/person</option>
+                  <option value="solo">Solo — ₹1,499/person</option>
+                  <option value="squad">Squad — ₹1,199/person</option>
+                  <option value="party">Party — ₹999/person</option>
                 </select>
                 {errors.package && (
                   <p className="text-xs text-destructive">

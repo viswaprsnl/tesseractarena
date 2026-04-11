@@ -123,6 +123,7 @@ export default function ParticleField() {
       <Canvas
         dpr={[1, 1.5]}
         camera={{ position: [0, 0, 8], fov: 60 }}
+        gl={{ alpha: true }}
         style={{ background: "transparent" }}
       >
         <Particles />

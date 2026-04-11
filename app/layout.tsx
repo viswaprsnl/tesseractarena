@@ -17,13 +17,14 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Tesseract Arena | Premium VR Experience in Fremont, CA",
+  title: "Tesseract Arena | Premium VR Experience in India",
   description:
-    "Step into another world at Fremont's first multi-game standalone VR arena. Up to 4 players, zero PC required. Book your session today.",
+    "Step into another world at India's first multi-game standalone VR arena. Up to 10 players, zero PC required. Book your session today.",
   keywords: [
     "VR arena",
     "virtual reality",
-    "Fremont",
+    "India",
+    "Hyderabad",
     "multiplayer VR",
     "VR experience",
     "Tesseract Arena",

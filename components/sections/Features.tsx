@@ -52,8 +52,17 @@ const features = [
 
 export function Features() {
   return (
-    <section className="py-24 px-4 bg-card/30">
-      <div className="max-w-7xl mx-auto">
+    <section className="relative py-24 px-4 overflow-hidden">
+      {/* Background image */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-10"
+        style={{
+          backgroundImage:
+            "url(https://images.pexels.com/photos/7886602/pexels-photo-7886602.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop)",
+        }}
+      />
+      <div className="absolute inset-0 bg-background/90" />
+      <div className="relative max-w-7xl mx-auto">
         <motion.div
           initial="hidden"
           whileInView="visible"

@@ -11,7 +11,7 @@ export interface PricingTier {
 export const pricingTiers: PricingTier[] = [
   {
     name: "Solo",
-    price: 35,
+    price: 1499,
     unit: "per person",
     description: "Perfect for first-timers or solo adventurers joining a public session.",
     features: [
@@ -25,7 +25,7 @@ export const pricingTiers: PricingTier[] = [
   },
   {
     name: "Squad",
-    price: 30,
+    price: 1199,
     unit: "per person",
     description: "Grab your crew for the ultimate co-op VR experience.",
     features: [
@@ -41,7 +41,7 @@ export const pricingTiers: PricingTier[] = [
   },
   {
     name: "Party",
-    price: 25,
+    price: 999,
     unit: "per person",
     description: "Birthdays, team builds, or just an epic night out. Minimum 6 players.",
     features: [

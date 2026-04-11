@@ -1,6 +1,6 @@
 # Tesseract Arena
 
-Marketing website for **Tesseract Arena** — Fremont's first multi-game standalone VR arena where groups of up to 4 players can play premium VR experiences together.
+Marketing website for **Tesseract Arena** — India's first multi-game standalone VR arena where groups of up to 10 players can play premium VR experiences together.
 
 ## Tech Stack
 

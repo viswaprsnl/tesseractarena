@@ -23,7 +23,7 @@ export const anvioGames: Game[] = [
     genre: "Zombie Survival",
     duration: "30 min",
     difficulty: "Medium",
-    image: "/images/games/city-z.jpg",
+    image: "https://images.worldofescapes.com/uploads/quests/22973/large/anvio-city-z.jpg",
     featured: true,
     tags: ["action", "co-op", "horror", "free-roam"],
   },
@@ -37,7 +37,7 @@ export const anvioGames: Game[] = [
     genre: "Zombie Survival",
     duration: "30 min",
     difficulty: "Medium",
-    image: "/images/games/city-z-survivors.jpg",
+    image: "https://inoui-vr.fr/wp-content/uploads/2025/06/cityZ-survivors.png",
     tags: ["action", "co-op", "horror", "free-roam"],
   },
   {
@@ -50,7 +50,7 @@ export const anvioGames: Game[] = [
     genre: "Zombie Survival",
     duration: "30 min",
     difficulty: "Hard",
-    image: "/images/games/city-z-antidote.jpg",
+    image: "https://static.tildacdn.com/tild3864-3532-4465-b062-666130356135/image.png",
     tags: ["action", "co-op", "horror", "free-roam"],
   },
   {
@@ -63,7 +63,7 @@ export const anvioGames: Game[] = [
     genre: "Horror Shooter",
     duration: "30 min",
     difficulty: "Hard",
-    image: "/images/games/city-z-necropolis.jpg",
+    image: "https://static.tildacdn.com/tild6563-3532-4032-b334-646135653933/image.png",
     tags: ["action", "co-op", "horror", "intense"],
   },
   {
@@ -76,7 +76,7 @@ export const anvioGames: Game[] = [
     genre: "Sci-Fi Shooter",
     duration: "30 min",
     difficulty: "Medium",
-    image: "/images/games/station-zarya.jpg",
+    image: "https://images.worldofescapes.com/uploads/quests/22974/large/anvio-station-zarya.jpg",
     featured: true,
     tags: ["sci-fi", "co-op", "action", "free-roam"],
   },
@@ -90,7 +90,7 @@ export const anvioGames: Game[] = [
     genre: "PvP Shooter",
     duration: "30 min",
     difficulty: "Medium",
-    image: "/images/games/revolta.jpg",
+    image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2245750/header.jpg?t=1680893228",
     tags: ["pvp", "competitive", "action", "multiplayer"],
   },
   {
@@ -103,7 +103,7 @@ export const anvioGames: Game[] = [
     genre: "Fantasy Adventure",
     duration: "30 min",
     difficulty: "Easy",
-    image: "/images/games/lost-sanctuary.jpg",
+    image: "https://images.worldofescapes.com/uploads/quests/22975/large/anvio-lost-sanctuary.jpg",
     tags: ["adventure", "puzzle", "family", "fantasy"],
   },
   {
@@ -116,7 +116,7 @@ export const anvioGames: Game[] = [
     genre: "Fantasy Adventure",
     duration: "30 min",
     difficulty: "Easy",
-    image: "/images/games/dragon-vr.jpg",
+    image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1486660/header.jpg?t=1619858252",
     tags: ["adventure", "family", "fantasy", "flying"],
   },
   {
@@ -129,22 +129,9 @@ export const anvioGames: Game[] = [
     genre: "Escape Room",
     duration: "30 min",
     difficulty: "Medium",
-    image: "/images/games/prince-of-persia.jpg",
+    image: "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/e9qxR05JFQf0FEo6EnkpZ/1703f8e5861f14bf2a6fc1a911dde7f1/TheDaggerOfTime_logo.png",
     featured: true,
     tags: ["puzzle", "escape-room", "co-op", "adventure"],
-  },
-  {
-    id: "punch-beat",
-    title: "Punch Beat",
-    provider: "anvio",
-    description:
-      "Rhythm-based VR game where players match colored beats to high-energy music. A perfect warm-up or cool-down experience.",
-    players: "1-4",
-    genre: "Rhythm",
-    duration: "15 min",
-    difficulty: "Easy",
-    image: "/images/games/punch-beat.jpg",
-    tags: ["music", "rhythm", "party", "casual"],
   },
 ];
 
@@ -159,7 +146,7 @@ export const synthesisGames: Game[] = [
     genre: "Co-op Shooter",
     duration: "30 min",
     difficulty: "Medium",
-    image: "/images/games/after-the-fall.jpg",
+    image: "https://cdn.synthesisvr.com/gameassets/svr_5906/compress-1.jpg",
     featured: true,
     tags: ["action", "co-op", "shooter", "free-roam"],
   },
@@ -173,7 +160,7 @@ export const synthesisGames: Game[] = [
     genre: "Sci-Fi Shooter",
     duration: "25 min",
     difficulty: "Medium",
-    image: "/images/games/starforce.jpg",
+    image: "https://cdn.synthesisvr.com/gameassets/svr_78776/header460x215_1739344620.webp",
     tags: ["sci-fi", "co-op", "action", "arcade"],
   },
   {
@@ -186,7 +173,7 @@ export const synthesisGames: Game[] = [
     genre: "Zombie Shooter",
     duration: "30 min",
     difficulty: "Medium",
-    image: "/images/games/arizona-sunshine.jpg",
+    image: "https://cdn.synthesisvr.com/gameassets/svr_78406/header460x215_1738909811.webp",
     featured: true,
     tags: ["action", "co-op", "zombie", "free-roam"],
   },
@@ -200,7 +187,7 @@ export const synthesisGames: Game[] = [
     genre: "Survival Horror",
     duration: "25 min",
     difficulty: "Hard",
-    image: "/images/games/propagation.jpg",
+    image: "https://cdn.synthesisvr.com/gameassets/svr_27694/header_b1460x215_1698997964.webp",
     tags: ["horror", "survival", "co-op", "action"],
   },
   {
@@ -213,7 +200,7 @@ export const synthesisGames: Game[] = [
     genre: "Puzzle Adventure",
     duration: "30 min",
     difficulty: "Medium",
-    image: "/images/games/riddle-of-ruins.jpg",
+    image: "https://cdn.synthesisvr.com/gameassets/svr_78307/header460x215_1731422933.webp",
     tags: ["puzzle", "adventure", "co-op", "exploration"],
   },
   {
@@ -226,7 +213,7 @@ export const synthesisGames: Game[] = [
     genre: "Party Game",
     duration: "20 min",
     difficulty: "Easy",
-    image: "/images/games/cook-out.jpg",
+    image: "https://cdn.synthesisvr.com/gameassets/svr_6208/header.webp",
     tags: ["party", "casual", "co-op", "fun"],
   },
   {
@@ -239,7 +226,7 @@ export const synthesisGames: Game[] = [
     genre: "Action Archery",
     duration: "25 min",
     difficulty: "Easy",
-    image: "/images/games/elven-assassin.jpg",
+    image: "https://cdn.synthesisvr.com/gameassets/svr_33685/header460x215_1707213306.webp",
     tags: ["action", "archery", "fantasy", "co-op"],
   },
   {
@@ -252,7 +239,7 @@ export const synthesisGames: Game[] = [
     genre: "Fantasy Action",
     duration: "30 min",
     difficulty: "Medium",
-    image: "/images/games/dragon-slayers.jpg",
+    image: "https://cdn.synthesisvr.com/gameassets/svr_7564/header460x215_1694727655.webp",
     tags: ["fantasy", "co-op", "action", "boss-fights"],
   },
   {
@@ -265,7 +252,7 @@ export const synthesisGames: Game[] = [
     genre: "Family Shooter",
     duration: "20 min",
     difficulty: "Easy",
-    image: "/images/games/smurfs.jpg",
+    image: "https://cdn.synthesisvr.com/gameassets/svr_37837/header460x215_1727855823.webp",
     tags: ["family", "casual", "fun", "kids"],
   },
   {
@@ -278,7 +265,7 @@ export const synthesisGames: Game[] = [
     genre: "Rhythm Dance",
     duration: "15 min",
     difficulty: "Easy",
-    image: "/images/games/synth-riders.jpg",
+    image: "https://cdn.synthesisvr.com/gameassets/svr_2144/header.webp",
     tags: ["music", "rhythm", "dance", "fitness"],
   },
   {
@@ -291,7 +278,7 @@ export const synthesisGames: Game[] = [
     genre: "Tactical Shooter",
     duration: "30 min",
     difficulty: "Medium",
-    image: "/images/games/zero-caliber.jpg",
+    image: "https://cdn.synthesisvr.com/gameassets/svr_79722/header460x215_1768386727.webp",
     tags: ["shooter", "tactical", "co-op", "pvp"],
   },
 ];

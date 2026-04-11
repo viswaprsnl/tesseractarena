@@ -7,7 +7,7 @@ export const faqItems: FAQItem[] = [
   {
     question: "What is Tesseract Arena?",
     answer:
-      "Tesseract Arena is Fremont's first multi-game standalone VR arena. We offer premium free-roam virtual reality experiences where groups of up to 4 players can step into immersive worlds together — no PCs, no wires, no limits.",
+      "Tesseract Arena is India's first multi-game standalone VR arena. We offer premium free-roam virtual reality experiences where groups of up to 10 players can step into immersive worlds together — no PCs, no wires, no limits.",
   },
   {
     question: "Do I need any VR experience to play?",
@@ -22,7 +22,7 @@ export const faqItems: FAQItem[] = [
   {
     question: "How many people can play at once?",
     answer:
-      "Our standard sessions support up to 4 simultaneous players in the same virtual world. For party packages with 6+ guests, we rotate groups so everyone gets to play while others watch the action on our spectator screens.",
+      "Our standard sessions support up to 10 simultaneous players in the same virtual world. For party packages with larger groups, we rotate teams so everyone gets to play while others watch the action on our spectator screens.",
   },
   {
     question: "What should I wear?",

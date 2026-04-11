@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Users, Clock, Swords } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,15 +14,17 @@ function GameCard({ game }: { game: Game }) {
       variants={fadeInUp}
       className="glass-card overflow-hidden group hover:-translate-y-1 transition-transform duration-300"
     >
-      {/* Image placeholder */}
-      <div className="relative aspect-[16/10] bg-gradient-to-br from-primary/20 via-card to-accent/10 overflow-hidden">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="font-heading text-sm tracking-wider text-muted-foreground/60 text-center px-4">
-            {game.title}
-          </span>
-        </div>
+      {/* Game thumbnail */}
+      <div className="relative aspect-[16/10] bg-card overflow-hidden">
+        <Image
+          src={game.image}
+          alt={game.title}
+          fill
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+        />
         {game.featured && (
-          <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground text-[10px]">
+          <Badge className="absolute top-3 left-3 z-10 bg-primary text-primary-foreground text-[10px]">
             Featured
           </Badge>
         )}

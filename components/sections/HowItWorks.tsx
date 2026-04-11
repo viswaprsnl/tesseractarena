@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Gamepad2, Headset, Users } from "lucide-react";
 import { fadeInUp, staggerContainer } from "@/lib/animations";
@@ -11,6 +12,8 @@ const steps = [
     title: "Choose Your Game",
     description:
       "Browse our library of 20+ premium VR experiences. From zombie survival to fantasy adventures — pick your next mission.",
+    image:
+      "https://images.pexels.com/photos/7562377/pexels-photo-7562377.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop",
   },
   {
     step: 2,
@@ -18,13 +21,17 @@ const steps = [
     title: "Gear Up",
     description:
       "Our team gets you fitted with cutting-edge standalone VR headsets. A quick 5-minute briefing and you're ready to go.",
+    image:
+      "https://images.pexels.com/photos/8728556/pexels-photo-8728556.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop",
   },
   {
     step: 3,
     icon: Users,
     title: "Play Together",
     description:
-      "Step into the arena with up to 4 players. Walk freely, communicate with your team, and experience VR like never before.",
+      "Step into the arena with up to 10 players. Walk freely, communicate with your team, and experience VR like never before.",
+    image:
+      "https://images.pexels.com/photos/7047331/pexels-photo-7047331.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop",
   },
 ];
 
@@ -58,20 +65,34 @@ export function HowItWorks() {
             <motion.div
               key={item.step}
               variants={fadeInUp}
-              className="glass-card p-8 text-center group hover:-translate-y-2 transition-transform duration-300"
+              className="glass-card overflow-hidden group hover:-translate-y-2 transition-transform duration-300"
             >
-              <div className="relative inline-flex mb-6">
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                  <item.icon className="w-8 h-8 text-primary" />
-                </div>
-                <span className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
+              {/* Step image */}
+              <div className="relative aspect-[3/2] overflow-hidden">
+                <Image
+                  src={item.image}
+                  alt={item.title}
+                  fill
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
+                <span className="absolute top-3 right-3 w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center">
                   {item.step}
                 </span>
               </div>
-              <h3 className="text-xl font-bold mb-3">{item.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {item.description}
-              </p>
+
+              <div className="p-6 text-center">
+                <div className="inline-flex mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <item.icon className="w-6 h-6 text-primary" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-bold mb-3">{item.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {item.description}
+                </p>
+              </div>
             </motion.div>
           ))}
         </motion.div>

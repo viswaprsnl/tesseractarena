@@ -28,7 +28,7 @@ export const testimonials: Testimonial[] = [
     name: "Jake Thompson",
     role: "VR Enthusiast",
     content:
-      "I've tried VR arcades all over the Bay Area, and Tesseract Arena is hands down the best. Free-roam makes all the difference — you forget you're in a room.",
+      "I've tried VR arcades all over India, and Tesseract Arena is hands down the best. Free-roam makes all the difference — you forget you're in a room.",
     rating: 5,
   },
   {
@@ -52,7 +52,7 @@ export const testimonials: Testimonial[] = [
     name: "Emily Watson",
     role: "Date Night Adventurer",
     content:
-      "Best date night in the Bay Area, hands down. We played After The Fall together and it was an absolute blast. So much better than dinner and a movie.",
+      "Best date night in Hyderabad, hands down. We played After The Fall together and it was an absolute blast. So much better than dinner and a movie.",
     rating: 5,
   },
 ];

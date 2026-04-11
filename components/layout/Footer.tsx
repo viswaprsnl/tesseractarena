@@ -37,8 +37,8 @@ export function Footer() {
               TESSERACT ARENA
             </span>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Fremont&apos;s first multi-game standalone VR arena. Premium
-              free-roam experiences for groups of up to 4 players.
+              India&apos;s first multi-game standalone VR arena. Premium
+              free-roam experiences for groups of up to 10 players.
             </p>
             <div className="flex gap-3">
               {socialLinks.map((social) => (
@@ -100,15 +100,15 @@ export function Footer() {
             <ul className="space-y-3">
               <li className="flex items-start gap-2 text-sm text-muted-foreground">
                 <MapPin size={16} className="mt-0.5 shrink-0 text-primary" />
-                <span>123 Innovation Way<br />Fremont, CA 94538</span>
+                <span>Block 3, Flat 1202, My Home Tarkshya<br />Golden Mile Road, Kokapet<br />Hyderabad 500075</span>
               </li>
               <li className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Phone size={16} className="shrink-0 text-primary" />
-                <span>(510) 555-0199</span>
+                <span>+91 89256 66211</span>
               </li>
               <li className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Mail size={16} className="shrink-0 text-primary" />
-                <span>hello@tesseractarena.com</span>
+                <span>venkattessearact@gmail.com<br />viswatesseract@gmail.com</span>
               </li>
               <li className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock size={16} className="shrink-0 text-primary" />
