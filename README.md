@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Tesseract Arena
 
-## Getting Started
+Marketing website for **Tesseract Arena** — Fremont's first multi-game standalone VR arena where groups of up to 4 players can play premium VR experiences together.
 
-First, run the development server:
+## Tech Stack
+
+- **Framework:** Next.js 15 (App Router, TypeScript)
+- **Styling:** Tailwind CSS v4 + shadcn/ui
+- **Animations:** Framer Motion + GSAP ScrollTrigger
+- **3D Graphics:** React Three Fiber (hero particle field)
+- **Icons:** Lucide React
+- **Fonts:** Orbitron (headings) + Inter (body) via next/font
+- **Forms:** React Hook Form + Zod validation
+
+## Pages
+
+| Route | Description |
+|-------|-------------|
+| `/` | Home page with all sections (hero, games, pricing, FAQ, etc.) |
+| `/games` | Full game library with search and filtering |
+| `/book` | Booking form with validation |
+| `/about` | About page with mission and values |
+| `/contact` | Contact form and location info |
+| `/faq` | Expanded FAQ |
+
+## Local Development
 
 ```bash
+# Install dependencies
+npm install
+
+# Start dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to view the site.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+app/                    # Next.js App Router pages
+components/
+  layout/               # Navbar, Footer
+  sections/             # Hero, HowItWorks, GamesLibrary, Features,
+                        # Pricing, Testimonials, FAQ, Location
+  three/                # ParticleField (React Three Fiber)
+  ui/                   # shadcn/ui components
+data/                   # Games, pricing, FAQ, testimonials data
+lib/                    # Utilities and animation variants
+```
 
-## Learn More
+## Deployment (Vercel)
 
-To learn more about Next.js, take a look at the following resources:
+1. Push this repo to GitHub
+2. Go to [vercel.com](https://vercel.com) and import the repository
+3. Vercel auto-detects Next.js — click Deploy
+4. Add custom domain: `tesseractarena.com`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### GoDaddy DNS Configuration
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Add these DNS records in GoDaddy for `tesseractarena.com`:
 
-## Deploy on Vercel
+| Type | Name | Value |
+|------|------|-------|
+| A | @ | 76.76.21.21 |
+| CNAME | www | cname.vercel-dns.com |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Vercel handles SSL certificates automatically after DNS propagation (usually 24-48 hours).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Design System
+
+- **Background:** `#0A0A0F` (deep black)
+- **Primary:** `#6C3BFF` (electric violet)
+- **Accent:** `#00F5FF` (cyan)
+- **Card:** `#1A1A2E`
+- **Text:** White
+- Dark mode only, glassmorphism cards, glow hover effects
