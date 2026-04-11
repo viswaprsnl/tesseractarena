@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --import-alias \"@/*\" --yes)",
+      "Bash(cmd //c \"where node\")",
+      "Bash(cmd //c \"where npm\")",
+      "Read(//c/Program Files/**)",
+      "Read(//c/Users/unrea/AppData/Roaming/**)",
+      "Read(//c//**)",
+      "Bash(cmd //c \"winget --version\")",
+      "Bash(cmd //c \"choco --version\")",
+      "Bash(cmd //c \"winget install OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements\")",
+      "Bash(export PATH=\"/c/Program Files/nodejs:$PATH\")",
+      "Bash(npm --version)",
+      "Bash(cd /c)",
+      "Bash(npx create-next-app@latest tesseractarena --typescript --tailwind --eslint --app --import-alias \"@/*\" --yes)",
+      "Bash(npm install:*)",
+      "Bash(npx shadcn@latest init -d)"
+    ]
+  }
+}
