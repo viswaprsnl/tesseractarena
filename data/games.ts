@@ -19,7 +19,7 @@ export const anvioGames: Game[] = [
     provider: "anvio",
     description:
       "Full-body free-roam zombie shooter. Navigate post-apocalyptic urban environments through collapsing skyscrapers and dark subway tunnels while fighting hordes of undead.",
-    players: "2-4",
+    players: "1-4",
     genre: "Zombie Survival",
     duration: "30 min",
     difficulty: "Medium",
@@ -33,7 +33,7 @@ export const anvioGames: Game[] = [
     provider: "anvio",
     description:
       "Escape from a skyscraper rooftop and fight your way to a secret laboratory through an army of hungry zombies. Teamwork is your only chance.",
-    players: "2-4",
+    players: "1-6",
     genre: "Zombie Survival",
     duration: "30 min",
     difficulty: "Medium",
@@ -46,7 +46,7 @@ export const anvioGames: Game[] = [
     provider: "anvio",
     description:
       "Scientists found a cure but it's been stolen by criminals. Face both zombies and thugs as you search for the antidote to save humanity.",
-    players: "2-4",
+    players: "1-4",
     genre: "Zombie Survival",
     duration: "30 min",
     difficulty: "Hard",
@@ -59,7 +59,7 @@ export const anvioGames: Game[] = [
     provider: "anvio",
     description:
       "A special forces team encounters an unusual device and something goes critically wrong. The darkest chapter in the City Z saga.",
-    players: "2-4",
+    players: "1-4",
     genre: "Horror Shooter",
     duration: "30 min",
     difficulty: "Hard",
@@ -72,7 +72,7 @@ export const anvioGames: Game[] = [
     provider: "anvio",
     description:
       "Respond to a distress signal from a research base on the distant planet Regulus-5. Battle unknown alien lifeforms attacking from ground and air.",
-    players: "2-4",
+    players: "1-6",
     genre: "Sci-Fi Shooter",
     duration: "30 min",
     difficulty: "Medium",
@@ -86,7 +86,7 @@ export const anvioGames: Game[] = [
     provider: "anvio",
     description:
       "Team-based competitive VR shooter with Deathmatch, Team Deathmatch, and Point Capture modes. Virtual reality reinvents laser tag.",
-    players: "2-4",
+    players: "1-12",
     genre: "PvP Shooter",
     duration: "30 min",
     difficulty: "Medium",
@@ -99,7 +99,7 @@ export const anvioGames: Game[] = [
     provider: "anvio",
     description:
       "Explore an abandoned Aztec mystical city guided by an ancient spirit. Catch magical fireflies, shoot lightning, and sail a magical river.",
-    players: "2-4",
+    players: "1-6",
     genre: "Fantasy Adventure",
     duration: "30 min",
     difficulty: "Easy",
@@ -112,7 +112,7 @@ export const anvioGames: Game[] = [
     provider: "anvio",
     description:
       "Hatch a dragon egg and soar over enchanting landscapes on your pet dragon's back. Defend against T-Rex and pterodactyls along the way.",
-    players: "2-4",
+    players: "1-4",
     genre: "Fantasy Adventure",
     duration: "30 min",
     difficulty: "Easy",
@@ -125,7 +125,7 @@ export const anvioGames: Game[] = [
     provider: "anvio",
     description:
       "A Ubisoft VR escape game set in the Prince of Persia universe. Solve time-manipulation puzzles and climb through the Fortress of Time.",
-    players: "2-4",
+    players: "1-4",
     genre: "Escape Room",
     duration: "30 min",
     difficulty: "Medium",
