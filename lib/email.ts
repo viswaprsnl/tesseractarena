@@ -1,6 +1,13 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let resendInstance: Resend | null = null;
+
+function getResend(): Resend {
+  if (!resendInstance) {
+    resendInstance = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resendInstance;
+}
 
 interface BookingEmailData {
   customerEmail: string;
@@ -21,7 +28,7 @@ export async function sendBookingConfirmation(data: BookingEmailData) {
       ? "Paid Online"
       : "Pay at Center (on arrival)";
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: "Tesseract Arena <onboarding@resend.dev>",
     to: data.customerEmail,
     subject: `Booking Confirmed - ${data.bookingId} | Tesseract Arena`,
@@ -109,7 +116,7 @@ export async function sendBookingConfirmation(data: BookingEmailData) {
 }
 
 export async function sendOwnerNotification(data: BookingEmailData) {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: "Tesseract Arena <onboarding@resend.dev>",
     to: ["venkattessearact@gmail.com", "viswatesseract@gmail.com"],
     subject: `New Booking: ${data.bookingId} - ${data.customerName}`,
