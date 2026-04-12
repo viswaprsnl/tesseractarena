@@ -19,7 +19,7 @@ function getSheets() {
 }
 
 const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_SPREADSHEET_ID!;
-const SHEET_NAME = "Bookings";
+const SHEET_NAME = "Sheet1";
 
 export async function getBookingsForDate(
   date: string,
