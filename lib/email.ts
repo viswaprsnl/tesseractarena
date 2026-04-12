@@ -29,7 +29,7 @@ export async function sendBookingConfirmation(data: BookingEmailData): Promise<{
       : "Pay at Center (on arrival)";
 
   return await getResend().emails.send({
-    from: "Tesseract Arena <onboarding@resend.dev>",
+    from: "Tesseract Arena <bookings@tesseractarena.com>",
     to: data.customerEmail,
     subject: `Booking Confirmed - ${data.bookingId} | Tesseract Arena`,
     html: `
@@ -117,7 +117,7 @@ export async function sendBookingConfirmation(data: BookingEmailData): Promise<{
 
 export async function sendOwnerNotification(data: BookingEmailData): Promise<{ data: unknown; error: unknown }> {
   return await getResend().emails.send({
-    from: "Tesseract Arena <onboarding@resend.dev>",
+    from: "Tesseract Arena <bookings@tesseractarena.com>",
     to: ["venkattessearact@gmail.com", "viswatesseract@gmail.com"],
     subject: `New Booking: ${data.bookingId} - ${data.customerName}`,
     html: `
