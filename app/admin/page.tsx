@@ -15,12 +15,23 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertTriangle,
+  Gamepad2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { formatTimeDisplay } from "@/lib/booking-config";
 import type { BookingRow } from "@/lib/booking-types";
+import { allGames } from "@/data/games";
+
+type GameStatus = "available" | "unavailable" | "coming_soon" | "maintenance";
+
+const STATUS_CONFIG: Record<GameStatus, { label: string; color: string }> = {
+  available: { label: "Available", color: "bg-green-500/20 text-green-400" },
+  unavailable: { label: "Unavailable", color: "bg-red-500/20 text-red-400" },
+  coming_soon: { label: "Coming Soon", color: "bg-blue-500/20 text-blue-400" },
+  maintenance: { label: "Maintenance", color: "bg-amber-500/20 text-amber-400" },
+};
 
 interface Stats {
   total: number;
@@ -43,6 +54,42 @@ export default function AdminPage() {
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [waiverCheck, setWaiverCheck] = useState<Record<string, boolean | null>>({});
+  const [activeTab, setActiveTab] = useState<"bookings" | "games">("bookings");
+  const [gameStatuses, setGameStatuses] = useState<Record<string, { status: GameStatus; note: string }>>({});
+  const [updatingGame, setUpdatingGame] = useState<string | null>(null);
+
+  const fetchGameStatuses = useCallback(async (authPin: string) => {
+    try {
+      const res = await fetch(`/api/admin/games?pin=${authPin}`);
+      const data = await res.json();
+      if (data.statuses) {
+        setGameStatuses(data.statuses);
+      }
+    } catch {
+      // Silently fail
+    }
+  }, []);
+
+  const updateGameStatus = async (gameId: string, status: GameStatus, note: string) => {
+    setUpdatingGame(gameId);
+    try {
+      const res = await fetch("/api/admin/games", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin, gameId, status, note }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setGameStatuses((prev) => ({
+          ...prev,
+          [gameId]: { status, note },
+        }));
+      }
+    } catch {
+      setError("Failed to update game status");
+    }
+    setUpdatingGame(null);
+  };
 
   const checkAllWaivers = useCallback(async (bookingList: BookingRow[]) => {
     const emails = [...new Set(bookingList.filter(b => b.status !== "cancelled").map(b => b.email))];
@@ -89,6 +136,7 @@ export default function AdminPage() {
   const handleLogin = async () => {
     setAuthenticated(true);
     fetchBookings(selectedDate, pin);
+    fetchGameStatuses(pin);
   };
 
   const handleDateChange = (offset: number) => {
@@ -179,6 +227,95 @@ export default function AdminPage() {
           </Button>
         </div>
 
+        {/* Tab switcher */}
+        <div className="flex justify-center gap-2 mb-8">
+          <button
+            onClick={() => setActiveTab("bookings")}
+            className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+              activeTab === "bookings"
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Calendar size={16} />
+            Bookings
+          </button>
+          <button
+            onClick={() => { setActiveTab("games"); fetchGameStatuses(pin); }}
+            className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+              activeTab === "games"
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Gamepad2 size={16} />
+            Games
+          </button>
+        </div>
+
+        {activeTab === "games" && (
+          <div className="space-y-3 mb-8">
+            <h2 className="font-heading text-lg font-bold mb-4">Game Status Management</h2>
+            <p className="text-xs text-muted-foreground mb-6">
+              Set game availability. Changes are reflected immediately on the website and booking form.
+            </p>
+            {allGames.map((game) => {
+              const gs = gameStatuses[game.id];
+              const currentStatus: GameStatus = (gs?.status as GameStatus) || "available";
+              const currentNote = gs?.note || "";
+              const config = STATUS_CONFIG[currentStatus];
+
+              return (
+                <div key={game.id} className="glass-card p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-medium">{game.title}</span>
+                        <Badge className={`text-[10px] ${config.color}`}>
+                          {config.label}
+                        </Badge>
+                        <span className="text-[10px] text-muted-foreground capitalize">
+                          {game.provider}
+                        </span>
+                      </div>
+                      {currentNote && (
+                        <p className="text-xs text-amber-400/80 flex items-center gap-1">
+                          <AlertTriangle size={10} />
+                          {currentNote}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <select
+                        value={currentStatus}
+                        onChange={(e) => {
+                          const newStatus = e.target.value as GameStatus;
+                          const note = newStatus !== "available"
+                            ? prompt("Add a note (optional):", currentNote) ?? currentNote
+                            : "";
+                          updateGameStatus(game.id, newStatus, note);
+                        }}
+                        disabled={updatingGame === game.id}
+                        className="h-8 rounded-md bg-card/60 border border-white/10 px-2 text-xs"
+                      >
+                        <option value="available">✅ Available</option>
+                        <option value="unavailable">❌ Unavailable</option>
+                        <option value="coming_soon">🔜 Coming Soon</option>
+                        <option value="maintenance">🔧 Maintenance</option>
+                      </select>
+                      {updatingGame === game.id && (
+                        <Loader2 size={14} className="animate-spin text-primary" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {activeTab === "bookings" && <>
         {/* Date navigation */}
         <div className="flex items-center justify-center gap-4 mb-6">
           <button
@@ -372,6 +509,7 @@ export default function AdminPage() {
             )}
           </>
         )}
+        </>}
       </div>
     </div>
   );

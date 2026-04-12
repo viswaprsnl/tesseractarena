@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useState, useEffect } from "react";
 import { allGames } from "@/data/games";
 
 const detailsSchema = z.object({
@@ -29,6 +30,15 @@ export function PersonalDetailsForm({
   onSubmit,
   initialValues,
 }: PersonalDetailsFormProps) {
+  const [gameStatuses, setGameStatuses] = useState<Record<string, { status: string; note: string }>>({});
+
+  useEffect(() => {
+    fetch("/api/admin/games")
+      .then((res) => res.json())
+      .then((data) => { if (data.statuses) setGameStatuses(data.statuses); })
+      .catch(() => {});
+  }, []);
+
   const {
     register,
     handleSubmit,
@@ -101,11 +111,18 @@ export function PersonalDetailsForm({
             {...register("gamePreference")}
           >
             <option value="">Select a game</option>
-            {allGames.map((game) => (
-              <option key={game.id} value={game.id}>
-                {game.title} ({game.provider === "anvio" ? "Anvio" : "Synthesis"})
-              </option>
-            ))}
+            {allGames.map((game) => {
+              const gs = gameStatuses[game.id];
+              const isUnavailable = gs && gs.status !== "available";
+              const statusLabel = gs?.status === "unavailable" ? " — Unavailable"
+                : gs?.status === "maintenance" ? " — Maintenance"
+                : gs?.status === "coming_soon" ? " — Coming Soon" : "";
+              return (
+                <option key={game.id} value={game.id} disabled={isUnavailable}>
+                  {game.title} ({game.provider === "anvio" ? "Anvio" : "Synthesis"}){statusLabel}
+                </option>
+              );
+            })}
           </select>
           {errors.gamePreference && (
             <p className="text-xs text-destructive">

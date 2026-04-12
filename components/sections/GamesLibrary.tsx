@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Users, Clock, Swords } from "lucide-react";
@@ -8,11 +9,23 @@ import { Badge } from "@/components/ui/badge";
 import { anvioGames, synthesisGames, type Game } from "@/data/games";
 import { fadeInUp, staggerContainer, staggerFast } from "@/lib/animations";
 
-function GameCard({ game }: { game: Game }) {
+type GameStatusInfo = { status: string; note: string };
+
+const STATUS_BADGES: Record<string, { label: string; color: string }> = {
+  unavailable: { label: "Unavailable", color: "bg-red-500/80 text-white" },
+  coming_soon: { label: "Coming Soon", color: "bg-blue-500/80 text-white" },
+  maintenance: { label: "Maintenance", color: "bg-amber-500/80 text-white" },
+};
+
+function GameCard({ game, status }: { game: Game; status?: GameStatusInfo }) {
+  const isUnavailable = status && status.status !== "available";
+
   return (
     <motion.div
       variants={fadeInUp}
-      className="glass-card overflow-hidden group hover:-translate-y-1 transition-transform duration-300"
+      className={`glass-card overflow-hidden group transition-transform duration-300 ${
+        isUnavailable ? "opacity-60" : "hover:-translate-y-1"
+      }`}
     >
       {/* Game thumbnail */}
       <div className="relative aspect-[16/10] bg-card overflow-hidden">
@@ -20,12 +33,19 @@ function GameCard({ game }: { game: Game }) {
           src={game.image}
           alt={game.title}
           fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          className={`object-cover transition-transform duration-500 ${
+            isUnavailable ? "grayscale" : "group-hover:scale-105"
+          }`}
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
         />
-        {game.featured && (
+        {game.featured && !isUnavailable && (
           <Badge className="absolute top-3 left-3 z-10 bg-primary text-primary-foreground text-[10px]">
             Featured
+          </Badge>
+        )}
+        {isUnavailable && status && STATUS_BADGES[status.status] && (
+          <Badge className={`absolute top-3 left-3 z-10 text-[10px] ${STATUS_BADGES[status.status].color}`}>
+            {STATUS_BADGES[status.status].label}
           </Badge>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
@@ -45,6 +65,10 @@ function GameCard({ game }: { game: Game }) {
         >
           {game.genre}
         </Badge>
+
+        {isUnavailable && status?.note && (
+          <p className="text-xs text-amber-400/80 mb-2">{status.note}</p>
+        )}
 
         <p className="text-xs text-muted-foreground leading-relaxed mb-4 line-clamp-2">
           {game.description}
@@ -70,6 +94,17 @@ function GameCard({ game }: { game: Game }) {
 }
 
 export function GamesLibrary() {
+  const [gameStatuses, setGameStatuses] = useState<Record<string, GameStatusInfo>>({});
+
+  useEffect(() => {
+    fetch("/api/admin/games")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.statuses) setGameStatuses(data.statuses);
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <section id="games" className="py-12 sm:py-24 px-4">
       <div className="max-w-7xl mx-auto">
@@ -115,7 +150,7 @@ export function GamesLibrary() {
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             >
               {anvioGames.map((game) => (
-                <GameCard key={game.id} game={game} />
+                <GameCard key={game.id} game={game} status={gameStatuses[game.id]} />
               ))}
             </motion.div>
           </TabsContent>
@@ -129,7 +164,7 @@ export function GamesLibrary() {
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             >
               {synthesisGames.map((game) => (
-                <GameCard key={game.id} game={game} />
+                <GameCard key={game.id} game={game} status={gameStatuses[game.id]} />
               ))}
             </motion.div>
           </TabsContent>
