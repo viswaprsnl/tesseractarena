@@ -106,7 +106,15 @@ export async function sendBookingConfirmation(data: BookingEmailData): Promise<{
             Wear comfortable clothing and closed-toe shoes.<br/>
             Arrive 10 minutes early for setup.
           </p>
-          <p style="margin-top: 15px;">
+          <div style="margin: 20px 0;">
+            <a href="https://tesseractarena.com/waiver?booking=${data.bookingId}&email=${encodeURIComponent(data.customerEmail)}" style="display: inline-block; background: #6C3BFF; color: white; padding: 10px 24px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: bold;">
+              ✍️ Sign Waiver Form
+            </a>
+            <p style="color: #888; font-size: 11px; margin-top: 8px;">
+              Complete the safety waiver before your visit (required)
+            </p>
+          </div>
+          <p style="margin-top: 10px;">
             <a href="https://tesseractarena.com/book/cancel?id=${data.bookingId}" style="color: #888; font-size: 11px; text-decoration: underline;">
               Need to cancel? Click here
             </a>

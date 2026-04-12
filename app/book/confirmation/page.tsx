@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   CalendarDays,
   Clock,
+  Shield,
   Users,
   CreditCard,
   CalendarPlus,
@@ -92,13 +93,23 @@ function ConfirmationContent() {
         </div>
 
         <div className="flex flex-col gap-3">
+          <Link
+            href={`/waiver?booking=${bookingId}`}
+            className={cn(
+              buttonVariants(),
+              "bg-primary hover:bg-primary/90 text-primary-foreground w-full justify-center inline-flex items-center gap-2"
+            )}
+          >
+            <Shield size={16} />
+            Sign Safety Waiver
+          </Link>
           <a
             href={calendarUrl}
             target="_blank"
             rel="noopener noreferrer"
             className={cn(
-              buttonVariants(),
-              "bg-primary hover:bg-primary/90 text-primary-foreground w-full justify-center inline-flex items-center gap-2"
+              buttonVariants({ variant: "outline" }),
+              "border-white/20 hover:bg-white/5 w-full justify-center inline-flex items-center gap-2"
             )}
           >
             <CalendarPlus size={16} />

@@ -35,7 +35,9 @@ export function PersonalDetailsForm({
     formState: { errors },
   } = useForm<DetailsForm>({
     resolver: zodResolver(detailsSchema),
-    defaultValues: initialValues || undefined,
+    defaultValues: initialValues || {
+      phone: "+91 ",
+    },
   });
 
   return (
