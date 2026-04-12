@@ -62,6 +62,7 @@ export function GamePreviewModal({
   }, [onClose]);
 
   const youtubeId = videoUrl ? extractYouTubeId(videoUrl) : null;
+  const isLocalVideo = videoUrl && (videoUrl.endsWith(".mp4") || videoUrl.endsWith(".webm"));
   const isUnavailable = statusInfo && statusInfo.status !== "available";
 
   return (
@@ -105,6 +106,15 @@ export function GamePreviewModal({
                   allow="autoplay; encrypted-media"
                   allowFullScreen
                   title={`${game.title} trailer`}
+                />
+              ) : isLocalVideo && videoUrl ? (
+                <video
+                  src={videoUrl}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  autoPlay
+                  controls
+                  playsInline
+                  muted
                 />
               ) : (
                 <div className="relative w-full h-full">

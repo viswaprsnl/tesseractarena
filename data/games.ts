@@ -120,20 +120,6 @@ export const anvioGames: Game[] = [
     image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1486660/header.jpg?t=1619858252",
     tags: ["adventure", "family", "fantasy", "flying"],
   },
-  {
-    id: "prince-of-persia",
-    title: "Prince of Persia: The Dagger of Time",
-    provider: "anvio",
-    description:
-      "A Ubisoft VR escape game set in the Prince of Persia universe. Solve time-manipulation puzzles and climb through the Fortress of Time.",
-    players: "1-4",
-    genre: "Escape Room",
-    duration: "30 min",
-    difficulty: "Medium",
-    image: "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/e9qxR05JFQf0FEo6EnkpZ/1703f8e5861f14bf2a6fc1a911dde7f1/TheDaggerOfTime_logo.png",
-    featured: true,
-    tags: ["puzzle", "escape-room", "co-op", "adventure"],
-  },
 ];
 
 export const synthesisGames: Game[] = [
@@ -148,6 +134,7 @@ export const synthesisGames: Game[] = [
     duration: "30 min",
     difficulty: "Medium",
     image: "https://cdn.synthesisvr.com/gameassets/svr_5906/compress-1.jpg",
+    videoUrl: "/videos/after-the-fall.mp4",
     featured: true,
     tags: ["action", "co-op", "shooter", "free-roam"],
   },
@@ -175,6 +162,7 @@ export const synthesisGames: Game[] = [
     duration: "30 min",
     difficulty: "Medium",
     image: "https://cdn.synthesisvr.com/gameassets/svr_78406/header460x215_1738909811.webp",
+    videoUrl: "/videos/arizona-sunshine.mp4",
     featured: true,
     tags: ["action", "co-op", "zombie", "free-roam"],
   },
@@ -202,6 +190,7 @@ export const synthesisGames: Game[] = [
     duration: "30 min",
     difficulty: "Medium",
     image: "https://cdn.synthesisvr.com/gameassets/svr_78307/header460x215_1731422933.webp",
+    videoUrl: "/videos/riddle-of-ruins.mp4",
     tags: ["puzzle", "adventure", "co-op", "exploration"],
   },
   {
@@ -254,6 +243,7 @@ export const synthesisGames: Game[] = [
     duration: "20 min",
     difficulty: "Easy",
     image: "https://cdn.synthesisvr.com/gameassets/svr_37837/header460x215_1727855823.webp",
+    videoUrl: "/videos/smurfs.mp4",
     tags: ["family", "casual", "fun", "kids"],
   },
   {
@@ -281,6 +271,20 @@ export const synthesisGames: Game[] = [
     difficulty: "Medium",
     image: "https://cdn.synthesisvr.com/gameassets/svr_79722/header460x215_1768386727.webp",
     tags: ["shooter", "tactical", "co-op", "pvp"],
+  },
+  {
+    id: "pixel-hack",
+    title: "Pixel Hack",
+    provider: "synthesis",
+    description:
+      "Multiplayer co-op shooter blending roguelike elements with retro pixel art. Choose from 4 weapon types, unlock 100+ upgrade skills, and battle through waves of enemies.",
+    players: "1-4",
+    genre: "Co-op Roguelike Shooter",
+    duration: "25 min",
+    difficulty: "Medium",
+    image: "https://cdn.synthesisvr.com/gameassets/svr_37324/header460x215_1720421660.webp",
+    videoUrl: "/videos/pixel-hack.mp4",
+    tags: ["co-op", "shooter", "roguelike", "retro"],
   },
 ];
 
