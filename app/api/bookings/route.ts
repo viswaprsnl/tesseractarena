@@ -6,6 +6,7 @@ import { toZonedTime } from "date-fns-tz";
 import {
   getBookedSlotsForDate,
   appendBooking,
+  getActiveBookingsByContact,
 } from "@/lib/google-sheets";
 import { sendBookingConfirmation, sendOwnerNotification } from "@/lib/email";
 import {
@@ -70,6 +71,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Invalid time slot for this date" },
         { status: 400 }
+      );
+    }
+
+    // Check booking limit (max 2 active bookings per person)
+    const activeBookings = await getActiveBookingsByContact(data.email, data.phone);
+    const activePayAtCenter = activeBookings.filter(b => b.paymentMethod === "pay_at_center");
+    if (activePayAtCenter.length >= 2 && data.paymentMethod === "pay_at_center") {
+      return NextResponse.json(
+        { error: "You already have 2 active bookings with Pay at Center. Please pay online or cancel an existing booking first." },
+        { status: 429 }
+      );
+    }
+    if (activeBookings.length >= 4) {
+      return NextResponse.json(
+        { error: "Maximum 4 active bookings allowed per person. Please cancel an existing booking first." },
+        { status: 429 }
       );
     }
 

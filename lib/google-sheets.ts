@@ -50,6 +50,29 @@ export async function getBookedSlotsForDate(
   return bookings.map((b) => b.timeSlot);
 }
 
+export async function getActiveBookingsByContact(
+  email: string,
+  phone: string
+): Promise<BookingRow[]> {
+  const sheets = getSheets();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${SHEET_NAME}!A2:R`,
+  });
+
+  const rows = res.data.values || [];
+  const today = new Date().toISOString().split("T")[0];
+
+  return rows
+    .filter(
+      (row) =>
+        (row[3] === email || row[4] === phone) &&
+        row[17] !== "cancelled" &&
+        row[5] >= today
+    )
+    .map(rowToBooking);
+}
+
 export async function appendBooking(booking: BookingRow): Promise<void> {
   const sheets = getSheets();
   await sheets.spreadsheets.values.append({
@@ -102,6 +125,38 @@ export async function updateBookingCells(
       data: requests,
     },
   });
+}
+
+export async function getExpiredPayAtCenterBookings(
+  hoursThreshold: number = 4
+): Promise<{ booking: BookingRow; rowIndex: number }[]> {
+  const sheets = getSheets();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${SHEET_NAME}!A2:R`,
+  });
+
+  const rows = res.data.values || [];
+  const now = new Date();
+  const expired: { booking: BookingRow; rowIndex: number }[] = [];
+
+  rows.forEach((row, i) => {
+    if (
+      row[10] === "pay_at_center" &&
+      row[17] !== "cancelled" &&
+      row[16] // has created_at
+    ) {
+      const createdAt = new Date(row[16]);
+      const hoursSinceCreation =
+        (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+
+      if (hoursSinceCreation >= hoursThreshold) {
+        expired.push({ booking: rowToBooking(row), rowIndex: i + 2 });
+      }
+    }
+  });
+
+  return expired;
 }
 
 function bookingToRow(b: BookingRow): string[] {

@@ -106,7 +106,12 @@ export async function sendBookingConfirmation(data: BookingEmailData): Promise<{
             Wear comfortable clothing and closed-toe shoes.<br/>
             Arrive 10 minutes early for setup.
           </p>
-          <p style="color: #555; font-size: 11px; margin-top: 15px;">
+          <p style="margin-top: 15px;">
+            <a href="https://tesseractarena.com/book/cancel?id=${data.bookingId}" style="color: #888; font-size: 11px; text-decoration: underline;">
+              Need to cancel? Click here
+            </a>
+          </p>
+          <p style="color: #555; font-size: 11px; margin-top: 10px;">
             © ${new Date().getFullYear()} Tesseract Arena. All rights reserved.
           </p>
         </div>
@@ -132,6 +137,48 @@ export async function sendOwnerNotification(data: BookingEmailData): Promise<{ d
         <p><strong>Game:</strong> ${data.gamePreference}</p>
         <p><strong>Amount:</strong> ₹${data.amount.toLocaleString("en-IN")}</p>
         <p><strong>Payment:</strong> ${data.paymentMethod === "razorpay" ? "Paid Online" : "Pay at Center"}</p>
+      </div>
+    `,
+  });
+}
+
+interface CancellationEmailData {
+  customerEmail: string;
+  customerName: string;
+  bookingId: string;
+  date: string;
+  time: string;
+}
+
+export async function sendCancellationEmail(data: CancellationEmailData): Promise<{ data: unknown; error: unknown }> {
+  return await getResend().emails.send({
+    from: "Tesseract Arena <bookings@tesseractarena.com>",
+    to: data.customerEmail,
+    subject: `Booking Cancelled - ${data.bookingId} | Tesseract Arena`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0a0a0f; color: #ffffff; padding: 40px 30px; border-radius: 12px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #6C3BFF; font-size: 24px; margin: 0;">TESSERACT ARENA</h1>
+        </div>
+        <div style="text-align: center; margin-bottom: 30px;">
+          <div style="display: inline-block; background: #dc2626; color: white; padding: 8px 20px; border-radius: 20px; font-size: 14px;">
+            ✕ Booking Cancelled
+          </div>
+        </div>
+        <h2 style="text-align: center; font-size: 20px; margin-bottom: 5px;">Hey ${data.customerName},</h2>
+        <p style="text-align: center; color: #aaa; font-size: 14px; margin-bottom: 30px;">
+          Your booking <strong style="color: #6C3BFF;">${data.bookingId}</strong> for ${data.date} at ${data.time} has been cancelled.
+        </p>
+        <div style="text-align: center; margin-bottom: 20px;">
+          <a href="https://tesseractarena.com/book" style="display: inline-block; background: #6C3BFF; color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+            Book a New Session
+          </a>
+        </div>
+        <div style="text-align: center; padding-top: 20px; border-top: 1px solid #333;">
+          <p style="color: #555; font-size: 11px;">
+            © ${new Date().getFullYear()} Tesseract Arena. All rights reserved.
+          </p>
+        </div>
       </div>
     `,
   });
