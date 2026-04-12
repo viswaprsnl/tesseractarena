@@ -106,7 +106,7 @@ export function DatePicker({ selectedDate, onSelectDate }: DatePickerProps) {
               onClick={() => !isDisabled && onSelectDate(dateStr)}
               disabled={isDisabled}
               className={`
-                aspect-square rounded-lg text-sm font-medium flex flex-col items-center justify-center transition-all relative
+                aspect-square rounded-lg text-sm font-medium flex flex-col items-center justify-center transition-all relative min-h-[44px]
                 ${isDisabled ? "opacity-20 cursor-not-allowed" : "hover:bg-primary/20 cursor-pointer"}
                 ${isSelected ? "bg-primary text-primary-foreground glow-violet" : ""}
                 ${isToday && !isSelected ? "ring-1 ring-accent" : ""}

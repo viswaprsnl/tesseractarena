@@ -48,7 +48,7 @@ export function TimeSlotGrid({
             {availableCount} slot{availableCount !== 1 ? "s" : ""} available · 30 min session + 10 min setup
           </p>
 
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {slots.map((slot) => {
               const isAvailable = slot.status === "available";
               const isSelected = selectedSlot === slot.time;

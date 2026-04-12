@@ -52,7 +52,7 @@ const features = [
 
 export function Features() {
   return (
-    <section className="relative py-24 px-4 overflow-hidden">
+    <section className="relative py-12 sm:py-24 px-4 overflow-hidden">
       {/* Background image */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-10"
@@ -66,7 +66,7 @@ export function Features() {
         <motion.div
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, amount: 0.3 }}
+          viewport={{ once: true, amount: 0.1 }}
           variants={fadeInUp}
           className="text-center mb-16"
         >

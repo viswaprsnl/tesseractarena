@@ -71,12 +71,12 @@ function GameCard({ game }: { game: Game }) {
 
 export function GamesLibrary() {
   return (
-    <section id="games" className="py-24 px-4">
+    <section id="games" className="py-12 sm:py-24 px-4">
       <div className="max-w-7xl mx-auto">
         <motion.div
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, amount: 0.3 }}
+          viewport={{ once: true, amount: 0.1 }}
           variants={fadeInUp}
           className="text-center mb-12"
         >

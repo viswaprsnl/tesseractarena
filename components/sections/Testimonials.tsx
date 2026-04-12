@@ -40,12 +40,12 @@ export function Testimonials() {
   };
 
   return (
-    <section className="py-24 px-4 bg-card/30">
+    <section className="py-12 sm:py-24 px-4 bg-card/30">
       <div className="max-w-4xl mx-auto">
         <motion.div
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, amount: 0.3 }}
+          viewport={{ once: true, amount: 0.1 }}
           variants={fadeInUp}
           className="text-center mb-16"
         >
@@ -98,17 +98,17 @@ export function Testimonials() {
           {/* Navigation */}
           <button
             onClick={prev}
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 sm:-translate-x-12 p-2 rounded-full bg-card/80 border border-white/10 text-muted-foreground hover:text-primary hover:border-primary/30 transition-colors"
+            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 sm:-translate-x-12 p-2.5 rounded-full bg-card/80 border border-white/10 text-muted-foreground hover:text-primary hover:border-primary/30 transition-colors z-10"
             aria-label="Previous testimonial"
           >
-            <ChevronLeft size={20} />
+            <ChevronLeft size={18} />
           </button>
           <button
             onClick={next}
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 sm:translate-x-12 p-2 rounded-full bg-card/80 border border-white/10 text-muted-foreground hover:text-primary hover:border-primary/30 transition-colors"
+            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 sm:translate-x-12 p-2.5 rounded-full bg-card/80 border border-white/10 text-muted-foreground hover:text-primary hover:border-primary/30 transition-colors z-10"
             aria-label="Next testimonial"
           >
-            <ChevronRight size={20} />
+            <ChevronRight size={18} />
           </button>
 
           {/* Dots */}
