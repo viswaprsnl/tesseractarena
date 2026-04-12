@@ -7,6 +7,7 @@ import {
   getBookedSlotsForDate,
   appendBooking,
 } from "@/lib/google-sheets";
+import { sendBookingConfirmation, sendOwnerNotification } from "@/lib/email";
 import {
   calculatePrice,
   isDateBookable,
@@ -114,30 +115,25 @@ export async function POST(request: NextRequest) {
     // Save to Google Sheets
     await appendBooking(booking);
 
-    // Send confirmation email via Web3Forms
+    // Send confirmation emails via Resend
+    const emailData = {
+      customerEmail: data.email,
+      customerName: data.name,
+      bookingId,
+      date: data.date,
+      time: formatTimeDisplay(data.timeSlot),
+      partySize: data.partySize,
+      packageType: data.package,
+      amount,
+      gamePreference: data.gamePreference,
+      paymentMethod: data.paymentMethod,
+    };
+
     try {
-      await fetch("https://api.web3forms.com/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          access_key: process.env.WEB3FORMS_ACCESS_KEY,
-          subject: `[Tesseract Arena] New Booking: ${bookingId}`,
-          from_name: data.name,
-          email: data.email,
-          booking_id: bookingId,
-          date: data.date,
-          time: formatTimeDisplay(data.timeSlot),
-          party_size: data.partySize,
-          package: data.package,
-          amount: `₹${amount}`,
-          payment_method:
-            data.paymentMethod === "razorpay"
-              ? "Online (Razorpay)"
-              : "Pay at Center",
-          game: data.gamePreference,
-          special_requests: data.specialRequests || "None",
-        }),
-      });
+      await Promise.all([
+        sendBookingConfirmation(emailData),
+        sendOwnerNotification(emailData),
+      ]);
     } catch {
       // Email failure shouldn't block booking
     }
