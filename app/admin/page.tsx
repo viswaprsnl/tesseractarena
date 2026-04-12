@@ -16,13 +16,14 @@ import {
   ChevronRight,
   AlertTriangle,
   Gamepad2,
+  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { formatTimeDisplay } from "@/lib/booking-config";
 import type { BookingRow } from "@/lib/booking-types";
-import { allGames } from "@/data/games";
+import { allGames, anvioGames, synthesisGames } from "@/data/games";
 
 type GameStatus = "available" | "unavailable" | "coming_soon" | "maintenance";
 
@@ -56,6 +57,8 @@ export default function AdminPage() {
   const [waiverCheck, setWaiverCheck] = useState<Record<string, boolean | null>>({});
   const [activeTab, setActiveTab] = useState<"bookings" | "games">("bookings");
   const [gameStatuses, setGameStatuses] = useState<Record<string, { status: GameStatus; note: string }>>({});
+  const [gameProvider, setGameProvider] = useState<"all" | "anvio" | "synthesis">("all");
+  const [gameSearch, setGameSearch] = useState("");
   const [updatingGame, setUpdatingGame] = useState<string | null>(null);
 
   const fetchGameStatuses = useCallback(async (authPin: string) => {
@@ -256,10 +259,50 @@ export default function AdminPage() {
         {activeTab === "games" && (
           <div className="space-y-3 mb-8">
             <h2 className="font-heading text-lg font-bold mb-4">Game Status Management</h2>
-            <p className="text-xs text-muted-foreground mb-6">
+            <p className="text-xs text-muted-foreground mb-4">
               Set game availability. Changes are reflected immediately on the website and booking form.
             </p>
-            {allGames.map((game) => {
+
+            {/* Search */}
+            <div className="relative mb-4">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search games..."
+                value={gameSearch}
+                onChange={(e) => setGameSearch(e.target.value)}
+                className="pl-9 bg-card/60 border-white/10"
+              />
+            </div>
+
+            {/* Provider tabs */}
+            <div className="flex gap-2 mb-6">
+              {([
+                { key: "all", label: "All Games", count: allGames.length },
+                { key: "anvio", label: "Anvio VR", count: anvioGames.length },
+                { key: "synthesis", label: "Synthesis VR", count: synthesisGames.length },
+              ] as const).map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setGameProvider(tab.key)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    gameProvider === tab.key
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary/50 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {tab.label} ({tab.count})
+                </button>
+              ))}
+            </div>
+
+            {allGames
+              .filter((g) => gameProvider === "all" || g.provider === gameProvider)
+              .filter((g) =>
+                gameSearch === "" ||
+                g.title.toLowerCase().includes(gameSearch.toLowerCase()) ||
+                g.genre.toLowerCase().includes(gameSearch.toLowerCase())
+              )
+              .map((game) => {
               const gs = gameStatuses[game.id];
               const currentStatus: GameStatus = (gs?.status as GameStatus) || "available";
               const currentNote = gs?.note || "";
