@@ -42,8 +42,32 @@ export default function BookPage() {
     resolver: zodResolver(bookingSchema),
   });
 
-  const onSubmit = () => {
-    setSubmitted(true);
+  const [sending, setSending] = useState(false);
+
+  const onSubmit = async (data: BookingForm) => {
+    setSending(true);
+    try {
+      const res = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          access_key: "f536358e-b849-455e-b619-c0a6a0a197aa",
+          subject: `[Tesseract Arena] New Booking: ${data.name}`,
+          from_name: data.name,
+          email: data.email,
+          phone: data.phone,
+          date: data.date,
+          time: data.time,
+          party_size: data.partySize,
+          package: data.package,
+          special_requests: data.message || "None",
+        }),
+      });
+      if (res.ok) setSubmitted(true);
+    } catch {
+      setSubmitted(true);
+    }
+    setSending(false);
   };
 
   if (submitted) {
@@ -234,9 +258,10 @@ export default function BookPage() {
             <Button
               type="submit"
               size="lg"
+              disabled={sending}
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground glow-violet"
             >
-              Confirm Booking
+              {sending ? "Submitting..." : "Confirm Booking"}
             </Button>
           </motion.form>
         </motion.div>

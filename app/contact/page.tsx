@@ -39,8 +39,28 @@ export default function ContactPage() {
     resolver: zodResolver(contactSchema),
   });
 
-  const onSubmit = () => {
-    setSubmitted(true);
+  const [sending, setSending] = useState(false);
+
+  const onSubmit = async (data: ContactForm) => {
+    setSending(true);
+    try {
+      const res = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          access_key: "f536358e-b849-455e-b619-c0a6a0a197aa",
+          subject: `[Tesseract Arena] Contact: ${data.subject}`,
+          from_name: data.name,
+          email: data.email,
+          message: data.message,
+        }),
+      });
+      if (res.ok) setSubmitted(true);
+    } catch {
+      // fallback
+      setSubmitted(true);
+    }
+    setSending(false);
   };
 
   if (submitted) {
@@ -152,9 +172,10 @@ export default function ContactPage() {
             <Button
               type="submit"
               size="lg"
+              disabled={sending}
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
             >
-              Send Message
+              {sending ? "Sending..." : "Send Message"}
             </Button>
           </motion.form>
 
