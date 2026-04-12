@@ -129,13 +129,17 @@ export async function POST(request: NextRequest) {
       paymentMethod: data.paymentMethod,
     };
 
+    let emailError: string | null = null;
     try {
-      await Promise.all([
+      const [custResult, ownerResult] = await Promise.all([
         sendBookingConfirmation(emailData),
         sendOwnerNotification(emailData),
       ]);
-    } catch {
-      // Email failure shouldn't block booking
+      console.log("Customer email result:", JSON.stringify(custResult));
+      console.log("Owner email result:", JSON.stringify(ownerResult));
+    } catch (err) {
+      emailError = err instanceof Error ? err.message : String(err);
+      console.error("Email sending failed:", emailError);
     }
 
     return NextResponse.json({
@@ -151,6 +155,7 @@ export async function POST(request: NextRequest) {
         paymentStatus,
         paymentMethod: data.paymentMethod,
       },
+      emailError,
     });
   } catch (error) {
     console.error("Error creating booking:", error);

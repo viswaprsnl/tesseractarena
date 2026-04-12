@@ -22,13 +22,13 @@ interface BookingEmailData {
   paymentMethod: string;
 }
 
-export async function sendBookingConfirmation(data: BookingEmailData) {
+export async function sendBookingConfirmation(data: BookingEmailData): Promise<{ data: unknown; error: unknown }> {
   const paymentText =
     data.paymentMethod === "razorpay"
       ? "Paid Online"
       : "Pay at Center (on arrival)";
 
-  await getResend().emails.send({
+  return await getResend().emails.send({
     from: "Tesseract Arena <onboarding@resend.dev>",
     to: data.customerEmail,
     subject: `Booking Confirmed - ${data.bookingId} | Tesseract Arena`,
@@ -115,8 +115,8 @@ export async function sendBookingConfirmation(data: BookingEmailData) {
   });
 }
 
-export async function sendOwnerNotification(data: BookingEmailData) {
-  await getResend().emails.send({
+export async function sendOwnerNotification(data: BookingEmailData): Promise<{ data: unknown; error: unknown }> {
+  return await getResend().emails.send({
     from: "Tesseract Arena <onboarding@resend.dev>",
     to: ["venkattessearact@gmail.com", "viswatesseract@gmail.com"],
     subject: `New Booking: ${data.bookingId} - ${data.customerName}`,
