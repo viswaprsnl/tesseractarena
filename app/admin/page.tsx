@@ -15,7 +15,6 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertTriangle,
-  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +42,24 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [waiverCheck, setWaiverCheck] = useState<Record<string, boolean | null>>({});
+
+  const checkAllWaivers = useCallback(async (bookingList: BookingRow[]) => {
+    const emails = [...new Set(bookingList.filter(b => b.status !== "cancelled").map(b => b.email))];
+    const results: Record<string, boolean | null> = {};
+    await Promise.all(
+      emails.map(async (email) => {
+        try {
+          const res = await fetch(`/api/waiver?email=${encodeURIComponent(email)}`);
+          const data = await res.json();
+          results[email] = data.signed;
+        } catch {
+          results[email] = null;
+        }
+      })
+    );
+    setWaiverCheck(results);
+  }, []);
 
   const fetchBookings = useCallback(
     async (date: string, authPin: string) => {
@@ -59,13 +76,14 @@ export default function AdminPage() {
         } else {
           setBookings(data.bookings);
           setStats(data.stats);
+          checkAllWaivers(data.bookings);
         }
       } catch {
         setError("Failed to fetch bookings");
       }
       setLoading(false);
     },
-    []
+    [checkAllWaivers]
   );
 
   const handleLogin = async () => {
@@ -102,18 +120,6 @@ export default function AdminPage() {
       setError("Failed to cancel booking");
     }
     setCancelling(null);
-  };
-
-  // Check waiver status
-  const [waiverCheck, setWaiverCheck] = useState<Record<string, boolean | null>>({});
-  const checkWaiver = async (email: string) => {
-    try {
-      const res = await fetch(`/api/waiver?email=${encodeURIComponent(email)}`);
-      const data = await res.json();
-      setWaiverCheck((prev) => ({ ...prev, [email]: data.signed }));
-    } catch {
-      setWaiverCheck((prev) => ({ ...prev, [email]: null }));
-    }
   };
 
   if (!authenticated) {
@@ -274,22 +280,18 @@ export default function AdminPage() {
                               ? "Paid"
                               : "Pay at Center"}
                           </Badge>
-                          {/* Waiver check */}
+                          {/* Waiver status */}
                           {waiverCheck[booking.email] === undefined ? (
-                            <button
-                              onClick={() => checkWaiver(booking.email)}
-                              className="text-[10px] text-muted-foreground hover:text-primary flex items-center gap-1"
-                            >
-                              <Search size={10} />
-                              Waiver?
-                            </button>
+                            <Badge className="bg-muted/30 text-muted-foreground text-[10px]">
+                              Checking...
+                            </Badge>
                           ) : waiverCheck[booking.email] ? (
                             <Badge className="bg-green-500/20 text-green-400 text-[10px]">
                               Waiver ✓
                             </Badge>
                           ) : (
                             <Badge className="bg-red-500/20 text-red-400 text-[10px]">
-                              No Waiver
+                              No Waiver ✕
                             </Badge>
                           )}
                         </div>
