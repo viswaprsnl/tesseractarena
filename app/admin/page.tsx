@@ -17,13 +17,17 @@ import {
   AlertTriangle,
   Gamepad2,
   Search,
+  Eye,
+  EyeOff,
+  Trash2,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { formatTimeDisplay } from "@/lib/booking-config";
 import type { BookingRow } from "@/lib/booking-types";
-import { allGames, anvioGames, synthesisGames } from "@/data/games";
+import { allGames, anvioGames, synthesisGames, type Game } from "@/data/games";
 
 type GameStatus = "available" | "unavailable" | "coming_soon" | "maintenance";
 
@@ -56,11 +60,13 @@ export default function AdminPage() {
   const [error, setError] = useState("");
   const [waiverCheck, setWaiverCheck] = useState<Record<string, boolean | null>>({});
   const [activeTab, setActiveTab] = useState<"bookings" | "games">("bookings");
-  const [gameStatuses, setGameStatuses] = useState<Record<string, { status: GameStatus; note: string; videoUrl?: string }>>({});
+  const [gameStatuses, setGameStatuses] = useState<Record<string, { status: GameStatus; note: string; videoUrl?: string; hidden?: boolean }>>({});
   const [gameProvider, setGameProvider] = useState<"all" | "anvio" | "synthesis">("all");
   const [gameSearch, setGameSearch] = useState("");
   const [editingGame, setEditingGame] = useState<string | null>(null);
   const [editNote, setEditNote] = useState("");
+  const [customGames, setCustomGames] = useState<Game[]>([]);
+  const [showAddForm, setShowAddForm] = useState(false);
   const [gameStatusFilter, setGameStatusFilter] = useState<"all" | GameStatus>("all");
   const [updatingGame, setUpdatingGame] = useState<string | null>(null);
 
@@ -68,13 +74,68 @@ export default function AdminPage() {
     try {
       const res = await fetch(`/api/admin/games?pin=${authPin}`);
       const data = await res.json();
-      if (data.statuses) {
-        setGameStatuses(data.statuses);
+      if (data.statuses) setGameStatuses(data.statuses);
+      if (data.customGames) {
+        setCustomGames(data.customGames.map((g: Record<string, string>) => ({
+          id: g.id, title: g.title, provider: g.provider as "anvio" | "synthesis",
+          description: g.description, players: g.players, genre: g.genre,
+          duration: g.duration, difficulty: g.difficulty, image: g.image,
+          videoUrl: g.videoUrl, tags: (g.tags || "").split(",").map((t: string) => t.trim()).filter(Boolean),
+        })));
       }
     } catch {
       // Silently fail
     }
   }, []);
+
+  const toggleGameHidden = async (gameId: string, currentlyHidden: boolean) => {
+    const gs = gameStatuses[gameId];
+    const status = (gs?.status as GameStatus) || "available";
+    const note = gs?.note || "";
+    setUpdatingGame(gameId);
+    try {
+      const res = await fetch("/api/admin/games", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin, gameId, status, note, hidden: !currentlyHidden }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setGameStatuses((prev) => ({ ...prev, [gameId]: { ...prev[gameId], status, note, hidden: !currentlyHidden } }));
+      }
+    } catch { setError("Failed to update"); }
+    setUpdatingGame(null);
+  };
+
+  const addCustomGame = async (newGame: Record<string, string>) => {
+    try {
+      const res = await fetch("/api/admin/games", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin, action: "add_game", newGame }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchGameStatuses(pin);
+        setShowAddForm(false);
+      }
+    } catch { setError("Failed to add game"); }
+  };
+
+  const deleteCustomGame = async (gameId: string) => {
+    if (!confirm("Delete this game permanently?")) return;
+    try {
+      const res = await fetch("/api/admin/games", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin, gameId, action: "delete_game" }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCustomGames((prev) => prev.filter((g) => g.id !== gameId));
+      }
+    } catch { setError("Failed to delete game"); }
+  };
 
   const updateGameStatus = async (gameId: string, status: GameStatus, note: string, videoUrl?: string) => {
     setUpdatingGame(gameId);
@@ -335,7 +396,70 @@ export default function AdminPage() {
               })}
             </div>
 
-            {allGames
+            {/* Add New Game button */}
+            <div className="mb-4">
+              <Button
+                onClick={() => setShowAddForm(!showAddForm)}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs"
+              >
+                <Plus size={14} className="mr-1" />
+                {showAddForm ? "Cancel" : "Add New Game"}
+              </Button>
+            </div>
+
+            {/* Add game form */}
+            {showAddForm && (
+              <div className="glass-card p-5 mb-6 space-y-3">
+                <h4 className="text-sm font-bold">Add New Game</h4>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const form = e.target as HTMLFormElement;
+                    const fd = new FormData(form);
+                    addCustomGame({
+                      title: fd.get("title") as string,
+                      provider: fd.get("provider") as string,
+                      description: fd.get("description") as string,
+                      players: fd.get("players") as string,
+                      genre: fd.get("genre") as string,
+                      duration: fd.get("duration") as string,
+                      difficulty: fd.get("difficulty") as string,
+                      image: fd.get("image") as string,
+                      videoUrl: fd.get("videoUrl") as string,
+                      tags: fd.get("tags") as string,
+                    });
+                  }}
+                  className="space-y-3"
+                >
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input name="title" placeholder="Game title *" required className="bg-card/60 border-white/10 text-xs h-8" />
+                    <select name="provider" className="h-8 rounded-md bg-card/60 border border-white/10 px-2 text-xs">
+                      <option value="anvio">Anvio VR</option>
+                      <option value="synthesis">Synthesis VR</option>
+                    </select>
+                  </div>
+                  <Input name="description" placeholder="Game description" className="bg-card/60 border-white/10 text-xs h-8" />
+                  <div className="grid grid-cols-4 gap-3">
+                    <Input name="players" placeholder="Players (1-4)" defaultValue="1-4" className="bg-card/60 border-white/10 text-xs h-8" />
+                    <Input name="genre" placeholder="Genre *" required className="bg-card/60 border-white/10 text-xs h-8" />
+                    <Input name="duration" placeholder="Duration" defaultValue="30 min" className="bg-card/60 border-white/10 text-xs h-8" />
+                    <select name="difficulty" className="h-8 rounded-md bg-card/60 border border-white/10 px-2 text-xs">
+                      <option value="Easy">Easy</option>
+                      <option value="Medium" selected>Medium</option>
+                      <option value="Hard">Hard</option>
+                    </select>
+                  </div>
+                  <Input name="image" placeholder="Image URL (paste thumbnail link)" className="bg-card/60 border-white/10 text-xs h-8" />
+                  <Input name="videoUrl" placeholder="Video URL (YouTube or MP4)" className="bg-card/60 border-white/10 text-xs h-8" />
+                  <Input name="tags" placeholder="Tags (comma-separated: action, co-op, shooter)" className="bg-card/60 border-white/10 text-xs h-8" />
+                  <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs">
+                    Add Game
+                  </Button>
+                </form>
+              </div>
+            )}
+
+            {[...allGames, ...customGames]
               .filter((g) => gameProvider === "all" || g.provider === gameProvider)
               .filter((g) => {
                 if (gameStatusFilter === "all") return true;
@@ -349,6 +473,7 @@ export default function AdminPage() {
                 g.genre.toLowerCase().includes(gameSearch.toLowerCase())
               )
               .map((game) => {
+              const isCustom = game.id.startsWith("custom-");
               const gs = gameStatuses[game.id];
               const currentStatus: GameStatus = (gs?.status as GameStatus) || "available";
               const currentNote = gs?.note || "";
@@ -366,6 +491,12 @@ export default function AdminPage() {
                         <span className="text-[10px] text-muted-foreground capitalize">
                           {game.provider}
                         </span>
+                        {isCustom && (
+                          <Badge className="text-[9px] bg-purple-500/20 text-purple-400">Custom</Badge>
+                        )}
+                        {gs?.hidden && (
+                          <Badge className="text-[9px] bg-red-500/20 text-red-400">Hidden</Badge>
+                        )}
                       </div>
                       {currentNote && editingGame !== game.id && (
                         <p className="text-xs text-amber-400/80 flex items-center gap-1">
@@ -398,6 +529,26 @@ export default function AdminPage() {
                       </select>
                       {updatingGame === game.id && (
                         <Loader2 size={14} className="animate-spin text-primary" />
+                      )}
+                      <button
+                        onClick={() => toggleGameHidden(game.id, gs?.hidden || false)}
+                        title={gs?.hidden ? "Show on website" : "Hide from website"}
+                        className={`p-1.5 rounded-md transition-colors ${
+                          gs?.hidden
+                            ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                            : "bg-secondary/50 text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {gs?.hidden ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                      {isCustom && (
+                        <button
+                          onClick={() => deleteCustomGame(game.id)}
+                          title="Delete game"
+                          className="p-1.5 rounded-md bg-secondary/50 text-muted-foreground hover:text-red-400 hover:bg-red-500/20 transition-colors"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       )}
                     </div>
                   </div>

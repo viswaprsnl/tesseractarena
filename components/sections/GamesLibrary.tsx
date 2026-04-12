@@ -10,7 +10,7 @@ import { anvioGames, synthesisGames, type Game } from "@/data/games";
 import { fadeInUp, staggerContainer, staggerFast } from "@/lib/animations";
 import { GamePreviewModal } from "@/components/GamePreviewModal";
 
-type GameStatusInfo = { status: string; note: string; videoUrl?: string };
+type GameStatusInfo = { status: string; note: string; videoUrl?: string; hidden?: boolean };
 
 const STATUS_BADGES: Record<string, { label: string; color: string }> = {
   unavailable: { label: "Unavailable", color: "bg-red-500/80 text-white" },
@@ -98,15 +98,29 @@ function GameCard({ game, status, onClick }: { game: Game; status?: GameStatusIn
 export function GamesLibrary() {
   const [gameStatuses, setGameStatuses] = useState<Record<string, GameStatusInfo>>({});
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [customGames, setCustomGames] = useState<Game[]>([]);
 
   useEffect(() => {
     fetch("/api/admin/games")
       .then((res) => res.json())
       .then((data) => {
         if (data.statuses) setGameStatuses(data.statuses);
+        if (data.customGames) {
+          setCustomGames(data.customGames.map((g: Record<string, string>) => ({
+            id: g.id, title: g.title, provider: g.provider as "anvio" | "synthesis",
+            description: g.description, players: g.players, genre: g.genre,
+            duration: g.duration, difficulty: g.difficulty, image: g.image,
+            videoUrl: g.videoUrl, tags: (g.tags || "").split(",").map((t: string) => t.trim()).filter(Boolean),
+          })));
+        }
       })
       .catch(() => {});
   }, []);
+
+  const visibleAnvio = [...anvioGames, ...customGames.filter(g => g.provider === "anvio")]
+    .filter(g => !gameStatuses[g.id]?.hidden);
+  const visibleSynthesis = [...synthesisGames, ...customGames.filter(g => g.provider === "synthesis")]
+    .filter(g => !gameStatuses[g.id]?.hidden);
 
   return (
     <section id="games" className="py-12 sm:py-24 px-4">
@@ -152,7 +166,7 @@ export function GamesLibrary() {
               variants={staggerFast}
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             >
-              {anvioGames.map((game) => (
+              {visibleAnvio.map((game) => (
                 <GameCard key={game.id} game={game} status={gameStatuses[game.id]} onClick={() => setSelectedGame(game)} />
               ))}
             </motion.div>
@@ -166,7 +180,7 @@ export function GamesLibrary() {
               variants={staggerFast}
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             >
-              {synthesisGames.map((game) => (
+              {visibleSynthesis.map((game) => (
                 <GameCard key={game.id} game={game} status={gameStatuses[game.id]} onClick={() => setSelectedGame(game)} />
               ))}
             </motion.div>

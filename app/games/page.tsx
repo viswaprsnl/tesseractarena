@@ -11,7 +11,7 @@ import { anvioGames, synthesisGames, type Game } from "@/data/games";
 import { fadeInUp, staggerFast } from "@/lib/animations";
 import { GamePreviewModal } from "@/components/GamePreviewModal";
 
-type GameStatusInfo = { status: string; note: string; videoUrl?: string };
+type GameStatusInfo = { status: string; note: string; videoUrl?: string; hidden?: boolean };
 
 const STATUS_BADGES: Record<string, { label: string; color: string }> = {
   unavailable: { label: "Unavailable", color: "bg-red-500/80 text-white" },
@@ -98,13 +98,29 @@ export default function GamesPage() {
   const [search, setSearch] = useState("");
   const [gameStatuses, setGameStatuses] = useState<Record<string, GameStatusInfo>>({});
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [customGames, setCustomGames] = useState<Game[]>([]);
 
   useEffect(() => {
     fetch("/api/admin/games")
       .then((res) => res.json())
-      .then((data) => { if (data.statuses) setGameStatuses(data.statuses); })
+      .then((data) => {
+        if (data.statuses) setGameStatuses(data.statuses);
+        if (data.customGames) {
+          setCustomGames(data.customGames.map((g: Record<string, string>) => ({
+            id: g.id, title: g.title, provider: g.provider as "anvio" | "synthesis",
+            description: g.description, players: g.players, genre: g.genre,
+            duration: g.duration, difficulty: g.difficulty, image: g.image,
+            videoUrl: g.videoUrl, tags: (g.tags || "").split(",").map((t: string) => t.trim()).filter(Boolean),
+          })));
+        }
+      })
       .catch(() => {});
   }, []);
+
+  const allAnvio = [...anvioGames, ...customGames.filter(g => g.provider === "anvio")]
+    .filter(g => !gameStatuses[g.id]?.hidden);
+  const allSynthesis = [...synthesisGames, ...customGames.filter(g => g.provider === "synthesis")]
+    .filter(g => !gameStatuses[g.id]?.hidden);
 
   const filterGames = (games: Game[]) =>
     games.filter(
@@ -152,13 +168,13 @@ export default function GamesPage() {
                 value="anvio"
                 className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-heading text-xs tracking-wider"
               >
-                Anvio VR ({filterGames(anvioGames).length})
+                Anvio VR ({filterGames(allAnvio).length})
               </TabsTrigger>
               <TabsTrigger
                 value="synthesis"
                 className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-heading text-xs tracking-wider"
               >
-                Synthesis VR ({filterGames(synthesisGames).length})
+                Synthesis VR ({filterGames(allSynthesis).length})
               </TabsTrigger>
             </TabsList>
           </div>
@@ -170,7 +186,7 @@ export default function GamesPage() {
               variants={staggerFast}
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             >
-              {filterGames(anvioGames).map((game) => (
+              {filterGames(allAnvio).map((game) => (
                 <GameCard key={game.id} game={game} status={gameStatuses[game.id]} onClick={() => setSelectedGame(game)} />
               ))}
             </motion.div>
@@ -183,7 +199,7 @@ export default function GamesPage() {
               variants={staggerFast}
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             >
-              {filterGames(synthesisGames).map((game) => (
+              {filterGames(allSynthesis).map((game) => (
                 <GameCard key={game.id} game={game} status={gameStatuses[game.id]} onClick={() => setSelectedGame(game)} />
               ))}
             </motion.div>
