@@ -59,6 +59,8 @@ export default function AdminPage() {
   const [gameStatuses, setGameStatuses] = useState<Record<string, { status: GameStatus; note: string }>>({});
   const [gameProvider, setGameProvider] = useState<"all" | "anvio" | "synthesis">("all");
   const [gameSearch, setGameSearch] = useState("");
+  const [editingGame, setEditingGame] = useState<string | null>(null);
+  const [editNote, setEditNote] = useState("");
   const [updatingGame, setUpdatingGame] = useState<string | null>(null);
 
   const fetchGameStatuses = useCallback(async (authPin: string) => {
@@ -321,7 +323,7 @@ export default function AdminPage() {
                           {game.provider}
                         </span>
                       </div>
-                      {currentNote && (
+                      {currentNote && editingGame !== game.id && (
                         <p className="text-xs text-amber-400/80 flex items-center gap-1">
                           <AlertTriangle size={10} />
                           {currentNote}
@@ -334,10 +336,13 @@ export default function AdminPage() {
                         value={currentStatus}
                         onChange={(e) => {
                           const newStatus = e.target.value as GameStatus;
-                          const note = newStatus !== "available"
-                            ? prompt("Add a note (optional):", currentNote) ?? currentNote
-                            : "";
-                          updateGameStatus(game.id, newStatus, note);
+                          if (newStatus === "available") {
+                            updateGameStatus(game.id, newStatus, "");
+                            setEditingGame(null);
+                          } else {
+                            setEditingGame(game.id);
+                            setEditNote(currentNote);
+                          }
                         }}
                         disabled={updatingGame === game.id}
                         className="h-8 rounded-md bg-card/60 border border-white/10 px-2 text-xs"
@@ -352,6 +357,44 @@ export default function AdminPage() {
                       )}
                     </div>
                   </div>
+
+                  {/* Inline note editor */}
+                  {editingGame === game.id && (
+                    <div className="mt-3 flex gap-2">
+                      <Input
+                        placeholder="Add a note (optional) e.g. Headset repair until Friday"
+                        value={editNote}
+                        onChange={(e) => setEditNote(e.target.value)}
+                        className="bg-card/60 border-white/10 text-xs h-8 flex-1"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            const select = document.querySelector(`select[value="${currentStatus}"]`) as HTMLSelectElement | null;
+                            const newStatus = select?.value as GameStatus || currentStatus;
+                            const statusToSave = newStatus === "available" ? currentStatus : newStatus;
+                            updateGameStatus(game.id, statusToSave !== "available" ? statusToSave : "unavailable", editNote);
+                            setEditingGame(null);
+                          }
+                        }}
+                      />
+                      <Button
+                        onClick={() => {
+                          const statusToSave = currentStatus === "available" ? "unavailable" : currentStatus;
+                          updateGameStatus(game.id, statusToSave, editNote);
+                          setEditingGame(null);
+                        }}
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs h-8 px-3"
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        onClick={() => setEditingGame(null)}
+                        variant="outline"
+                        className="border-white/20 text-xs h-8 px-3"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
                 </div>
               );
             })}
