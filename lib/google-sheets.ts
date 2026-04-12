@@ -127,9 +127,7 @@ export async function updateBookingCells(
   });
 }
 
-export async function getExpiredPayAtCenterBookings(
-  hoursThreshold: number = 4
-): Promise<{ booking: BookingRow; rowIndex: number }[]> {
+export async function getExpiredPayAtCenterBookings(): Promise<{ booking: BookingRow; rowIndex: number }[]> {
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
@@ -144,13 +142,18 @@ export async function getExpiredPayAtCenterBookings(
     if (
       row[10] === "pay_at_center" &&
       row[17] !== "cancelled" &&
-      row[16] // has created_at
+      row[5] && row[6] // has date and time_slot
     ) {
-      const createdAt = new Date(row[16]);
-      const hoursSinceCreation =
-        (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+      // Build the session start time
+      const [hours, mins] = (row[6] as string).split(":").map(Number);
+      const sessionDate = new Date(row[5] + "T00:00:00+05:30");
+      sessionDate.setHours(hours, mins, 0, 0);
 
-      if (hoursSinceCreation >= hoursThreshold) {
+      // Expire if session starts within 4 hours or has already passed
+      const hoursUntilSession =
+        (sessionDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+      if (hoursUntilSession <= 4) {
         expired.push({ booking: rowToBooking(row), rowIndex: i + 2 });
       }
     }

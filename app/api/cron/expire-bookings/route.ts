@@ -13,8 +13,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Find pay-at-center bookings older than 4 hours
-    const expired = await getExpiredPayAtCenterBookings(4);
+    // Find pay-at-center bookings where session starts within 4 hours or has passed
+    const expired = await getExpiredPayAtCenterBookings();
 
     let cancelled = 0;
     for (const { booking, rowIndex } of expired) {
