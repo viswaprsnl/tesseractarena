@@ -9,8 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { anvioGames, synthesisGames, type Game } from "@/data/games";
 import { fadeInUp, staggerFast } from "@/lib/animations";
+import { GamePreviewModal } from "@/components/GamePreviewModal";
 
-type GameStatusInfo = { status: string; note: string };
+type GameStatusInfo = { status: string; note: string; videoUrl?: string };
 
 const STATUS_BADGES: Record<string, { label: string; color: string }> = {
   unavailable: { label: "Unavailable", color: "bg-red-500/80 text-white" },
@@ -18,13 +19,14 @@ const STATUS_BADGES: Record<string, { label: string; color: string }> = {
   maintenance: { label: "Maintenance", color: "bg-amber-500/80 text-white" },
 };
 
-function GameCard({ game, status }: { game: Game; status?: GameStatusInfo }) {
+function GameCard({ game, status, onClick }: { game: Game; status?: GameStatusInfo; onClick: () => void }) {
   const isUnavailable = status && status.status !== "available";
 
   return (
     <motion.div
       variants={fadeInUp}
-      className={`glass-card overflow-hidden group transition-transform duration-300 ${
+      onClick={onClick}
+      className={`glass-card overflow-hidden group transition-transform duration-300 cursor-pointer ${
         isUnavailable ? "opacity-60" : "hover:-translate-y-1"
       }`}
     >
@@ -95,6 +97,7 @@ function GameCard({ game, status }: { game: Game; status?: GameStatusInfo }) {
 export default function GamesPage() {
   const [search, setSearch] = useState("");
   const [gameStatuses, setGameStatuses] = useState<Record<string, GameStatusInfo>>({});
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
 
   useEffect(() => {
     fetch("/api/admin/games")
@@ -168,7 +171,7 @@ export default function GamesPage() {
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             >
               {filterGames(anvioGames).map((game) => (
-                <GameCard key={game.id} game={game} status={gameStatuses[game.id]} />
+                <GameCard key={game.id} game={game} status={gameStatuses[game.id]} onClick={() => setSelectedGame(game)} />
               ))}
             </motion.div>
           </TabsContent>
@@ -181,12 +184,19 @@ export default function GamesPage() {
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             >
               {filterGames(synthesisGames).map((game) => (
-                <GameCard key={game.id} game={game} status={gameStatuses[game.id]} />
+                <GameCard key={game.id} game={game} status={gameStatuses[game.id]} onClick={() => setSelectedGame(game)} />
               ))}
             </motion.div>
           </TabsContent>
         </Tabs>
       </div>
+
+      <GamePreviewModal
+        game={selectedGame}
+        videoUrl={selectedGame ? (gameStatuses[selectedGame.id]?.videoUrl || selectedGame.videoUrl) : undefined}
+        statusInfo={selectedGame ? gameStatuses[selectedGame.id] : undefined}
+        onClose={() => setSelectedGame(null)}
+      />
     </div>
   );
 }

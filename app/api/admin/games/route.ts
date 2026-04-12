@@ -34,10 +34,10 @@ async function ensureSheet() {
       });
       await sheets.spreadsheets.values.update({
         spreadsheetId: SPREADSHEET_ID,
-        range: `${SHEET_NAME}!A1:D1`,
+        range: `${SHEET_NAME}!A1:E1`,
         valueInputOption: "RAW",
         requestBody: {
-          values: [["game_id", "status", "note", "updated_at"]],
+          values: [["game_id", "status", "note", "updated_at", "video_url"]],
         },
       });
     } catch {
@@ -59,11 +59,11 @@ export async function GET(request: NextRequest) {
     const sheets = google.sheets({ version: "v4", auth: getAuth() });
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAME}!A2:D`,
+      range: `${SHEET_NAME}!A2:E`,
     });
 
     const rows = (res.data.values || []) as string[][];
-    const statuses: Record<string, { status: string; note: string; updatedAt: string }> = {};
+    const statuses: Record<string, { status: string; note: string; updatedAt: string; videoUrl: string }> = {};
 
     rows.forEach((row) => {
       if (row[0]) {
@@ -71,6 +71,7 @@ export async function GET(request: NextRequest) {
           status: row[1] || "available",
           note: row[2] || "",
           updatedAt: row[3] || "",
+          videoUrl: row[4] || "",
         };
       }
     });
@@ -94,7 +95,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { pin, gameId, status, note } = body;
+    const { pin, gameId, status, note, videoUrl } = body;
 
     const adminPin = process.env.ADMIN_PIN || "1234";
     if (pin !== adminPin) {
@@ -124,31 +125,31 @@ export async function POST(request: NextRequest) {
     // Check if game already has a row
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAME}!A2:D`,
+      range: `${SHEET_NAME}!A2:E`,
     });
 
     const rows = (res.data.values || []) as string[][];
     const existingIndex = rows.findIndex((row) => row[0] === gameId);
+    const existingVideoUrl = existingIndex >= 0 ? (rows[existingIndex][4] || "") : "";
+    const finalVideoUrl = videoUrl !== undefined ? videoUrl : existingVideoUrl;
 
     if (existingIndex >= 0) {
-      // Update existing row
       const rowNum = existingIndex + 2;
       await sheets.spreadsheets.values.update({
         spreadsheetId: SPREADSHEET_ID,
-        range: `${SHEET_NAME}!A${rowNum}:D${rowNum}`,
+        range: `${SHEET_NAME}!A${rowNum}:E${rowNum}`,
         valueInputOption: "RAW",
         requestBody: {
-          values: [[gameId, status, note || "", now]],
+          values: [[gameId, status, note || "", now, finalVideoUrl]],
         },
       });
     } else {
-      // Append new row
       await sheets.spreadsheets.values.append({
         spreadsheetId: SPREADSHEET_ID,
-        range: `${SHEET_NAME}!A:D`,
+        range: `${SHEET_NAME}!A:E`,
         valueInputOption: "RAW",
         requestBody: {
-          values: [[gameId, status, note || "", now]],
+          values: [[gameId, status, note || "", now, finalVideoUrl]],
         },
       });
     }
@@ -158,6 +159,7 @@ export async function POST(request: NextRequest) {
       gameId,
       status,
       note: note || "",
+      videoUrl: finalVideoUrl,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

@@ -56,7 +56,7 @@ export default function AdminPage() {
   const [error, setError] = useState("");
   const [waiverCheck, setWaiverCheck] = useState<Record<string, boolean | null>>({});
   const [activeTab, setActiveTab] = useState<"bookings" | "games">("bookings");
-  const [gameStatuses, setGameStatuses] = useState<Record<string, { status: GameStatus; note: string }>>({});
+  const [gameStatuses, setGameStatuses] = useState<Record<string, { status: GameStatus; note: string; videoUrl?: string }>>({});
   const [gameProvider, setGameProvider] = useState<"all" | "anvio" | "synthesis">("all");
   const [gameSearch, setGameSearch] = useState("");
   const [editingGame, setEditingGame] = useState<string | null>(null);
@@ -76,19 +76,19 @@ export default function AdminPage() {
     }
   }, []);
 
-  const updateGameStatus = async (gameId: string, status: GameStatus, note: string) => {
+  const updateGameStatus = async (gameId: string, status: GameStatus, note: string, videoUrl?: string) => {
     setUpdatingGame(gameId);
     try {
       const res = await fetch("/api/admin/games", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin, gameId, status, note }),
+        body: JSON.stringify({ pin, gameId, status, note, videoUrl }),
       });
       const data = await res.json();
       if (data.success) {
         setGameStatuses((prev) => ({
           ...prev,
-          [gameId]: { status, note },
+          [gameId]: { status, note, videoUrl: data.videoUrl || prev[gameId]?.videoUrl || "" },
         }));
       }
     } catch {
@@ -412,10 +412,8 @@ export default function AdminPage() {
                         className="bg-card/60 border-white/10 text-xs h-8 flex-1"
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
-                            const select = document.querySelector(`select[value="${currentStatus}"]`) as HTMLSelectElement | null;
-                            const newStatus = select?.value as GameStatus || currentStatus;
-                            const statusToSave = newStatus === "available" ? currentStatus : newStatus;
-                            updateGameStatus(game.id, statusToSave !== "available" ? statusToSave : "unavailable", editNote);
+                            const statusToSave = currentStatus === "available" ? "unavailable" : currentStatus;
+                            updateGameStatus(game.id, statusToSave, editNote);
                             setEditingGame(null);
                           }
                         }}
@@ -439,6 +437,32 @@ export default function AdminPage() {
                       </Button>
                     </div>
                   )}
+
+                  {/* Video URL */}
+                  <div className="mt-2 flex gap-2 items-center">
+                    <Input
+                      placeholder="YouTube video URL (paste link)"
+                      defaultValue={gs?.videoUrl || ""}
+                      onBlur={(e) => {
+                        const newUrl = e.target.value.trim();
+                        const oldUrl = gs?.videoUrl || "";
+                        if (newUrl !== oldUrl) {
+                          updateGameStatus(game.id, currentStatus, currentNote, newUrl);
+                        }
+                      }}
+                      className="bg-card/60 border-white/10 text-[11px] h-7 flex-1"
+                    />
+                    {gs?.videoUrl && (
+                      <a
+                        href={gs.videoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] text-primary hover:underline shrink-0"
+                      >
+                        Preview ↗
+                      </a>
+                    )}
+                  </div>
                 </div>
               );
             })}

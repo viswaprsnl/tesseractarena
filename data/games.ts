@@ -8,6 +8,7 @@ export interface Game {
   duration: string;
   difficulty: string;
   image: string;
+  videoUrl?: string;
   featured?: boolean;
   tags: string[];
 }
