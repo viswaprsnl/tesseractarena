@@ -61,6 +61,7 @@ export default function AdminPage() {
   const [gameSearch, setGameSearch] = useState("");
   const [editingGame, setEditingGame] = useState<string | null>(null);
   const [editNote, setEditNote] = useState("");
+  const [gameStatusFilter, setGameStatusFilter] = useState<"all" | GameStatus>("all");
   const [updatingGame, setUpdatingGame] = useState<string | null>(null);
 
   const fetchGameStatuses = useCallback(async (authPin: string) => {
@@ -297,8 +298,51 @@ export default function AdminPage() {
               ))}
             </div>
 
+            {/* Status filter tags */}
+            <div className="flex flex-wrap gap-2 mb-6">
+              {([
+                { key: "all", label: "All", color: "bg-secondary/50 text-muted-foreground" },
+                { key: "available", label: "✅ Available", color: "bg-green-500/20 text-green-400" },
+                { key: "unavailable", label: "❌ Unavailable", color: "bg-red-500/20 text-red-400" },
+                { key: "maintenance", label: "🔧 Maintenance", color: "bg-amber-500/20 text-amber-400" },
+                { key: "coming_soon", label: "🔜 Coming Soon", color: "bg-blue-500/20 text-blue-400" },
+              ] as const).map((tag) => {
+                const count = tag.key === "all"
+                  ? allGames.filter((g) => gameProvider === "all" || g.provider === gameProvider).length
+                  : allGames
+                      .filter((g) => gameProvider === "all" || g.provider === gameProvider)
+                      .filter((g) => {
+                        const gs = gameStatuses[g.id];
+                        const s = (gs?.status as GameStatus) || "available";
+                        return s === tag.key;
+                      }).length;
+
+                if (tag.key !== "all" && count === 0) return null;
+
+                return (
+                  <button
+                    key={tag.key}
+                    onClick={() => setGameStatusFilter(tag.key)}
+                    className={`px-3 py-1 rounded-full text-[11px] font-medium transition-all ${
+                      gameStatusFilter === tag.key
+                        ? `${tag.color} ring-1 ring-white/20`
+                        : `${tag.color} opacity-60 hover:opacity-100`
+                    }`}
+                  >
+                    {tag.label} ({count})
+                  </button>
+                );
+              })}
+            </div>
+
             {allGames
               .filter((g) => gameProvider === "all" || g.provider === gameProvider)
+              .filter((g) => {
+                if (gameStatusFilter === "all") return true;
+                const gs = gameStatuses[g.id];
+                const s = (gs?.status as GameStatus) || "available";
+                return s === gameStatusFilter;
+              })
               .filter((g) =>
                 gameSearch === "" ||
                 g.title.toLowerCase().includes(gameSearch.toLowerCase()) ||
