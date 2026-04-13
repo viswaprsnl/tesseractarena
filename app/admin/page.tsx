@@ -21,6 +21,8 @@ import {
   EyeOff,
   Trash2,
   Plus,
+  Settings,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +49,38 @@ interface Stats {
   totalRevenue: number;
 }
 
+function ServiceCard({ name, purpose, plan, limits, upgrade, url, login, status }: {
+  name: string; purpose: string; plan: string; limits: string; upgrade: string; url: string; login: string; status: "active" | "pending";
+}) {
+  return (
+    <div className="glass-card p-4">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-sm font-medium">{name}</span>
+            <Badge className={`text-[10px] ${status === "active" ? "bg-green-500/20 text-green-400" : "bg-amber-500/20 text-amber-400"}`}>
+              {status === "active" ? "Active" : "Not set up"}
+            </Badge>
+            <span className="text-[10px] text-muted-foreground">{plan}</span>
+          </div>
+          <p className="text-xs text-muted-foreground mb-1">{purpose}</p>
+          <p className="text-[11px] text-muted-foreground/70"><strong>Limits:</strong> {limits}</p>
+          <p className="text-[11px] text-muted-foreground/70"><strong>Upgrade:</strong> {upgrade}</p>
+          <p className="text-[11px] text-muted-foreground/70"><strong>Login:</strong> {login}</p>
+        </div>
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-xs text-primary hover:underline shrink-0"
+        >
+          Dashboard <ExternalLink size={10} />
+        </a>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const [pin, setPin] = useState("");
   const [authenticated, setAuthenticated] = useState(false);
@@ -59,7 +93,7 @@ export default function AdminPage() {
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [waiverCheck, setWaiverCheck] = useState<Record<string, boolean | null>>({});
-  const [activeTab, setActiveTab] = useState<"bookings" | "games">("bookings");
+  const [activeTab, setActiveTab] = useState<"bookings" | "games" | "services">("bookings");
   const [gameStatuses, setGameStatuses] = useState<Record<string, { status: GameStatus; note: string; videoUrl?: string; hidden?: boolean }>>({});
   const [gameProvider, setGameProvider] = useState<"all" | "anvio" | "synthesis">("all");
   const [gameSearch, setGameSearch] = useState("");
@@ -318,7 +352,210 @@ export default function AdminPage() {
             <Gamepad2 size={16} />
             Games
           </button>
+          <button
+            onClick={() => setActiveTab("services")}
+            className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+              activeTab === "services"
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Settings size={16} />
+            Services
+          </button>
         </div>
+
+        {activeTab === "services" && (
+          <div className="space-y-6 mb-8">
+            <div>
+              <h2 className="font-heading text-lg font-bold mb-2">Service Dashboard</h2>
+              <p className="text-xs text-muted-foreground mb-6">
+                All services powering Tesseract Arena. Bookmark this page — it&apos;s your single source of truth.
+              </p>
+            </div>
+
+            {/* Hosting & Domain */}
+            <div>
+              <h3 className="text-sm font-semibold text-primary mb-3">🌐 Hosting & Domain</h3>
+              <div className="space-y-2">
+                <ServiceCard
+                  name="Vercel"
+                  purpose="Website hosting, CDN, auto-deploy"
+                  plan="Hobby (Free)"
+                  limits="100 GB bandwidth/month, 1 daily cron job, 100 GB-hrs serverless"
+                  upgrade="Pro $20/month — unlimited cron, 1TB bandwidth, team access"
+                  url="https://vercel.com/dashboard"
+                  login="viswatesseract@gmail.com"
+                  status="active"
+                />
+                <ServiceCard
+                  name="GoDaddy"
+                  purpose="Domain: tesseractarena.com"
+                  plan="Domain registration"
+                  limits="Renews annually (~₹1,500/year)"
+                  upgrade="Enable auto-renew to avoid expiration"
+                  url="https://dcc.godaddy.com/manage-dns"
+                  login="Domain owner account"
+                  status="active"
+                />
+                <ServiceCard
+                  name="GitHub"
+                  purpose="Code repository (viswaprsnl/tesseractarena)"
+                  plan="Free"
+                  limits="Unlimited public repos, 500 MB storage per repo"
+                  upgrade="Not needed for this project"
+                  url="https://github.com/viswaprsnl/tesseractarena"
+                  login="viswaprsnl"
+                  status="active"
+                />
+              </div>
+            </div>
+
+            {/* Data & Storage */}
+            <div>
+              <h3 className="text-sm font-semibold text-primary mb-3">📊 Data & Storage</h3>
+              <div className="space-y-2">
+                <ServiceCard
+                  name="Google Sheets"
+                  purpose="Booking database, waiver records, game status"
+                  plan="Free (Google Workspace)"
+                  limits="10 million cells per spreadsheet, 60 API reads/min"
+                  upgrade="Google Workspace ₹136/user/month if you need more API quota"
+                  url="https://docs.google.com/spreadsheets/d/1_vuRkYYCdz_f7mSEJQjYslOyKjjvYd60938hmxsMpQo"
+                  login="viswatesseract@gmail.com"
+                  status="active"
+                />
+                <ServiceCard
+                  name="Google Cloud"
+                  purpose="Service account for Sheets API access"
+                  plan="Free tier"
+                  limits="Sheets API: free unlimited. Service account key should be rotated yearly."
+                  upgrade="Not needed unless adding more Google APIs"
+                  url="https://console.cloud.google.com"
+                  login="viswatesseract@gmail.com"
+                  status="active"
+                />
+              </div>
+            </div>
+
+            {/* Email */}
+            <div>
+              <h3 className="text-sm font-semibold text-primary mb-3">📧 Email</h3>
+              <div className="space-y-2">
+                <ServiceCard
+                  name="Resend"
+                  purpose="Customer booking confirmations, cancellation emails"
+                  plan="Free"
+                  limits="3,000 emails/month, 100 emails/day"
+                  upgrade="Pro $20/month — 50,000 emails/month. Upgrade when daily bookings exceed ~30."
+                  url="https://resend.com/overview"
+                  login="viswatesseract@gmail.com"
+                  status="active"
+                />
+                <ServiceCard
+                  name="Web3Forms"
+                  purpose="Contact form submissions (owner notification)"
+                  plan="Free"
+                  limits="Unlimited submissions"
+                  upgrade="Not needed"
+                  url="https://web3forms.com"
+                  login="Access key in Vercel env vars"
+                  status="active"
+                />
+              </div>
+            </div>
+
+            {/* Payment (pending) */}
+            <div>
+              <h3 className="text-sm font-semibold text-primary mb-3">💳 Payment</h3>
+              <div className="space-y-2">
+                <ServiceCard
+                  name="Razorpay"
+                  purpose="Online payment gateway (UPI, cards, net banking)"
+                  plan="Not set up yet"
+                  limits="2% per transaction (standard). No monthly fee."
+                  upgrade="Sign up at razorpay.com → get API keys → add to Vercel env vars"
+                  url="https://dashboard.razorpay.com"
+                  login="—"
+                  status="pending"
+                />
+              </div>
+            </div>
+
+            {/* Environment Variables */}
+            <div>
+              <h3 className="text-sm font-semibold text-primary mb-3">🔑 Environment Variables (Vercel)</h3>
+              <div className="glass-card p-4">
+                <div className="space-y-2 text-xs font-mono">
+                  {[
+                    { key: "GOOGLE_SHEETS_SPREADSHEET_ID", set: true },
+                    { key: "GOOGLE_SERVICE_ACCOUNT_EMAIL", set: true },
+                    { key: "GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY", set: true },
+                    { key: "RESEND_API_KEY", set: true },
+                    { key: "WEB3FORMS_ACCESS_KEY", set: true },
+                    { key: "ADMIN_PIN", set: true },
+                    { key: "RAZORPAY_KEY_ID", set: false },
+                    { key: "RAZORPAY_KEY_SECRET", set: false },
+                    { key: "NEXT_PUBLIC_RAZORPAY_KEY_ID", set: false },
+                  ].map((env) => (
+                    <div key={env.key} className="flex items-center gap-2">
+                      <span className={env.set ? "text-green-400" : "text-amber-400"}>
+                        {env.set ? "✓" : "○"}
+                      </span>
+                      <span className="text-muted-foreground">{env.key}</span>
+                    </div>
+                  ))}
+                </div>
+                <a
+                  href="https://vercel.com/viswatesseract-1662s-projects/tesseractarena/settings/environment-variables"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-3"
+                >
+                  Manage in Vercel <ExternalLink size={10} />
+                </a>
+              </div>
+            </div>
+
+            {/* Monthly cost summary */}
+            <div className="glass-card p-5">
+              <h3 className="text-sm font-semibold mb-3">💰 Monthly Cost Summary</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Vercel hosting</span><span className="text-green-400">Free</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Google Sheets</span><span className="text-green-400">Free</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Resend emails</span><span className="text-green-400">Free</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Web3Forms</span><span className="text-green-400">Free</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">GitHub</span><span className="text-green-400">Free</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Google Cloud</span><span className="text-green-400">Free</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Domain (yearly)</span><span>~₹1,500/yr</span></div>
+                <div className="flex justify-between pt-2 border-t border-white/10 font-bold"><span>Total</span><span className="text-primary">~₹125/month</span></div>
+              </div>
+            </div>
+
+            {/* When to upgrade guide */}
+            <div className="glass-card p-5">
+              <h3 className="text-sm font-semibold mb-3">📈 When to Upgrade</h3>
+              <div className="space-y-3 text-xs text-muted-foreground">
+                <div className="flex gap-2">
+                  <span className="text-amber-400 shrink-0">→</span>
+                  <span><strong className="text-foreground">Resend:</strong> Upgrade when you get 30+ bookings/day (hitting 100 emails/day limit). Pro is $20/month.</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-amber-400 shrink-0">→</span>
+                  <span><strong className="text-foreground">Vercel:</strong> Upgrade when you need hourly cron jobs or hit 100GB bandwidth. Pro is $20/month.</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-amber-400 shrink-0">→</span>
+                  <span><strong className="text-foreground">Google Sheets:</strong> Upgrade to a real database (Supabase/PlanetScale) when you hit 500+ bookings/month or need faster queries.</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-amber-400 shrink-0">→</span>
+                  <span><strong className="text-foreground">Razorpay:</strong> No monthly fee. Just 2% per transaction. Set up whenever you want online payments.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {activeTab === "games" && (
           <div className="space-y-3 mb-8">
