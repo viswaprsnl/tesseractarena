@@ -93,7 +93,7 @@ export default function AdminPage() {
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [waiverCheck, setWaiverCheck] = useState<Record<string, boolean | null>>({});
-  const [activeTab, setActiveTab] = useState<"bookings" | "games" | "services">("bookings");
+  const [activeTab, setActiveTab] = useState<"bookings" | "games" | "services" | "schedule">("bookings");
   const [gameStatuses, setGameStatuses] = useState<Record<string, { status: GameStatus; note: string; videoUrl?: string; hidden?: boolean }>>({});
   const [gameProvider, setGameProvider] = useState<"all" | "anvio" | "synthesis">("all");
   const [gameSearch, setGameSearch] = useState("");
@@ -101,6 +101,12 @@ export default function AdminPage() {
   const [editNote, setEditNote] = useState("");
   const [customGames, setCustomGames] = useState<Game[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [scheduleBlock, setScheduleBlock] = useState<{
+    type: string; blockedSlots: string[]; reason: string;
+  } | null>(null);
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [scheduleSlots, setScheduleSlots] = useState<{ time: string; displayTime: string; status: string }[]>([]);
   const [gameStatusFilter, setGameStatusFilter] = useState<"all" | GameStatus>("all");
   const [updatingGame, setUpdatingGame] = useState<string | null>(null);
 
@@ -190,6 +196,38 @@ export default function AdminPage() {
       setError("Failed to update game status");
     }
     setUpdatingGame(null);
+  };
+
+  const fetchSchedule = useCallback(async (date: string) => {
+    setScheduleLoading(true);
+    try {
+      const [blockRes, slotsRes] = await Promise.all([
+        fetch(`/api/admin/schedule?date=${date}`),
+        fetch(`/api/bookings/slots?date=${date}`),
+      ]);
+      const blockData = await blockRes.json();
+      const slotsData = await slotsRes.json();
+      setScheduleBlock(blockData.block || null);
+      setScheduleSlots(slotsData.slots || []);
+    } catch {
+      // Silently fail
+    }
+    setScheduleLoading(false);
+  }, []);
+
+  const scheduleAction = async (action: string, slots?: string[], reason?: string) => {
+    setScheduleLoading(true);
+    try {
+      await fetch("/api/admin/schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin, action, date: scheduleDate, slots, reason }),
+      });
+      await fetchSchedule(scheduleDate);
+    } catch {
+      setError("Failed to update schedule");
+    }
+    setScheduleLoading(false);
   };
 
   const checkAllWaivers = useCallback(async (bookingList: BookingRow[]) => {
@@ -362,6 +400,17 @@ export default function AdminPage() {
           >
             <Settings size={16} />
             Services
+          </button>
+          <button
+            onClick={() => { setActiveTab("schedule"); fetchSchedule(scheduleDate); }}
+            className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+              activeTab === "schedule"
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Clock size={16} />
+            Schedule
           </button>
         </div>
 
@@ -854,6 +903,162 @@ export default function AdminPage() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {activeTab === "schedule" && (
+          <div className="space-y-6 mb-8">
+            <div>
+              <h2 className="font-heading text-lg font-bold mb-2">Schedule Management</h2>
+              <p className="text-xs text-muted-foreground mb-6">
+                Block specific time slots, entire days (holidays/maintenance), or reset a day.
+              </p>
+            </div>
+
+            {/* Date picker */}
+            <div className="flex items-center justify-center gap-4 mb-6">
+              <button
+                onClick={() => {
+                  const d = format(addDays(new Date(scheduleDate + "T00:00:00"), -1), "yyyy-MM-dd");
+                  setScheduleDate(d);
+                  fetchSchedule(d);
+                }}
+                className="p-2 rounded-lg hover:bg-secondary transition-colors"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <input
+                type="date"
+                value={scheduleDate}
+                onChange={(e) => { setScheduleDate(e.target.value); fetchSchedule(e.target.value); }}
+                className="bg-transparent border-none text-center font-heading text-lg tracking-wider cursor-pointer"
+              />
+              <button
+                onClick={() => {
+                  const d = format(addDays(new Date(scheduleDate + "T00:00:00"), 1), "yyyy-MM-dd");
+                  setScheduleDate(d);
+                  fetchSchedule(d);
+                }}
+                className="p-2 rounded-lg hover:bg-secondary transition-colors"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
+
+            {/* Day status */}
+            <div className="glass-card p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-bold">
+                    {format(new Date(scheduleDate + "T00:00:00"), "EEEE, MMMM d, yyyy")}
+                  </h3>
+                  {scheduleBlock?.type === "day_blocked" ? (
+                    <p className="text-xs text-red-400 mt-1">
+                      Entire day is blocked — {scheduleBlock.reason || "No reason given"}
+                    </p>
+                  ) : scheduleBlock?.type === "slots_blocked" ? (
+                    <p className="text-xs text-amber-400 mt-1">
+                      {scheduleBlock.blockedSlots.length} slot{scheduleBlock.blockedSlots.length !== 1 ? "s" : ""} blocked by admin
+                    </p>
+                  ) : (
+                    <p className="text-xs text-green-400 mt-1">Open — no blocks</p>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  {scheduleBlock?.type === "day_blocked" ? (
+                    <Button
+                      onClick={() => scheduleAction("reset_day")}
+                      disabled={scheduleLoading}
+                      className="bg-green-600 hover:bg-green-700 text-white text-xs"
+                    >
+                      {scheduleLoading ? <Loader2 size={14} className="animate-spin mr-1" /> : <Eye size={14} className="mr-1" />}
+                      Reopen Day
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        onClick={() => {
+                          const reason = window.prompt("Reason for blocking (optional):", "Holiday / Maintenance");
+                          if (reason !== null) scheduleAction("block_day", undefined, reason || "Day off");
+                        }}
+                        disabled={scheduleLoading}
+                        variant="outline"
+                        className="border-red-500/30 text-red-400 hover:bg-red-500/10 text-xs"
+                      >
+                        <XCircle size={14} className="mr-1" />
+                        Block Entire Day
+                      </Button>
+                      {scheduleBlock && (
+                        <Button
+                          onClick={() => scheduleAction("reset_day")}
+                          disabled={scheduleLoading}
+                          variant="outline"
+                          className="border-white/20 text-xs"
+                        >
+                          Reset All Blocks
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Time slots grid */}
+            {scheduleBlock?.type !== "day_blocked" && (
+              <div>
+                <h3 className="text-sm font-semibold mb-3">Time Slots</h3>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Click a slot to block/unblock it. Blocked slots cannot be booked by customers.
+                </p>
+                {scheduleLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="animate-spin text-primary" size={24} />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                    {scheduleSlots.map((slot) => {
+                      const isAdminBlocked = scheduleBlock?.blockedSlots?.includes(slot.time);
+                      const isBooked = slot.status === "booked" && !isAdminBlocked;
+
+                      return (
+                        <button
+                          key={slot.time}
+                          onClick={() => {
+                            if (isBooked) return; // Can't unblock a customer booking
+                            if (isAdminBlocked) {
+                              scheduleAction("unblock_slots", [slot.time]);
+                            } else {
+                              scheduleAction("block_slots", [slot.time]);
+                            }
+                          }}
+                          disabled={isBooked || scheduleLoading}
+                          className={`py-3 px-2 rounded-lg text-xs font-medium transition-all flex flex-col items-center gap-1 ${
+                            isAdminBlocked
+                              ? "bg-red-500/20 border border-red-500/30 text-red-400"
+                              : isBooked
+                              ? "bg-amber-500/10 border border-amber-500/20 text-amber-400/60 cursor-not-allowed"
+                              : "bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20"
+                          }`}
+                        >
+                          <span>{slot.displayTime}</span>
+                          <span className="text-[10px] opacity-70">
+                            {isAdminBlocked ? "Blocked" : isBooked ? "Booked" : "Open"}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="flex gap-4 mt-4 text-[10px] text-muted-foreground">
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span> Open</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span> Admin Blocked</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500"></span> Customer Booked</span>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
