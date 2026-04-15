@@ -24,11 +24,13 @@ type DetailsForm = z.infer<typeof detailsSchema>;
 interface PersonalDetailsFormProps {
   onSubmit: (data: DetailsForm) => void;
   initialValues?: DetailsForm | null;
+  preselectedGame?: string;
 }
 
 export function PersonalDetailsForm({
   onSubmit,
   initialValues,
+  preselectedGame,
 }: PersonalDetailsFormProps) {
   const [gameStatuses, setGameStatuses] = useState<Record<string, { status: string; note: string }>>({});
 
@@ -46,6 +48,7 @@ export function PersonalDetailsForm({
   } = useForm<DetailsForm>({
     resolver: zodResolver(detailsSchema),
     defaultValues: initialValues || {
+      gamePreference: preselectedGame || "",
       phone: "+91 ",
     },
   });

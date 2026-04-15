@@ -1,10 +1,15 @@
 "use client";
 
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { fadeInUp } from "@/lib/animations";
 import { BookingWizard } from "@/components/booking/BookingWizard";
 
-export default function BookPage() {
+function BookPageContent() {
+  const params = useSearchParams();
+  const preselectedGame = params.get("game") || undefined;
+
   return (
     <div className="pt-24 pb-16 px-4">
       <motion.div
@@ -21,7 +26,15 @@ export default function BookPage() {
         </p>
       </motion.div>
 
-      <BookingWizard />
+      <BookingWizard preselectedGame={preselectedGame} />
     </div>
+  );
+}
+
+export default function BookPage() {
+  return (
+    <Suspense fallback={<div className="pt-24 px-4 text-center text-muted-foreground">Loading...</div>}>
+      <BookPageContent />
+    </Suspense>
   );
 }

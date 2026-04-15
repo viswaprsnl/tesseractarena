@@ -217,7 +217,7 @@ export function GamePreviewModal({
               {/* CTA */}
               {!isUnavailable ? (
                 <Link
-                  href="/book"
+                  href={`/book?game=${game.id}`}
                   onClick={onClose}
                   className={cn(
                     buttonVariants(),

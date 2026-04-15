@@ -13,7 +13,7 @@ import { PersonalDetailsForm } from "./PersonalDetailsForm";
 import { PaymentStep } from "./PaymentStep";
 import { BookingSummary } from "./BookingSummary";
 
-export function BookingWizard() {
+export function BookingWizard({ preselectedGame }: { preselectedGame?: string }) {
   const router = useRouter();
   const { state, dispatch } = useBooking();
 
@@ -281,6 +281,7 @@ export function BookingWizard() {
                 key="details"
                 onSubmit={handleDetailsSubmit}
                 initialValues={state.personalDetails}
+                preselectedGame={preselectedGame}
               />
             )}
             {state.step === 5 && (
