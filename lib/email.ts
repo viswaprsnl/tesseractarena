@@ -91,7 +91,6 @@ export async function sendBookingConfirmation(data: BookingEmailData): Promise<{
         <div style="background: #1a1a2e; border: 1px solid #333; border-radius: 10px; padding: 20px; margin-bottom: 25px;">
           <h3 style="font-size: 14px; margin: 0 0 10px 0; color: #6C3BFF;">📍 Location</h3>
           <p style="margin: 0; font-size: 13px; color: #ccc; line-height: 1.6;">
-            Block 3, Flat 1202, My Home Tarkshya<br/>
             Golden Mile Road, Kokapet<br/>
             Hyderabad 500075
           </p>

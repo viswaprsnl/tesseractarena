@@ -11,7 +11,7 @@ const contactInfo = [
   {
     icon: MapPin,
     label: "Address",
-    value: "Block 3, Flat 1202, My Home Tarkshya, Golden Mile Road, Kokapet, Hyderabad 500075",
+    value: "Golden Mile Road, Kokapet, Hyderabad 500075",
   },
   {
     icon: Phone,

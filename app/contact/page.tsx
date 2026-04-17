@@ -22,7 +22,7 @@ const contactSchema = z.object({
 type ContactForm = z.infer<typeof contactSchema>;
 
 const contactInfo = [
-  { icon: MapPin, label: "Address", value: "Block 3, Flat 1202, My Home Tarkshya, Golden Mile Road, Kokapet, Hyderabad 500075" },
+  { icon: MapPin, label: "Address", value: "Golden Mile Road, Kokapet, Hyderabad 500075" },
   { icon: Phone, label: "Phone", value: "+91 89256 66211" },
   { icon: Mail, label: "Email", value: "venkattessearact@gmail.com / viswatesseract@gmail.com" },
   { icon: Clock, label: "Hours", value: "Mon-Sun: 10AM - 10PM" },
