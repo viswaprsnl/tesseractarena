@@ -11,7 +11,7 @@ const contactInfo = [
   {
     icon: MapPin,
     label: "Address",
-    value: "Golden Mile Road, Kokapet, Hyderabad 500075",
+    value: "Preston Prime Mall, Lumbini Avenue, Gachibowli, Hyderabad 500032",
   },
   {
     icon: Phone,
@@ -30,6 +30,10 @@ const contactInfo = [
   },
 ];
 
+const MAPS_QUERY = "Preston+Prime+Mall+Lumbini+Avenue+Gachibowli+Hyderabad+500032";
+const DIRECTIONS_URL = `https://www.google.com/maps/dir/?api=1&destination=${MAPS_QUERY}`;
+const EMBED_URL = `https://www.google.com/maps?q=${MAPS_QUERY}&output=embed`;
+
 export function Location() {
   return (
     <section className="py-12 sm:py-24 px-4">
@@ -45,8 +49,8 @@ export function Location() {
             Find <span className="gradient-text">Us</span>
           </h2>
           <p className="text-muted-foreground max-w-xl mx-auto">
-            Located in Kokapet, Hyderabad — easy access from anywhere in
-            India
+            Located at Preston Prime Mall, Gachibowli — easy access from
+            anywhere in Hyderabad
           </p>
         </motion.div>
 
@@ -84,7 +88,7 @@ export function Location() {
 
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <a
-                href="https://maps.google.com/?q=Kokapet+Hyderabad+India"
+                href={DIRECTIONS_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={cn(
@@ -108,22 +112,22 @@ export function Location() {
             </div>
           </motion.div>
 
-          {/* Map placeholder */}
+          {/* Live Google Map */}
           <motion.div
             variants={fadeInUp}
             className="glass-card overflow-hidden min-h-[400px] relative"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-card to-accent/5 flex items-center justify-center">
-              <div className="text-center">
-                <MapPin size={48} className="mx-auto mb-4 text-primary/40" />
-                <p className="text-sm text-muted-foreground">
-                  Interactive Map
-                </p>
-                <p className="text-xs text-muted-foreground/60 mt-1">
-                  Kokapet, Hyderabad, India
-                </p>
-              </div>
-            </div>
+            <iframe
+              src={EMBED_URL}
+              width="100%"
+              height="100%"
+              style={{ border: 0, minHeight: "400px" }}
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="Tesseract Arena Location"
+              className="absolute inset-0"
+            />
           </motion.div>
         </motion.div>
       </div>

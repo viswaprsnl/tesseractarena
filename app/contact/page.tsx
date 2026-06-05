@@ -22,7 +22,7 @@ const contactSchema = z.object({
 type ContactForm = z.infer<typeof contactSchema>;
 
 const contactInfo = [
-  { icon: MapPin, label: "Address", value: "Golden Mile Road, Kokapet, Hyderabad 500075" },
+  { icon: MapPin, label: "Address", value: "Preston Prime Mall, Lumbini Avenue, Gachibowli, Hyderabad 500032" },
   { icon: Phone, label: "Phone", value: "+91 89256 66211" },
   { icon: Mail, label: "Email", value: "venkattessearact@gmail.com / viswatesseract@gmail.com" },
   { icon: Clock, label: "Hours", value: "Mon-Sun: 10AM - 10PM" },
@@ -198,16 +198,19 @@ export default function ContactPage() {
               ))}
             </div>
 
-            {/* Map placeholder */}
+            {/* Live Google Map */}
             <div className="glass-card overflow-hidden h-[250px] relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-card to-accent/5 flex items-center justify-center">
-                <div className="text-center">
-                  <MapPin size={36} className="mx-auto mb-3 text-primary/40" />
-                  <p className="text-xs text-muted-foreground">
-                    Interactive Map Placeholder
-                  </p>
-                </div>
-              </div>
+              <iframe
+                src="https://www.google.com/maps?q=Preston+Prime+Mall+Lumbini+Avenue+Gachibowli+Hyderabad+500032&output=embed"
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="Tesseract Arena Location"
+                className="absolute inset-0"
+              />
             </div>
           </motion.div>
         </motion.div>

@@ -31,7 +31,7 @@ function ConfirmationContent() {
 
   // Google Calendar link
   const calendarUrl = date !== "—" && time !== "—"
-    ? `https://calendar.google.com/calendar/render?action=TEMPLATE&text=Tesseract+Arena+VR+Session&dates=${date.replace(/-/g, "")}/${date.replace(/-/g, "")}&details=Booking+ID:+${bookingId}%0APlayers:+${players}%0APackage:+${pkg}&location=Golden+Mile+Road,+Kokapet,+Hyderabad+500075`
+    ? `https://calendar.google.com/calendar/render?action=TEMPLATE&text=Tesseract+Arena+VR+Session&dates=${date.replace(/-/g, "")}/${date.replace(/-/g, "")}&details=Booking+ID:+${bookingId}%0APlayers:+${players}%0APackage:+${pkg}&location=Preston+Prime+Mall,+Lumbini+Avenue,+Gachibowli,+Hyderabad+500032`
     : "#";
 
   return (
