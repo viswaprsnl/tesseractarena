@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { MapPin, Phone, Mail, Clock, Navigation, MessageCircle } from "lucide-react";
@@ -35,6 +36,8 @@ const DIRECTIONS_URL = `https://www.google.com/maps/dir/?api=1&destination=${MAP
 const EMBED_URL = `https://www.google.com/maps?q=${MAPS_QUERY}&output=embed`;
 
 export function Location() {
+  const [mapLoaded, setMapLoaded] = useState(false);
+
   return (
     <section className="py-12 sm:py-24 px-4">
       <div className="max-w-7xl mx-auto">
@@ -103,7 +106,7 @@ export function Location() {
                 href="/contact"
                 className={cn(
                   buttonVariants({ variant: "outline" }),
-                  "border-white/20 hover:bg-white/5 inline-flex items-center gap-2"
+                  "border-border hover:bg-secondary/50 inline-flex items-center gap-2"
                 )}
               >
                 <MessageCircle size={16} />
@@ -112,22 +115,39 @@ export function Location() {
             </div>
           </motion.div>
 
-          {/* Live Google Map */}
+          {/* Google Map — click-to-load for performance */}
           <motion.div
             variants={fadeInUp}
             className="glass-card overflow-hidden min-h-[400px] relative"
           >
-            <iframe
-              src={EMBED_URL}
-              width="100%"
-              height="100%"
-              style={{ border: 0, minHeight: "400px" }}
-              allowFullScreen
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              title="Tesseract Arena Location"
-              className="absolute inset-0"
-            />
+            {mapLoaded ? (
+              <iframe
+                src={EMBED_URL}
+                width="100%"
+                height="100%"
+                style={{ border: 0, minHeight: "400px" }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="Tesseract Arena Location"
+                className="absolute inset-0"
+              />
+            ) : (
+              <button
+                onClick={() => setMapLoaded(true)}
+                className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/5 via-card/30 to-accent/5 hover:from-primary/10 hover:to-accent/10 transition-colors group cursor-pointer w-full"
+              >
+                <div className="text-center">
+                  <div className="w-16 h-16 rounded-full bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center mx-auto mb-4 transition-colors">
+                    <MapPin size={28} className="text-primary" />
+                  </div>
+                  <p className="text-sm font-medium mb-1">Click to load map</p>
+                  <p className="text-xs text-muted-foreground">
+                    Preston Prime Mall, Gachibowli
+                  </p>
+                </div>
+              </button>
+            )}
           </motion.div>
         </motion.div>
       </div>

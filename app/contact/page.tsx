@@ -30,6 +30,7 @@ const contactInfo = [
 
 export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
+  const [mapLoaded, setMapLoaded] = useState(false);
 
   const {
     register,
@@ -198,19 +199,33 @@ export default function ContactPage() {
               ))}
             </div>
 
-            {/* Live Google Map */}
+            {/* Google Map — click-to-load for performance */}
             <div className="glass-card overflow-hidden h-[250px] relative">
-              <iframe
-                src="https://www.google.com/maps?q=Preston+Prime+Mall+Lumbini+Avenue+Gachibowli+Hyderabad+500032&output=embed"
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title="Tesseract Arena Location"
-                className="absolute inset-0"
-              />
+              {mapLoaded ? (
+                <iframe
+                  src="https://www.google.com/maps?q=Preston+Prime+Mall+Lumbini+Avenue+Gachibowli+Hyderabad+500032&output=embed"
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title="Tesseract Arena Location"
+                  className="absolute inset-0"
+                />
+              ) : (
+                <button
+                  onClick={() => setMapLoaded(true)}
+                  className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/5 via-card/30 to-accent/5 hover:from-primary/10 hover:to-accent/10 transition-colors group cursor-pointer w-full"
+                >
+                  <div className="text-center">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center mx-auto mb-2 transition-colors">
+                      <MapPin size={20} className="text-primary" />
+                    </div>
+                    <p className="text-xs font-medium">Click to load map</p>
+                  </div>
+                </button>
+              )}
             </div>
           </motion.div>
         </motion.div>
