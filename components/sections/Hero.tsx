@@ -4,7 +4,6 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { fadeInUp, staggerContainer } from "@/lib/animations";
@@ -41,15 +40,6 @@ export function Hero() {
         animate="visible"
         className="relative z-10 max-w-4xl mx-auto px-4 text-center [text-shadow:0_2px_20px_rgba(0,0,0,0.8)]"
       >
-        <motion.div variants={fadeInUp}>
-          <Badge
-            variant="outline"
-            className="mb-6 px-4 py-1.5 text-xs font-medium tracking-wider uppercase border-primary/30 text-primary bg-primary/5"
-          >
-            Now Open in India
-          </Badge>
-        </motion.div>
-
         <motion.h1
           variants={fadeInUp}
           className="text-3xl sm:text-5xl md:text-7xl font-bold leading-tight mb-4 sm:mb-6"
