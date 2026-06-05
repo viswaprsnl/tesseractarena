@@ -120,7 +120,7 @@ export function DatePicker({ selectedDate, onSelectDate }: DatePickerProps) {
       </div>
 
       <p className="text-xs text-muted-foreground text-center mt-4">
-        <span className="text-accent/80">Colored</span> = Weekend (11 AM - 11 PM) · Regular = Weekday (12 PM - 10 PM)
+        <span className="text-accent/80">Colored</span> = Weekend (10 AM - 10 PM) · Regular = Weekday (11 AM - 10 PM)
       </p>
     </motion.div>
   );

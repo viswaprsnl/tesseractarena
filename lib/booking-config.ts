@@ -13,20 +13,20 @@ export const PRICING: Record<PackageType, number> = {
   party: 999,
 };
 
-// Weekday: 12:00 PM to 10:00 PM (last slot must end by 10 PM)
-// 12:00, 12:40, 13:20, 14:00, 14:40, 15:20, 16:00, 16:40, 17:20, 18:00, 18:40, 19:20, 20:00, 20:40, 21:20
+// Weekday (Mon-Fri): 11:00 AM to 10:00 PM (last slot must end by 10 PM)
+// Each slot is 40 min (30 min play + 10 min setup)
 export const WEEKDAY_SLOTS = [
-  "12:00", "12:40", "13:20", "14:00", "14:40", "15:20",
-  "16:00", "16:40", "17:20", "18:00", "18:40", "19:20",
-  "20:00", "20:40", "21:20",
-];
-
-// Weekend: 11:00 AM to 11:00 PM (last slot must end by 11 PM)
-// 11:00, 11:40, 12:20, 13:00, 13:40, 14:20, 15:00, 15:40, 16:20, 17:00, 17:40, 18:20, 19:00, 19:40, 20:20, 21:00, 21:40, 22:20
-export const WEEKEND_SLOTS = [
   "11:00", "11:40", "12:20", "13:00", "13:40", "14:20",
   "15:00", "15:40", "16:20", "17:00", "17:40", "18:20",
-  "19:00", "19:40", "20:20", "21:00", "21:40", "22:20",
+  "19:00", "19:40", "20:20", "21:00",
+];
+
+// Weekend (Sat-Sun): 10:00 AM to 10:00 PM (last slot must end by 10 PM)
+// Each slot is 40 min (30 min play + 10 min setup)
+export const WEEKEND_SLOTS = [
+  "10:00", "10:40", "11:20", "12:00", "12:40", "13:20",
+  "14:00", "14:40", "15:20", "16:00", "16:40", "17:20",
+  "18:00", "18:40", "19:20", "20:00", "20:40", "21:20",
 ];
 
 export function isWeekend(dateStr: string): boolean {

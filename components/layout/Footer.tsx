@@ -110,9 +110,9 @@ export function Footer() {
                 <Mail size={16} className="shrink-0 text-primary" />
                 <span>venkattessearact@gmail.com<br />viswatesseract@gmail.com</span>
               </li>
-              <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Clock size={16} className="shrink-0 text-primary" />
-                <span>Mon-Sun: 10AM - 10PM</span>
+              <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                <Clock size={16} className="mt-0.5 shrink-0 text-primary" />
+                <span>Mon-Fri: 11AM - 10PM<br />Sat-Sun: 10AM - 10PM</span>
               </li>
             </ul>
           </div>
