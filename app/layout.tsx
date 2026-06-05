@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Orbitron, Inter } from "next/font/google";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import "./globals.css";
 
 const orbitron = Orbitron({
@@ -31,6 +32,22 @@ export const metadata: Metadata = {
   ],
 };
 
+const initThemeScript = `
+(function() {
+  try {
+    var saved = localStorage.getItem('theme');
+    var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    if (preferred === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('dark');
+  }
+})();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -40,11 +57,17 @@ export default function RootLayout({
     <html
       lang="en"
       className={`dark ${orbitron.variable} ${inter.variable}`}
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: initThemeScript }} />
+      </head>
       <body className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-1">{children}</main>
-        <Footer />
+        <ThemeProvider>
+          <Navbar />
+          <main className="flex-1">{children}</main>
+          <Footer />
+        </ThemeProvider>
       </body>
     </html>
   );

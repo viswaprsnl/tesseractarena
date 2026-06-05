@@ -27,11 +27,11 @@ export function Hero() {
           priority
         />
       </div>
-      {/* Dark overlay for readability */}
-      <div className="absolute inset-0 bg-background/75" />
+      {/* Dark overlay for readability — always dark regardless of theme */}
+      <div className="absolute inset-0 bg-black/75" />
       {/* Particle field on top */}
       <ParticleField />
-      {/* Bottom gradient fade */}
+      {/* Bottom gradient fade (theme-aware) */}
       <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
 
       {/* Content */}
@@ -56,12 +56,12 @@ export function Hero() {
         >
           <span className="gradient-text">Step Into</span>
           <br />
-          <span className="text-foreground">Another World</span>
+          <span className="text-white">Another World</span>
         </motion.h1>
 
         <motion.p
           variants={fadeInUp}
-          className="text-base sm:text-xl text-foreground/90 max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2"
+          className="text-base sm:text-xl text-white/90 max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2"
         >
           India&apos;s first multi-game standalone VR arena — up to 10 players,
           zero PC required. Premium free-roam experiences that put you inside the

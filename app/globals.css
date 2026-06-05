@@ -53,41 +53,43 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* LIGHT THEME — Soft cream + violet (default if no .dark class) */
 :root {
-  --background: oklch(0.07 0.01 264);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.14 0.015 264);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.14 0.015 264);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.48 0.24 284);
+  --background: oklch(0.975 0.005 80);        /* Warm off-white #FAF7F2 */
+  --foreground: oklch(0.18 0.02 264);          /* Deep navy text */
+  --card: oklch(1 0 0);                        /* Pure white cards */
+  --card-foreground: oklch(0.18 0.02 264);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.02 264);
+  --primary: oklch(0.48 0.24 284);             /* Same violet */
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.18 0.02 264);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.18 0.02 264);
-  --muted-foreground: oklch(0.65 0 0);
-  --accent: oklch(0.87 0.15 192);
-  --accent-foreground: oklch(0.07 0.01 264);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(0.25 0.02 264);
-  --input: oklch(0.25 0.02 264);
+  --secondary: oklch(0.94 0.01 80);            /* Light warm gray */
+  --secondary-foreground: oklch(0.18 0.02 264);
+  --muted: oklch(0.94 0.01 80);
+  --muted-foreground: oklch(0.45 0.02 264);    /* Slightly muted slate */
+  --accent: oklch(0.55 0.18 192);              /* Darker cyan for contrast */
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.55 0.22 22);
+  --border: oklch(0.89 0.01 80);               /* Soft warm border */
+  --input: oklch(0.89 0.01 80);
   --ring: oklch(0.48 0.24 284);
   --chart-1: oklch(0.48 0.24 284);
-  --chart-2: oklch(0.87 0.15 192);
+  --chart-2: oklch(0.55 0.18 192);
   --chart-3: oklch(0.65 0.2 284);
-  --chart-4: oklch(0.75 0.12 192);
+  --chart-4: oklch(0.6 0.15 192);
   --chart-5: oklch(0.55 0.18 264);
   --radius: 0.75rem;
-  --sidebar: oklch(0.1 0.01 264);
-  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar: oklch(0.98 0.005 80);
+  --sidebar-foreground: oklch(0.18 0.02 264);
   --sidebar-primary: oklch(0.48 0.24 284);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.18 0.02 264);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.25 0.02 264);
+  --sidebar-accent: oklch(0.94 0.01 80);
+  --sidebar-accent-foreground: oklch(0.18 0.02 264);
+  --sidebar-border: oklch(0.89 0.01 80);
   --sidebar-ring: oklch(0.48 0.24 284);
 }
 
+/* DARK THEME — original deep black + violet */
 .dark {
   --background: oklch(0.07 0.01 264);
   --foreground: oklch(0.985 0 0);
@@ -128,6 +130,7 @@
   }
   body {
     @apply bg-background text-foreground font-body antialiased;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
   html {
     @apply scroll-smooth;
@@ -138,12 +141,20 @@
 }
 
 @layer utilities {
+  /* Glass card — theme-aware */
   .glass-card {
-    @apply bg-card/60 backdrop-blur-xl border border-white/10 rounded-xl;
+    background-color: color-mix(in oklch, var(--card) 90%, transparent);
+    backdrop-filter: blur(12px);
+    border: 1px solid color-mix(in oklch, var(--foreground) 8%, transparent);
+    border-radius: 0.75rem;
     transition: all 0.3s ease;
   }
+  .dark .glass-card {
+    background-color: color-mix(in oklch, var(--card) 60%, transparent);
+    border-color: color-mix(in oklch, white 10%, transparent);
+  }
   .glass-card:hover {
-    @apply border-primary/30;
+    border-color: color-mix(in oklch, var(--primary) 30%, transparent);
     box-shadow: 0 0 30px oklch(0.48 0.24 284 / 0.15);
   }
   .glow-violet {
