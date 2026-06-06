@@ -74,42 +74,7 @@ export function BookingWizard({ preselectedGame }: { preselectedGame?: string })
     dispatch({ type: "NEXT_STEP" });
   };
 
-  // Step 5: Pay at center
-  const handlePayAtCenter = async () => {
-    if (!state.personalDetails || !state.selectedDate || !state.selectedSlot) return;
-
-    dispatch({ type: "SET_LOADING", loading: true });
-    try {
-      const res = await fetch("/api/bookings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: state.personalDetails.name,
-          email: state.personalDetails.email,
-          phone: state.personalDetails.phone,
-          date: state.selectedDate,
-          timeSlot: state.selectedSlot,
-          partySize: state.partySize,
-          package: state.packageType,
-          gamePreference: state.personalDetails.gamePreference,
-          paymentMethod: "pay_at_center",
-          specialRequests: state.personalDetails.specialRequests,
-        }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        router.push(`/book/confirmation?id=${data.booking.bookingId}&amount=${data.booking.amount}&date=${state.selectedDate}&time=${state.selectedSlotDisplay}&players=${state.partySize}&package=${state.packageType}&payment=pay_at_center&advance=${Math.min(500 * state.partySize, data.booking.amount)}`);
-      } else {
-        dispatch({ type: "SET_ERROR", error: data.error || "Booking failed" });
-      }
-    } catch {
-      dispatch({ type: "SET_ERROR", error: "Something went wrong. Please try again." });
-    }
-    dispatch({ type: "SET_LOADING", loading: false });
-  };
-
-  // Step 5: Pay online via Razorpay
+  // Step 5: Pay advance online via Razorpay
   const handlePayOnline = async () => {
     if (!state.personalDetails || !state.selectedDate || !state.selectedSlot) return;
 
@@ -288,7 +253,6 @@ export function BookingWizard({ preselectedGame }: { preselectedGame?: string })
               <PaymentStep
                 key="payment"
                 state={state}
-                onPayAtCenter={handlePayAtCenter}
                 onPayOnline={handlePayOnline}
               />
             )}

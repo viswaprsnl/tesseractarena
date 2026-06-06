@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Script from "next/script";
 import { motion } from "framer-motion";
-import { CreditCard, Banknote, Loader2, Shield } from "lucide-react";
+import { CreditCard, Loader2, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { BookingState } from "@/hooks/use-booking";
 import { formatTimeDisplay, calculateAdvance } from "@/lib/booking-config";
@@ -17,34 +17,20 @@ declare global {
 
 interface PaymentStepProps {
   state: BookingState;
-  onPayAtCenter: () => Promise<void>;
   onPayOnline: () => Promise<void>;
 }
 
 export function PaymentStep({
   state,
-  onPayAtCenter,
   onPayOnline,
 }: PaymentStepProps) {
   const [processing, setProcessing] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
 
   const advance = calculateAdvance(state.partySize, state.amount);
   const atCenter = state.amount - advance;
 
-  const handlePayAtCenter = async () => {
-    setProcessing(true);
-    setSelectedMethod("center");
-    try {
-      await onPayAtCenter();
-    } finally {
-      setProcessing(false);
-    }
-  };
-
   const handlePayOnline = async () => {
     setProcessing(true);
-    setSelectedMethod("online");
     try {
       await onPayOnline();
     } finally {
@@ -110,41 +96,22 @@ export function PaymentStep({
         </div>
       </div>
 
-      {/* Payment options */}
-      <div className="space-y-4">
-        <Button
-          onClick={handlePayOnline}
-          disabled={processing}
-          className="w-full h-auto py-4 bg-primary hover:bg-primary/90 text-primary-foreground glow-violet"
-        >
-          {processing && selectedMethod === "online" ? (
-            <Loader2 className="animate-spin mr-2" size={18} />
-          ) : (
-            <CreditCard className="mr-2" size={18} />
-          )}
-          <div className="text-left">
-            <div className="font-semibold">Pay ₹{advance.toLocaleString("en-IN")} Advance Online</div>
-            <div className="text-xs opacity-80">UPI, Cards, Net Banking · Balance at center</div>
-          </div>
-        </Button>
-
-        <Button
-          onClick={handlePayAtCenter}
-          disabled={processing}
-          variant="outline"
-          className="w-full h-auto py-4 border-border hover:bg-secondary/50"
-        >
-          {processing && selectedMethod === "center" ? (
-            <Loader2 className="animate-spin mr-2" size={18} />
-          ) : (
-            <Banknote className="mr-2" size={18} />
-          )}
-          <div className="text-left">
-            <div className="font-semibold">Reserve & Pay at Center</div>
-            <div className="text-xs opacity-60">Hold your slot, pay the full amount on arrival</div>
-          </div>
-        </Button>
-      </div>
+      {/* Pay advance online — the only way to book */}
+      <Button
+        onClick={handlePayOnline}
+        disabled={processing}
+        className="w-full h-auto py-4 bg-primary hover:bg-primary/90 text-primary-foreground glow-violet"
+      >
+        {processing ? (
+          <Loader2 className="animate-spin mr-2" size={18} />
+        ) : (
+          <CreditCard className="mr-2" size={18} />
+        )}
+        <div className="text-left">
+          <div className="font-semibold">Pay ₹{advance.toLocaleString("en-IN")} Advance Online</div>
+          <div className="text-xs opacity-80">UPI, Cards, Net Banking · Balance at center</div>
+        </div>
+      </Button>
 
       {/* Cancellation policy */}
       <div className="mt-6 p-3 rounded-lg bg-secondary/30 border border-border">
