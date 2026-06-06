@@ -67,9 +67,14 @@ function CancelContent() {
             <p className="text-muted-foreground text-sm mb-2">
               Booking ID: <span className="text-primary font-bold">{bookingId}</span>
             </p>
-            <p className="text-muted-foreground text-sm mb-8">
+            <p className="text-muted-foreground text-sm mb-4">
               This will free up your time slot for other players. This action cannot be undone.
             </p>
+            <div className="text-left text-[11px] text-muted-foreground bg-secondary/30 border border-border rounded-lg p-3 mb-6 leading-relaxed">
+              <span className="font-medium text-foreground">Refund policy:</span> Full
+              refund if you cancel at least 6 hours before (weekdays) or 24 hours before
+              (weekends) your session. Late cancellations and no-shows are non-refundable.
+            </div>
             <div className="flex flex-col gap-3">
               <Button
                 onClick={handleCancel}

@@ -21,6 +21,37 @@ export function calculateAdvance(partySize: number, total: number): number {
   return Math.min(ADVANCE_PER_PERSON * partySize, total);
 }
 
+// Refund cutoff (hours before the session start) for a full refund.
+// Weekdays: 6 hours · Weekends: 24 hours
+export const REFUND_CUTOFF_WEEKDAY_HOURS = 6;
+export const REFUND_CUTOFF_WEEKEND_HOURS = 24;
+
+export function getRefundCutoffHours(dateStr: string): number {
+  return isWeekend(dateStr)
+    ? REFUND_CUTOFF_WEEKEND_HOURS
+    : REFUND_CUTOFF_WEEKDAY_HOURS;
+}
+
+// Returns hours remaining until the session and whether the booking is
+// still within the full-refund window.
+export function getRefundStatus(
+  dateStr: string,
+  timeSlot: string
+): { refundable: boolean; cutoffHours: number; hoursUntilSession: number } {
+  const cutoffHours = getRefundCutoffHours(dateStr);
+  const [h, m] = timeSlot.split(":").map(Number);
+  const sessionStart = new Date(`${dateStr}T00:00:00+05:30`);
+  sessionStart.setHours(h, m, 0, 0);
+  const nowIST = toZonedTime(new Date(), TIMEZONE);
+  const hoursUntilSession =
+    (sessionStart.getTime() - nowIST.getTime()) / (1000 * 60 * 60);
+  return {
+    refundable: hoursUntilSession >= cutoffHours,
+    cutoffHours,
+    hoursUntilSession,
+  };
+}
+
 // Weekday (Mon-Fri): 11:00 AM to 10:00 PM (last slot must end by 10 PM)
 // Each slot is 40 min (30 min play + 10 min setup)
 export const WEEKDAY_SLOTS = [

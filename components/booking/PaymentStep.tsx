@@ -116,9 +116,11 @@ export function PaymentStep({
       {/* Cancellation policy */}
       <div className="mt-6 p-3 rounded-lg bg-secondary/30 border border-border">
         <p className="text-[11px] text-muted-foreground leading-relaxed">
-          <span className="font-medium text-foreground">Cancellation policy:</span> Free
-          cancellation up to 4 hours before your session. Cancel anytime using the link
-          in your confirmation email. Advance is refundable if cancelled within the policy window.
+          <span className="font-medium text-foreground">Cancellation policy:</span> Full
+          refund if you cancel at least <span className="text-foreground">6 hours before
+          (weekdays)</span> or <span className="text-foreground">24 hours before
+          (weekends)</span>. Late cancellations and no-shows are non-refundable. Cancel
+          anytime using the link in your confirmation email.
         </p>
       </div>
 

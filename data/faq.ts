@@ -47,7 +47,7 @@ export const faqItems: FAQItem[] = [
   {
     question: "What is your cancellation policy?",
     answer:
-      "You can cancel for free up to 4 hours before your session — just click the cancel link in your confirmation email. Your advance is fully refundable when cancelled within this window. Cancellations within 4 hours of the session, or no-shows, are non-refundable.",
+      "You get a full refund if you cancel at least 6 hours before your session on weekdays (Mon-Fri), or at least 24 hours before on weekends (Sat-Sun). Late cancellations and no-shows are non-refundable. Just click the cancel link in your confirmation email to cancel.",
   },
   {
     question: "What if I feel motion sick?",
