@@ -40,6 +40,16 @@ export const faqItems: FAQItem[] = [
       "We strongly recommend booking online in advance to guarantee your preferred time slot and game. Walk-ins are welcome based on availability, but popular time slots (evenings and weekends) fill up fast.",
   },
   {
+    question: "How does payment work?",
+    answer:
+      "To reserve your slot, you pay a flat advance of ₹500 per player at the time of booking. The remaining balance is paid at the center when you arrive. For example, a group of 4 pays ₹2,000 advance to confirm, with the rest settled on arrival.",
+  },
+  {
+    question: "What is your cancellation policy?",
+    answer:
+      "You can cancel for free up to 4 hours before your session — just click the cancel link in your confirmation email. Your advance is fully refundable when cancelled within this window. Cancellations within 4 hours of the session, or no-shows, are non-refundable.",
+  },
+  {
     question: "What if I feel motion sick?",
     answer:
       "Our standalone VR hardware and free-roam setup significantly reduce motion sickness compared to traditional VR. Because you physically walk and move, your brain's visual and physical senses stay in sync. If you do feel uncomfortable, our staff can adjust settings or suggest a different game.",

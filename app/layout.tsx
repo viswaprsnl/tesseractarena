@@ -3,6 +3,7 @@ import { Orbitron, Inter } from "next/font/google";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { CallbackButton } from "@/components/CallbackButton";
 import "./globals.css";
 
 const orbitron = Orbitron({
@@ -67,6 +68,7 @@ export default function RootLayout({
           <Navbar />
           <main className="flex-1">{children}</main>
           <Footer />
+          <CallbackButton />
         </ThemeProvider>
       </body>
     </html>

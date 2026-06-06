@@ -25,9 +25,17 @@ function ConfirmationContent() {
   const players = params.get("players") || "—";
   const pkg = params.get("package") || "—";
   const payment = params.get("payment") || "pending";
+  const advanceParam = params.get("advance");
 
   const isPaid = payment === "paid";
   const isPayAtCenter = payment === "pay_at_center";
+
+  const total = parseInt(amount) || 0;
+  const playerCount = parseInt(players) || 0;
+  const advance = advanceParam
+    ? parseInt(advanceParam)
+    : Math.min(500 * playerCount, total);
+  const balance = total - advance;
 
   // Google Calendar link
   const calendarUrl = date !== "—" && time !== "—"
@@ -86,9 +94,25 @@ function ConfirmationContent() {
           <div className="flex items-center gap-3">
             <CreditCard size={16} className="text-primary shrink-0" />
             <span>
-              ₹{parseInt(amount).toLocaleString("en-IN")} ·{" "}
-              {isPaid ? "Paid online" : isPayAtCenter ? "Pay at center" : "Pending"}
+              ₹{total.toLocaleString("en-IN")} total
             </span>
+          </div>
+        </div>
+
+        {/* Payment breakdown */}
+        <div className="rounded-lg bg-secondary/30 border border-border p-4 mb-6 text-left text-sm space-y-2">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">
+              {isPaid ? "Advance paid" : "Advance"}
+            </span>
+            <span className={isPaid ? "text-primary font-medium" : "font-medium"}>
+              ₹{advance.toLocaleString("en-IN")}
+              {isPaid ? " ✓" : ""}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Balance at center</span>
+            <span className="font-medium">₹{balance.toLocaleString("en-IN")}</span>
           </div>
         </div>
 

@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { CreditCard, Banknote, Loader2, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { BookingState } from "@/hooks/use-booking";
-import { formatTimeDisplay } from "@/lib/booking-config";
+import { formatTimeDisplay, calculateAdvance } from "@/lib/booking-config";
 
 declare global {
   interface Window {
@@ -28,6 +28,9 @@ export function PaymentStep({
 }: PaymentStepProps) {
   const [processing, setProcessing] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
+
+  const advance = calculateAdvance(state.partySize, state.amount);
+  const atCenter = state.amount - advance;
 
   const handlePayAtCenter = async () => {
     setProcessing(true);
@@ -61,14 +64,14 @@ export function PaymentStep({
       />
 
       <h3 className="font-heading text-lg font-bold text-center mb-2">
-        Payment
+        Reserve Your Slot
       </h3>
       <p className="text-sm text-muted-foreground text-center mb-6">
-        Total: <span className="text-foreground font-bold text-lg">₹{state.amount.toLocaleString("en-IN")}</span>
+        Pay just <span className="text-primary font-bold">₹{advance.toLocaleString("en-IN")}</span> advance to confirm
       </p>
 
       {/* Booking summary */}
-      <div className="glass-card p-4 mb-6 text-sm space-y-1">
+      <div className="glass-card p-4 mb-4 text-sm space-y-1">
         <div className="flex justify-between">
           <span className="text-muted-foreground">Date</span>
           <span>{state.selectedDate}</span>
@@ -91,6 +94,22 @@ export function PaymentStep({
         </div>
       </div>
 
+      {/* Payment breakdown */}
+      <div className="glass-card p-4 mb-6 text-sm space-y-2 border-primary/20">
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Total session cost</span>
+          <span>₹{state.amount.toLocaleString("en-IN")}</span>
+        </div>
+        <div className="flex justify-between font-bold text-primary">
+          <span>Advance now</span>
+          <span>₹{advance.toLocaleString("en-IN")}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Balance at center</span>
+          <span>₹{atCenter.toLocaleString("en-IN")}</span>
+        </div>
+      </div>
+
       {/* Payment options */}
       <div className="space-y-4">
         <Button
@@ -104,8 +123,8 @@ export function PaymentStep({
             <CreditCard className="mr-2" size={18} />
           )}
           <div className="text-left">
-            <div className="font-semibold">Pay Online</div>
-            <div className="text-xs opacity-80">UPI, Cards, Net Banking via Razorpay</div>
+            <div className="font-semibold">Pay ₹{advance.toLocaleString("en-IN")} Advance Online</div>
+            <div className="text-xs opacity-80">UPI, Cards, Net Banking · Balance at center</div>
           </div>
         </Button>
 
@@ -113,7 +132,7 @@ export function PaymentStep({
           onClick={handlePayAtCenter}
           disabled={processing}
           variant="outline"
-          className="w-full h-auto py-4 border-white/20 hover:bg-white/5"
+          className="w-full h-auto py-4 border-border hover:bg-secondary/50"
         >
           {processing && selectedMethod === "center" ? (
             <Loader2 className="animate-spin mr-2" size={18} />
@@ -121,13 +140,22 @@ export function PaymentStep({
             <Banknote className="mr-2" size={18} />
           )}
           <div className="text-left">
-            <div className="font-semibold">Pay at Center</div>
-            <div className="text-xs opacity-60">Reserve now, pay when you arrive</div>
+            <div className="font-semibold">Reserve & Pay at Center</div>
+            <div className="text-xs opacity-60">Hold your slot, pay the full amount on arrival</div>
           </div>
         </Button>
       </div>
 
-      <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mt-6">
+      {/* Cancellation policy */}
+      <div className="mt-6 p-3 rounded-lg bg-secondary/30 border border-border">
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          <span className="font-medium text-foreground">Cancellation policy:</span> Free
+          cancellation up to 4 hours before your session. Cancel anytime using the link
+          in your confirmation email. Advance is refundable if cancelled within the policy window.
+        </p>
+      </div>
+
+      <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mt-4">
         <Shield size={12} className="text-primary" />
         Secure payment powered by Razorpay
       </p>

@@ -7,6 +7,7 @@ import {
   PRICING,
   calculatePrice,
   getPackageForSize,
+  calculateAdvance,
   MAX_PLAYERS,
 } from "@/lib/booking-config";
 import type { PackageType } from "@/lib/booking-types";
@@ -133,16 +134,40 @@ export function PackageSelector({
         })}
       </div>
 
-      {/* Total */}
-      <div className="glass-card p-5 text-center">
-        <p className="text-sm text-muted-foreground mb-1">Estimated Total</p>
-        <p className="text-3xl font-bold">
-          ₹{amount.toLocaleString("en-IN")}
-        </p>
-        <p className="text-xs text-muted-foreground mt-1">
-          {partySize} {partySize === 1 ? "player" : "players"} × ₹
-          {PRICING[packageType]} ({packageType})
-        </p>
+      {/* Total + advance breakdown */}
+      <div className="glass-card p-5">
+        <div className="text-center mb-4">
+          <p className="text-sm text-muted-foreground mb-1">Total Session Cost</p>
+          <p className="text-3xl font-bold">
+            ₹{amount.toLocaleString("en-IN")}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {partySize} {partySize === 1 ? "player" : "players"} × ₹
+            {PRICING[packageType]} ({packageType})
+          </p>
+        </div>
+
+        <div className="border-t border-border pt-4 space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">
+              Pay now (advance)
+            </span>
+            <span className="text-sm font-bold text-primary">
+              ₹{calculateAdvance(partySize, amount).toLocaleString("en-IN")}
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">
+              Pay at center
+            </span>
+            <span className="text-sm font-medium">
+              ₹{(amount - calculateAdvance(partySize, amount)).toLocaleString("en-IN")}
+            </span>
+          </div>
+          <p className="text-[11px] text-muted-foreground/70 pt-1">
+            Just ₹500 per person reserves your slot. Pay the rest when you arrive.
+          </p>
+        </div>
       </div>
     </motion.div>
   );

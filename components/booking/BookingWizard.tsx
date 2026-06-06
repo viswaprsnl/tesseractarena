@@ -99,7 +99,7 @@ export function BookingWizard({ preselectedGame }: { preselectedGame?: string })
 
       const data = await res.json();
       if (data.success) {
-        router.push(`/book/confirmation?id=${data.booking.bookingId}&amount=${data.booking.amount}&date=${state.selectedDate}&time=${state.selectedSlotDisplay}&players=${state.partySize}&package=${state.packageType}&payment=pay_at_center`);
+        router.push(`/book/confirmation?id=${data.booking.bookingId}&amount=${data.booking.amount}&date=${state.selectedDate}&time=${state.selectedSlotDisplay}&players=${state.partySize}&package=${state.packageType}&payment=pay_at_center&advance=${Math.min(500 * state.partySize, data.booking.amount)}`);
       } else {
         dispatch({ type: "SET_ERROR", error: data.error || "Booking failed" });
       }
@@ -187,7 +187,7 @@ export function BookingWizard({ preselectedGame }: { preselectedGame?: string })
 
             const verifyData = await verifyRes.json();
             if (verifyData.success) {
-              router.push(`/book/confirmation?id=${bookingId}&amount=${amount}&date=${state.selectedDate}&time=${state.selectedSlotDisplay}&players=${state.partySize}&package=${state.packageType}&payment=paid`);
+              router.push(`/book/confirmation?id=${bookingId}&amount=${amount}&date=${state.selectedDate}&time=${state.selectedSlotDisplay}&players=${state.partySize}&package=${state.packageType}&payment=paid&advance=${Math.min(500 * state.partySize, amount)}`);
             } else {
               dispatch({ type: "SET_ERROR", error: "Payment verification failed" });
             }

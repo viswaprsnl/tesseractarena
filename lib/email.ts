@@ -22,6 +22,10 @@ interface BookingEmailData {
   paymentMethod: string;
 }
 
+function advanceFor(data: BookingEmailData): number {
+  return Math.min(500 * data.partySize, data.amount);
+}
+
 export async function sendBookingConfirmation(data: BookingEmailData): Promise<{ data: unknown; error: unknown }> {
   const paymentText =
     data.paymentMethod === "razorpay"
@@ -82,8 +86,16 @@ export async function sendBookingConfirmation(data: BookingEmailData): Promise<{
               <td style="padding: 10px 0; text-align: right; font-size: 14px; border-bottom: 1px solid #333;">${paymentText}</td>
             </tr>
             <tr>
-              <td style="padding: 10px 0; color: #888; font-size: 13px; font-weight: bold;">Total</td>
-              <td style="padding: 10px 0; text-align: right; font-size: 18px; font-weight: bold; color: #6C3BFF;">₹${data.amount.toLocaleString("en-IN")}</td>
+              <td style="padding: 10px 0; color: #888; font-size: 13px; border-bottom: 1px solid #333;">Total session cost</td>
+              <td style="padding: 10px 0; text-align: right; font-size: 14px; border-bottom: 1px solid #333;">₹${data.amount.toLocaleString("en-IN")}</td>
+            </tr>
+            <tr>
+              <td style="padding: 10px 0; color: #888; font-size: 13px; font-weight: bold; border-bottom: 1px solid #333;">${data.paymentMethod === "razorpay" ? "Advance paid" : "Advance"}</td>
+              <td style="padding: 10px 0; text-align: right; font-size: 18px; font-weight: bold; color: #6C3BFF; border-bottom: 1px solid #333;">₹${advanceFor(data).toLocaleString("en-IN")}</td>
+            </tr>
+            <tr>
+              <td style="padding: 10px 0; color: #888; font-size: 13px;">Balance at center</td>
+              <td style="padding: 10px 0; text-align: right; font-size: 14px;">₹${(data.amount - advanceFor(data)).toLocaleString("en-IN")}</td>
             </tr>
           </table>
         </div>

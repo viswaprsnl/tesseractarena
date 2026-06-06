@@ -7,11 +7,19 @@ const TIMEZONE = "Asia/Kolkata";
 export const SLOT_DURATION_MINUTES = 40;
 export const MAX_PLAYERS = 10;
 
+// Flat advance per person paid at booking. Remaining is paid at the center.
+export const ADVANCE_PER_PERSON = 500;
+
 export const PRICING: Record<PackageType, number> = {
   solo: 1499,
   squad: 1199,
   party: 999,
 };
+
+// Advance amount = ₹500 per player (capped at the total if total is lower)
+export function calculateAdvance(partySize: number, total: number): number {
+  return Math.min(ADVANCE_PER_PERSON * partySize, total);
+}
 
 // Weekday (Mon-Fri): 11:00 AM to 10:00 PM (last slot must end by 10 PM)
 // Each slot is 40 min (30 min play + 10 min setup)
