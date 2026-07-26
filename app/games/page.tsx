@@ -7,7 +7,7 @@ import { Users, Clock, Swords, Search } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { anvioGames, synthesisGames, type Game } from "@/data/games";
+import { availableGames, comingSoonGames, type Game, type GameCategory } from "@/data/games";
 import { fadeInUp, staggerFast } from "@/lib/animations";
 import { GamePreviewModal } from "@/components/GamePreviewModal";
 
@@ -107,7 +107,7 @@ export default function GamesPage() {
         if (data.statuses) setGameStatuses(data.statuses);
         if (data.customGames) {
           setCustomGames(data.customGames.map((g: Record<string, string>) => ({
-            id: g.id, title: g.title, provider: g.provider as "anvio" | "synthesis",
+            id: g.id, title: g.title, category: (g.category as GameCategory) || "coming_soon",
             description: g.description, players: g.players, genre: g.genre,
             duration: g.duration, difficulty: g.difficulty, image: g.image,
             videoUrl: g.videoUrl, tags: (g.tags || "").split(",").map((t: string) => t.trim()).filter(Boolean),
@@ -117,9 +117,9 @@ export default function GamesPage() {
       .catch(() => {});
   }, []);
 
-  const allAnvio = [...anvioGames, ...customGames.filter(g => g.provider === "anvio")]
+  const allAvailable = [...availableGames, ...customGames.filter(g => g.category === "available")]
     .filter(g => !gameStatuses[g.id]?.hidden);
-  const allSynthesis = [...synthesisGames, ...customGames.filter(g => g.provider === "synthesis")]
+  const allComingSoon = [...comingSoonGames, ...customGames.filter(g => g.category === "coming_soon")]
     .filter(g => !gameStatuses[g.id]?.hidden);
 
   const filterGames = (games: Game[]) =>
@@ -161,45 +161,45 @@ export default function GamesPage() {
           </div>
         </motion.div>
 
-        <Tabs defaultValue="anvio" className="w-full">
+        <Tabs defaultValue="available" className="w-full">
           <div className="flex justify-center mb-10">
             <TabsList className="bg-card/60 border border-white/10">
               <TabsTrigger
-                value="anvio"
+                value="available"
                 className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-heading text-xs tracking-wider"
               >
-                Anvio VR ({filterGames(allAnvio).length})
+                Available ({filterGames(allAvailable).length})
               </TabsTrigger>
               <TabsTrigger
-                value="synthesis"
+                value="coming_soon"
                 className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-heading text-xs tracking-wider"
               >
-                Synthesis VR ({filterGames(allSynthesis).length})
+                Coming Soon ({filterGames(allComingSoon).length})
               </TabsTrigger>
             </TabsList>
           </div>
 
-          <TabsContent value="anvio">
+          <TabsContent value="available">
             <motion.div
               initial="hidden"
               animate="visible"
               variants={staggerFast}
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             >
-              {filterGames(allAnvio).map((game) => (
+              {filterGames(allAvailable).map((game) => (
                 <GameCard key={game.id} game={game} status={gameStatuses[game.id]} onClick={() => setSelectedGame(game)} />
               ))}
             </motion.div>
           </TabsContent>
 
-          <TabsContent value="synthesis">
+          <TabsContent value="coming_soon">
             <motion.div
               initial="hidden"
               animate="visible"
               variants={staggerFast}
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             >
-              {filterGames(allSynthesis).map((game) => (
+              {filterGames(allComingSoon).map((game) => (
                 <GameCard key={game.id} game={game} status={gameStatuses[game.id]} onClick={() => setSelectedGame(game)} />
               ))}
             </motion.div>

@@ -22,7 +22,7 @@ const contactInfo = [
   {
     icon: Mail,
     label: "Email",
-    value: "venkattessearact@gmail.com / viswatesseract@gmail.com",
+    value: "admin@tesseractarena.com",
   },
   {
     icon: Clock,

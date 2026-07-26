@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
       { hostname: "cdn.akamai.steamstatic.com" },
       { hostname: "images.pexels.com" },
       { hostname: "static.tildacdn.com" },
+      { hostname: "thb.tildacdn.com" },
       { hostname: "inoui-vr.fr" },
     ],
   },

@@ -123,7 +123,14 @@
       "Bash(curl -sI https://www.tesseractarena.com/api/cron/expire-bookings)",
       "Bash(curl -s -o /dev/null -w \"no auth: %{http_code}\\\\n\" \"https://www.tesseractarena.com/api/cron/expire-bookings?nocache=$\\(date +%s\\)\")",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(ls -la \"/c/Users/unrea/Documents/Tesseract-Overflow/Installers/\" | head -10)",
+      "Bash(ls \"C:/Tesseractarena/LBP6030_V2111_WP_EN/\" | head; echo \"---\"; mv \"C:/Tesseractarena/LBP6030_V2111_WP_EN\" \"/c/Users/unrea/Documents/Tesseract-Overflow/Installers/LBP6030_V2111_WP_EN_unpacked\" && echo \"moved\")",
+      "Bash(curl -sI \"https://thb.tildacdn.com/tild3461-3235-4634-b931-616536383366/-/empty/__2022-12-01__192405.png\")",
+      "Bash(curl -sI \"https://static.tildacdn.com/tild3461-3235-4634-b931-616536383366/__2022-12-01__192405.png\")",
+      "Bash(curl -sI \"https://thb.tildacdn.com/tild3461-3235-4634-b931-616536383366/-/cover_720x340_center_center/__2022-12-01__192405.png\")",
+      "Bash(curl -s \"http://localhost:3000/api/bookings/slots?date=2026-08-01&arena=arena-1\")"
     ]
   }
 }

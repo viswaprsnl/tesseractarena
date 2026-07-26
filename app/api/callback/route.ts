@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
       const resend = new Resend(process.env.RESEND_API_KEY);
       await resend.emails.send({
         from: "Tesseract Arena <bookings@tesseractarena.com>",
-        to: ["venkattessearact@gmail.com", "viswatesseract@gmail.com"],
+        to: ["admin@tesseractarena.com"],
         subject: `Callback Request: ${phone}`,
         html: `
           <div style="font-family: Arial, sans-serif; padding: 20px;">

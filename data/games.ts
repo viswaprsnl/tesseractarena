@@ -1,7 +1,9 @@
+export type GameCategory = "available" | "coming_soon";
+
 export interface Game {
   id: string;
   title: string;
-  provider: "anvio" | "synthesis";
+  category: GameCategory;
   description: string;
   players: string;
   genre: string;
@@ -13,14 +15,14 @@ export interface Game {
   tags: string[];
 }
 
-export const anvioGames: Game[] = [
+export const availableGames: Game[] = [
   {
     id: "city-z",
     title: "City Z",
-    provider: "anvio",
+    category: "available",
     description:
       "Full-body free-roam zombie shooter. Navigate post-apocalyptic urban environments through collapsing skyscrapers and dark subway tunnels while fighting hordes of undead.",
-    players: "1-4",
+    players: "1-6",
     genre: "Zombie Survival",
     duration: "30 min",
     difficulty: "Medium",
@@ -29,48 +31,9 @@ export const anvioGames: Game[] = [
     tags: ["action", "co-op", "horror", "free-roam"],
   },
   {
-    id: "city-z-survivors",
-    title: "City Z: Survivors",
-    provider: "anvio",
-    description:
-      "Escape from a skyscraper rooftop and fight your way to a secret laboratory through an army of hungry zombies. Teamwork is your only chance.",
-    players: "1-6",
-    genre: "Zombie Survival",
-    duration: "30 min",
-    difficulty: "Medium",
-    image: "https://inoui-vr.fr/wp-content/uploads/2025/06/cityZ-survivors.png",
-    tags: ["action", "co-op", "horror", "free-roam"],
-  },
-  {
-    id: "city-z-antidote",
-    title: "City Z: Antidote",
-    provider: "anvio",
-    description:
-      "Scientists found a cure but it's been stolen by criminals. Face both zombies and thugs as you search for the antidote to save humanity.",
-    players: "1-4",
-    genre: "Zombie Survival",
-    duration: "30 min",
-    difficulty: "Hard",
-    image: "https://static.tildacdn.com/tild3864-3532-4465-b062-666130356135/image.png",
-    tags: ["action", "co-op", "horror", "free-roam"],
-  },
-  {
-    id: "city-z-necropolis",
-    title: "City Z: Necropolis",
-    provider: "anvio",
-    description:
-      "A special forces team encounters an unusual device and something goes critically wrong. The darkest chapter in the City Z saga.",
-    players: "1-4",
-    genre: "Horror Shooter",
-    duration: "30 min",
-    difficulty: "Hard",
-    image: "https://static.tildacdn.com/tild6563-3532-4032-b334-646135653933/image.png",
-    tags: ["action", "co-op", "horror", "intense"],
-  },
-  {
     id: "station-zarya",
     title: "Station Zarya",
-    provider: "anvio",
+    category: "available",
     description:
       "Respond to a distress signal from a research base on the distant planet Regulus-5. Battle unknown alien lifeforms attacking from ground and air.",
     players: "1-6",
@@ -84,20 +47,63 @@ export const anvioGames: Game[] = [
   {
     id: "revolta",
     title: "Revolta",
-    provider: "anvio",
+    category: "available",
     description:
-      "Team-based competitive VR shooter with Deathmatch, Team Deathmatch, and Point Capture modes. Virtual reality reinvents laser tag.",
-    players: "1-12",
+      "A new VR PvP shooter. Three modes — Deathmatch, Team Deathmatch, Point Capture — across three themed maps (desert, factory, city center). Seven weapons, ten character skins.",
+    players: "1-8",
     genre: "PvP Shooter",
     duration: "30 min",
     difficulty: "Medium",
-    image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2245750/header.jpg?t=1680893228",
+    image: "https://static.tildacdn.com/tild3461-3235-4634-b931-616536383366/__2022-12-01__192405.png",
+    featured: true,
     tags: ["pvp", "competitive", "action", "multiplayer"],
+  },
+];
+
+export const comingSoonGames: Game[] = [
+  {
+    id: "city-z-survivors",
+    title: "City Z: Survivors",
+    category: "coming_soon",
+    description:
+      "Escape from a skyscraper rooftop and fight your way to a secret laboratory through an army of hungry zombies. Teamwork is your only chance.",
+    players: "1-6",
+    genre: "Zombie Survival",
+    duration: "30 min",
+    difficulty: "Medium",
+    image: "https://inoui-vr.fr/wp-content/uploads/2025/06/cityZ-survivors.png",
+    tags: ["action", "co-op", "horror", "free-roam"],
+  },
+  {
+    id: "city-z-antidote",
+    title: "City Z: Antidote",
+    category: "coming_soon",
+    description:
+      "Scientists found a cure but it's been stolen by criminals. Face both zombies and thugs as you search for the antidote to save humanity.",
+    players: "1-4",
+    genre: "Zombie Survival",
+    duration: "30 min",
+    difficulty: "Hard",
+    image: "https://static.tildacdn.com/tild3864-3532-4465-b062-666130356135/image.png",
+    tags: ["action", "co-op", "horror", "free-roam"],
+  },
+  {
+    id: "city-z-necropolis",
+    title: "City Z: Necropolis",
+    category: "coming_soon",
+    description:
+      "A special forces team encounters an unusual device and something goes critically wrong. The darkest chapter in the City Z saga.",
+    players: "1-4",
+    genre: "Horror Shooter",
+    duration: "30 min",
+    difficulty: "Hard",
+    image: "https://static.tildacdn.com/tild6563-3532-4032-b334-646135653933/image.png",
+    tags: ["action", "co-op", "horror", "intense"],
   },
   {
     id: "lost-sanctuary",
     title: "Lost Sanctuary",
-    provider: "anvio",
+    category: "coming_soon",
     description:
       "Explore an abandoned Aztec mystical city guided by an ancient spirit. Catch magical fireflies, shoot lightning, and sail a magical river.",
     players: "1-6",
@@ -110,7 +116,7 @@ export const anvioGames: Game[] = [
   {
     id: "dragon-vr",
     title: "Dragon VR",
-    provider: "anvio",
+    category: "coming_soon",
     description:
       "Hatch a dragon egg and soar over enchanting landscapes on your pet dragon's back. Defend against T-Rex and pterodactyls along the way.",
     players: "1-4",
@@ -120,13 +126,10 @@ export const anvioGames: Game[] = [
     image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1486660/header.jpg?t=1619858252",
     tags: ["adventure", "family", "fantasy", "flying"],
   },
-];
-
-export const synthesisGames: Game[] = [
   {
     id: "after-the-fall",
     title: "After The Fall",
-    provider: "synthesis",
+    category: "coming_soon",
     description:
       "Award-winning post-apocalyptic co-op shooter set in frozen Los Angeles. Fight the Snowbreed with full free-roam mechanics and haptic feedback.",
     players: "2-4",
@@ -135,13 +138,12 @@ export const synthesisGames: Game[] = [
     difficulty: "Medium",
     image: "https://cdn.synthesisvr.com/gameassets/svr_5906/compress-1.jpg",
     videoUrl: "/videos/after-the-fall.mp4",
-    featured: true,
     tags: ["action", "co-op", "shooter", "free-roam"],
   },
   {
     id: "starforce",
     title: "StarForce",
-    provider: "synthesis",
+    category: "coming_soon",
     description:
       "High-intensity squad-based arcade shooter designed exclusively for VR arcades. Battle relentless alien swarms in intense co-op action.",
     players: "2-4",
@@ -154,7 +156,7 @@ export const synthesisGames: Game[] = [
   {
     id: "arizona-sunshine",
     title: "Arizona Sunshine Remake",
-    provider: "synthesis",
+    category: "coming_soon",
     description:
       "Next-gen zombie survival with gory co-op action. Scalable free-roam arenas with full-body tracking. A proven VR crowd-pleaser.",
     players: "2-4",
@@ -163,13 +165,12 @@ export const synthesisGames: Game[] = [
     difficulty: "Medium",
     image: "https://cdn.synthesisvr.com/gameassets/svr_78406/header460x215_1738909811.webp",
     videoUrl: "/videos/arizona-sunshine.mp4",
-    featured: true,
     tags: ["action", "co-op", "zombie", "free-roam"],
   },
   {
     id: "propagation",
     title: "Propagation: Top Survivors",
-    provider: "synthesis",
+    category: "coming_soon",
     description:
       "VR action shooter where survivors face a zombie apocalypse and hurricane dangers in intense multiplayer combat.",
     players: "2-4",
@@ -182,7 +183,7 @@ export const synthesisGames: Game[] = [
   {
     id: "riddle-of-ruins",
     title: "Riddle of Ruins",
-    provider: "synthesis",
+    category: "coming_soon",
     description:
       "Explore an ancient temple, solve puzzles, uncover secrets, and hunt for treasure in this thrilling VR puzzle adventure.",
     players: "2-4",
@@ -196,7 +197,7 @@ export const synthesisGames: Game[] = [
   {
     id: "cook-out",
     title: "Cook-Out",
-    provider: "synthesis",
+    category: "coming_soon",
     description:
       "Award-winning multiplayer VR cooking game. Get your aprons ready — things are about to get messy in this chaotic kitchen party.",
     players: "2-4",
@@ -209,7 +210,7 @@ export const synthesisGames: Game[] = [
   {
     id: "elven-assassin",
     title: "Elven Assassin Arcade",
-    provider: "synthesis",
+    category: "coming_soon",
     description:
       "Defend against hordes of orcs with your bow and arrow. Co-op archery gameplay for epic fantasy battles with friends.",
     players: "2-4",
@@ -222,7 +223,7 @@ export const synthesisGames: Game[] = [
   {
     id: "dragon-slayers",
     title: "Dragon Slayers",
-    provider: "synthesis",
+    category: "coming_soon",
     description:
       "Take on massive beasts together in this co-op action experience with beautiful graphics and intense dragon-fighting action.",
     players: "2-4",
@@ -235,7 +236,7 @@ export const synthesisGames: Game[] = [
   {
     id: "smurfs",
     title: "The Smurfs: Blueberry Battle",
-    provider: "synthesis",
+    category: "coming_soon",
     description:
       "Enter the Smurf world in VR! Save the Village and score points in this colorful, family-friendly shooter experience.",
     players: "1-4",
@@ -249,7 +250,7 @@ export const synthesisGames: Game[] = [
   {
     id: "synth-riders",
     title: "Synth Riders",
-    provider: "synthesis",
+    category: "coming_soon",
     description:
       "Freestyle dance VR rhythm game with an incredible soundtrack. Move your whole body to the beat in this neon-lit experience.",
     players: "1-2",
@@ -262,7 +263,7 @@ export const synthesisGames: Game[] = [
   {
     id: "zero-caliber-2",
     title: "Zero Caliber 2 Remastered",
-    provider: "synthesis",
+    category: "coming_soon",
     description:
       "LBVR-ready shooter with fast onboarding and flexible sessions. Features both co-op campaign and competitive PvP modes.",
     players: "2-4",
@@ -275,7 +276,7 @@ export const synthesisGames: Game[] = [
   {
     id: "pixel-hack",
     title: "Pixel Hack",
-    provider: "synthesis",
+    category: "coming_soon",
     description:
       "Multiplayer co-op shooter blending roguelike elements with retro pixel art. Choose from 4 weapon types, unlock 100+ upgrade skills, and battle through waves of enemies.",
     players: "1-4",
@@ -288,4 +289,4 @@ export const synthesisGames: Game[] = [
   },
 ];
 
-export const allGames: Game[] = [...anvioGames, ...synthesisGames];
+export const allGames: Game[] = [...availableGames, ...comingSoonGames];

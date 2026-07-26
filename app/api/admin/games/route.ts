@@ -77,9 +77,11 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Read custom games from CustomGames sheet
+    // Read custom games from CustomGames sheet.
+    // Column C historically stored "provider" (anvio/synthesis); it now stores
+    // "category" (available/coming_soon). Legacy values fall back to coming_soon.
     let customGames: Array<{
-      id: string; title: string; provider: string; description: string;
+      id: string; title: string; category: string; description: string;
       players: string; genre: string; duration: string; difficulty: string;
       image: string; videoUrl: string; tags: string;
     }> = [];
@@ -91,19 +93,23 @@ export async function GET(request: NextRequest) {
       const customRows = (customRes.data.values || []) as string[][];
       customGames = customRows
         .filter((r) => r[0] && r[10] !== "deleted")
-        .map((r) => ({
-          id: r[0] || "",
-          title: r[1] || "",
-          provider: r[2] || "synthesis",
-          description: r[3] || "",
-          players: r[4] || "1-4",
-          genre: r[5] || "",
-          duration: r[6] || "30 min",
-          difficulty: r[7] || "Medium",
-          image: r[8] || "",
-          videoUrl: r[9] || "",
-          tags: r[10] || "",
-        }));
+        .map((r) => {
+          const raw = r[2] || "";
+          const category = raw === "available" || raw === "coming_soon" ? raw : "coming_soon";
+          return {
+            id: r[0] || "",
+            title: r[1] || "",
+            category,
+            description: r[3] || "",
+            players: r[4] || "1-4",
+            genre: r[5] || "",
+            duration: r[6] || "30 min",
+            difficulty: r[7] || "Medium",
+            image: r[8] || "",
+            videoUrl: r[9] || "",
+            tags: r[10] || "",
+          };
+        });
     } catch {
       // CustomGames sheet may not exist yet
     }
@@ -152,7 +158,7 @@ export async function POST(request: NextRequest) {
             range: "CustomGames!A1:K1",
             valueInputOption: "RAW",
             requestBody: {
-              values: [["id", "title", "provider", "description", "players", "genre", "duration", "difficulty", "image", "video_url", "tags"]],
+              values: [["id", "title", "category", "description", "players", "genre", "duration", "difficulty", "image", "video_url", "tags"]],
             },
           });
         } catch {
@@ -169,7 +175,7 @@ export async function POST(request: NextRequest) {
           values: [[
             gameId,
             newGame.title || "",
-            newGame.provider || "synthesis",
+            newGame.category || "coming_soon",
             newGame.description || "",
             newGame.players || "1-4",
             newGame.genre || "",

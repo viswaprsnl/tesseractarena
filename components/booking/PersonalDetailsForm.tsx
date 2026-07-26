@@ -116,13 +116,16 @@ export function PersonalDetailsForm({
             <option value="">Select a game</option>
             {allGames.map((game) => {
               const gs = gameStatuses[game.id];
-              const isUnavailable = gs && gs.status !== "available";
-              const statusLabel = gs?.status === "unavailable" ? " — Unavailable"
+              const categoryUnavailable = game.category !== "available";
+              const adminUnavailable = gs && gs.status !== "available";
+              const isUnavailable = categoryUnavailable || adminUnavailable;
+              const statusLabel = categoryUnavailable ? " — Coming Soon"
+                : gs?.status === "unavailable" ? " — Unavailable"
                 : gs?.status === "maintenance" ? " — Maintenance"
                 : gs?.status === "coming_soon" ? " — Coming Soon" : "";
               return (
                 <option key={game.id} value={game.id} disabled={isUnavailable}>
-                  {game.title} ({game.provider === "anvio" ? "Anvio" : "Synthesis"}){statusLabel}
+                  {game.title}{statusLabel}
                 </option>
               );
             })}

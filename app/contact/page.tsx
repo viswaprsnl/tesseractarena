@@ -24,7 +24,7 @@ type ContactForm = z.infer<typeof contactSchema>;
 const contactInfo = [
   { icon: MapPin, label: "Address", value: "Preston Prime Mall, Lumbini Avenue, Gachibowli, Hyderabad 500032" },
   { icon: Phone, label: "Phone", value: "+91 89256 66211" },
-  { icon: Mail, label: "Email", value: "venkattessearact@gmail.com / viswatesseract@gmail.com" },
+  { icon: Mail, label: "Email", value: "admin@tesseractarena.com" },
   { icon: Clock, label: "Hours", value: "Mon-Fri: 11AM - 10PM · Sat-Sun: 10AM - 10PM" },
 ];
 

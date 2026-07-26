@@ -11,8 +11,8 @@ const quickLinks = [
 ];
 
 const gameLinks = [
-  { href: "/games?tab=anvio", label: "Anvio VR Games" },
-  { href: "/games?tab=synthesis", label: "Synthesis VR Games" },
+  { href: "/games?tab=available", label: "Available Games" },
+  { href: "/games?tab=coming_soon", label: "Coming Soon" },
   { href: "/games", label: "Full Game Library" },
 ];
 
@@ -38,7 +38,7 @@ export function Footer() {
             </span>
             <p className="text-sm text-muted-foreground leading-relaxed">
               India&apos;s first multi-game standalone VR arena. Premium
-              free-roam experiences for groups of up to 10 players.
+              free-roam experiences for groups of up to 8 players.
             </p>
             <div className="flex gap-3">
               {socialLinks.map((social) => (
@@ -108,7 +108,7 @@ export function Footer() {
               </li>
               <li className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Mail size={16} className="shrink-0 text-primary" />
-                <span>venkattessearact@gmail.com<br />viswatesseract@gmail.com</span>
+                <span>admin@tesseractarena.com</span>
               </li>
               <li className="flex items-start gap-2 text-sm text-muted-foreground">
                 <Clock size={16} className="mt-0.5 shrink-0 text-primary" />

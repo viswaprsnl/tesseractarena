@@ -76,7 +76,7 @@ const technology = [
   {
     icon: Monitor,
     title: "Powerful Compute Backend",
-    description: "High-performance PC backend for PCVR titles — runs Synthesis VR's 350+ game catalog seamlessly alongside standalone experiences.",
+    description: "High-performance PC backend for PCVR titles — runs a 350+ premium game catalog seamlessly alongside standalone experiences.",
   },
   {
     icon: Video,
@@ -147,8 +147,8 @@ export default function AboutPage() {
             className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed"
           >
             Think Sandbox VR — but built for India, from day one. A premium location-based
-            entertainment experience where groups of up to 10 players can walk in and play
-            from a curated library of 50+ VR titles powered by Anvio VR and Synthesis VR.
+            entertainment experience where groups of up to 8 players can walk in and play
+            from a curated library of 50+ premium VR titles.
           </motion.p>
         </motion.div>
 
@@ -353,10 +353,10 @@ export default function AboutPage() {
           className="text-center mb-20"
         >
           <h2 className="text-2xl sm:text-3xl font-bold mb-6">
-            Powered by <span className="gradient-text">World-Class Partners</span>
+            Built on <span className="gradient-text">World-Class Technology</span>
           </h2>
           <div className="flex flex-wrap justify-center gap-4">
-            {["Anvio VR", "Synthesis VR", "Meta Quest 3", "Pico Enterprise", "WiFi 7"].map((partner) => (
+            {["Meta Quest 3", "Pico Enterprise", "WiFi 7", "Full-Body Tracking", "Free-Roam VR"].map((partner) => (
               <div key={partner} className="glass-card px-8 py-5 flex items-center justify-center">
                 <span className="font-heading text-sm tracking-wider text-muted-foreground">{partner}</span>
               </div>

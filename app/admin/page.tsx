@@ -29,7 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { formatTimeDisplay } from "@/lib/booking-config";
 import type { BookingRow } from "@/lib/booking-types";
-import { allGames, anvioGames, synthesisGames, type Game } from "@/data/games";
+import { allGames, availableGames, comingSoonGames, type Game, type GameCategory } from "@/data/games";
 
 type GameStatus = "available" | "unavailable" | "coming_soon" | "maintenance";
 
@@ -95,7 +95,7 @@ export default function AdminPage() {
   const [waiverCheck, setWaiverCheck] = useState<Record<string, boolean | null>>({});
   const [activeTab, setActiveTab] = useState<"bookings" | "games" | "services" | "schedule">("bookings");
   const [gameStatuses, setGameStatuses] = useState<Record<string, { status: GameStatus; note: string; videoUrl?: string; hidden?: boolean }>>({});
-  const [gameProvider, setGameProvider] = useState<"all" | "anvio" | "synthesis">("all");
+  const [gameProvider, setGameProvider] = useState<"all" | GameCategory>("all");
   const [gameSearch, setGameSearch] = useState("");
   const [editingGame, setEditingGame] = useState<string | null>(null);
   const [editNote, setEditNote] = useState("");
@@ -117,7 +117,7 @@ export default function AdminPage() {
       if (data.statuses) setGameStatuses(data.statuses);
       if (data.customGames) {
         setCustomGames(data.customGames.map((g: Record<string, string>) => ({
-          id: g.id, title: g.title, provider: g.provider as "anvio" | "synthesis",
+          id: g.id, title: g.title, category: (g.category as GameCategory) || "coming_soon",
           description: g.description, players: g.players, genre: g.genre,
           duration: g.duration, difficulty: g.difficulty, image: g.image,
           videoUrl: g.videoUrl, tags: (g.tags || "").split(",").map((t: string) => t.trim()).filter(Boolean),
@@ -628,8 +628,8 @@ export default function AdminPage() {
             <div className="flex gap-2 mb-6">
               {([
                 { key: "all", label: "All Games", count: allGames.length },
-                { key: "anvio", label: "Anvio VR", count: anvioGames.length },
-                { key: "synthesis", label: "Synthesis VR", count: synthesisGames.length },
+                { key: "available", label: "Available", count: availableGames.length },
+                { key: "coming_soon", label: "Coming Soon", count: comingSoonGames.length },
               ] as const).map((tab) => (
                 <button
                   key={tab.key}
@@ -655,9 +655,9 @@ export default function AdminPage() {
                 { key: "coming_soon", label: "🔜 Coming Soon", color: "bg-blue-500/20 text-blue-400" },
               ] as const).map((tag) => {
                 const count = tag.key === "all"
-                  ? allGames.filter((g) => gameProvider === "all" || g.provider === gameProvider).length
+                  ? allGames.filter((g) => gameProvider === "all" || g.category === gameProvider).length
                   : allGames
-                      .filter((g) => gameProvider === "all" || g.provider === gameProvider)
+                      .filter((g) => gameProvider === "all" || g.category === gameProvider)
                       .filter((g) => {
                         const gs = gameStatuses[g.id];
                         const s = (gs?.status as GameStatus) || "available";
@@ -704,7 +704,7 @@ export default function AdminPage() {
                     const fd = new FormData(form);
                     addCustomGame({
                       title: fd.get("title") as string,
-                      provider: fd.get("provider") as string,
+                      category: fd.get("category") as string,
                       description: fd.get("description") as string,
                       players: fd.get("players") as string,
                       genre: fd.get("genre") as string,
@@ -719,9 +719,9 @@ export default function AdminPage() {
                 >
                   <div className="grid grid-cols-2 gap-3">
                     <Input name="title" placeholder="Game title *" required className="bg-card/60 border-white/10 text-xs h-8" />
-                    <select name="provider" className="h-8 rounded-md bg-card/60 border border-white/10 px-2 text-xs">
-                      <option value="anvio">Anvio VR</option>
-                      <option value="synthesis">Synthesis VR</option>
+                    <select name="category" defaultValue="coming_soon" className="h-8 rounded-md bg-card/60 border border-white/10 px-2 text-xs">
+                      <option value="available">Available</option>
+                      <option value="coming_soon">Coming Soon</option>
                     </select>
                   </div>
                   <Input name="description" placeholder="Game description" className="bg-card/60 border-white/10 text-xs h-8" />
@@ -746,7 +746,7 @@ export default function AdminPage() {
             )}
 
             {[...allGames, ...customGames]
-              .filter((g) => gameProvider === "all" || g.provider === gameProvider)
+              .filter((g) => gameProvider === "all" || g.category === gameProvider)
               .filter((g) => {
                 if (gameStatusFilter === "all") return true;
                 const gs = gameStatuses[g.id];
@@ -774,8 +774,8 @@ export default function AdminPage() {
                         <Badge className={`text-[10px] ${config.color}`}>
                           {config.label}
                         </Badge>
-                        <span className="text-[10px] text-muted-foreground capitalize">
-                          {game.provider}
+                        <span className="text-[10px] text-muted-foreground">
+                          {game.category === "available" ? "Available" : "Coming Soon"}
                         </span>
                         {isCustom && (
                           <Badge className="text-[9px] bg-purple-500/20 text-purple-400">Custom</Badge>

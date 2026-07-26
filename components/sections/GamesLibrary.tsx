@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { Users, Clock, Swords } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { anvioGames, synthesisGames, type Game } from "@/data/games";
+import { availableGames, comingSoonGames, type Game, type GameCategory } from "@/data/games";
 import { fadeInUp, staggerContainer, staggerFast } from "@/lib/animations";
 import { GamePreviewModal } from "@/components/GamePreviewModal";
 
@@ -107,7 +107,7 @@ export function GamesLibrary() {
         if (data.statuses) setGameStatuses(data.statuses);
         if (data.customGames) {
           setCustomGames(data.customGames.map((g: Record<string, string>) => ({
-            id: g.id, title: g.title, provider: g.provider as "anvio" | "synthesis",
+            id: g.id, title: g.title, category: (g.category as GameCategory) || "coming_soon",
             description: g.description, players: g.players, genre: g.genre,
             duration: g.duration, difficulty: g.difficulty, image: g.image,
             videoUrl: g.videoUrl, tags: (g.tags || "").split(",").map((t: string) => t.trim()).filter(Boolean),
@@ -117,9 +117,9 @@ export function GamesLibrary() {
       .catch(() => {});
   }, []);
 
-  const visibleAnvio = [...anvioGames, ...customGames.filter(g => g.provider === "anvio")]
+  const visibleAvailable = [...availableGames, ...customGames.filter(g => g.category === "available")]
     .filter(g => !gameStatuses[g.id]?.hidden);
-  const visibleSynthesis = [...synthesisGames, ...customGames.filter(g => g.provider === "synthesis")]
+  const visibleComingSoon = [...comingSoonGames, ...customGames.filter(g => g.category === "coming_soon")]
     .filter(g => !gameStatuses[g.id]?.hidden);
 
   return (
@@ -136,29 +136,29 @@ export function GamesLibrary() {
             Our <span className="gradient-text">Games Library</span>
           </h2>
           <p className="text-muted-foreground max-w-xl mx-auto">
-            Over 20 premium VR experiences from world-class platforms
+            {visibleAvailable.length} playable now, {visibleComingSoon.length} more on the way
           </p>
         </motion.div>
 
-        <Tabs defaultValue="anvio" className="w-full">
+        <Tabs defaultValue="available" className="w-full">
           <div className="flex justify-center mb-10">
             <TabsList className="bg-card/60 border border-white/10">
               <TabsTrigger
-                value="anvio"
+                value="available"
                 className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-heading text-xs tracking-wider"
               >
-                Anvio VR
+                Available
               </TabsTrigger>
               <TabsTrigger
-                value="synthesis"
+                value="coming_soon"
                 className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-heading text-xs tracking-wider"
               >
-                Synthesis VR
+                Coming Soon
               </TabsTrigger>
             </TabsList>
           </div>
 
-          <TabsContent value="anvio">
+          <TabsContent value="available">
             <motion.div
               initial="hidden"
               whileInView="visible"
@@ -166,13 +166,13 @@ export function GamesLibrary() {
               variants={staggerFast}
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             >
-              {visibleAnvio.map((game) => (
+              {visibleAvailable.map((game) => (
                 <GameCard key={game.id} game={game} status={gameStatuses[game.id]} onClick={() => setSelectedGame(game)} />
               ))}
             </motion.div>
           </TabsContent>
 
-          <TabsContent value="synthesis">
+          <TabsContent value="coming_soon">
             <motion.div
               initial="hidden"
               whileInView="visible"
@@ -180,7 +180,7 @@ export function GamesLibrary() {
               variants={staggerFast}
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             >
-              {visibleSynthesis.map((game) => (
+              {visibleComingSoon.map((game) => (
                 <GameCard key={game.id} game={game} status={gameStatuses[game.id]} onClick={() => setSelectedGame(game)} />
               ))}
             </motion.div>

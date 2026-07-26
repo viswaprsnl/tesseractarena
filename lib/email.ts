@@ -109,7 +109,7 @@ export async function sendBookingConfirmation(data: BookingEmailData): Promise<{
           </p>
           <p style="margin: 10px 0 0 0; font-size: 13px;">
             📞 +91 89256 66211<br/>
-            ✉️ venkattessearact@gmail.com
+            ✉️ admin@tesseractarena.com
           </p>
         </div>
 
@@ -143,7 +143,7 @@ export async function sendBookingConfirmation(data: BookingEmailData): Promise<{
 export async function sendOwnerNotification(data: BookingEmailData): Promise<{ data: unknown; error: unknown }> {
   return await getResend().emails.send({
     from: "Tesseract Arena <bookings@tesseractarena.com>",
-    to: ["venkattessearact@gmail.com", "viswatesseract@gmail.com"],
+    to: ["admin@tesseractarena.com"],
     subject: `New Booking: ${data.bookingId} - ${data.customerName}`,
     html: `
       <div style="font-family: Arial, sans-serif; padding: 20px;">

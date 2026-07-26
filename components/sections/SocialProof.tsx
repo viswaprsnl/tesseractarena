@@ -4,9 +4,9 @@ import { motion } from "framer-motion";
 import { fadeInUp } from "@/lib/animations";
 
 const partners = [
-  "Powered by Anvio VR",
-  "Synthesis VR",
   "Premium Standalone Hardware",
+  "Free-Roam VR",
+  "Full-Body Tracking",
 ];
 
 export function SocialProof() {

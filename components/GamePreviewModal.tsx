@@ -163,7 +163,7 @@ export function GamePreviewModal({
                       {game.genre}
                     </Badge>
                     <Badge className="text-[10px] bg-secondary text-muted-foreground capitalize">
-                      {game.provider === "anvio" ? "Anvio VR" : "Synthesis VR"}
+                      {game.category === "available" ? "Available" : "Coming Soon"}
                     </Badge>
                     {game.featured && (
                       <Badge className="text-[10px] bg-primary text-primary-foreground">
