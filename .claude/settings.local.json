@@ -130,7 +130,12 @@
       "Bash(curl -sI \"https://thb.tildacdn.com/tild3461-3235-4634-b931-616536383366/-/empty/__2022-12-01__192405.png\")",
       "Bash(curl -sI \"https://static.tildacdn.com/tild3461-3235-4634-b931-616536383366/__2022-12-01__192405.png\")",
       "Bash(curl -sI \"https://thb.tildacdn.com/tild3461-3235-4634-b931-616536383366/-/cover_720x340_center_center/__2022-12-01__192405.png\")",
-      "Bash(curl -s \"http://localhost:3000/api/bookings/slots?date=2026-08-01&arena=arena-1\")"
+      "Bash(curl -s \"http://localhost:3000/api/bookings/slots?date=2026-08-01&arena=arena-1\")",
+      "Bash(curl -s https://www.tesseractarena.com/)",
+      "Bash(curl -s \"http://localhost:3000/api/discounts?date=2026-08-01\")",
+      "Bash(curl -s \"http://localhost:3000/api/bookings/slots?date=2026-08-01\")",
+      "Bash(curl -s -X DELETE \"http://localhost:3000/api/admin/discounts?pin=7291&id=disc-pzhd61\")",
+      "Bash(curl -s \"http://localhost:3000/api/admin/discounts?pin=7291\")"
     ]
   }
 }

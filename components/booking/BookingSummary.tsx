@@ -47,13 +47,36 @@ export function BookingSummary({ state }: { state: BookingState }) {
         </div>
       )}
 
-      <div className="pt-2 border-t border-white/10">
-        <div className="flex justify-between items-center">
-          <span className="text-muted-foreground">Total</span>
-          <span className="font-bold text-lg">
-            ₹{(PRICING[state.packageType] * state.partySize).toLocaleString("en-IN")}
-          </span>
-        </div>
+      <div className="pt-2 border-t border-white/10 space-y-1">
+        {state.discount && state.discount.amountOff > 0 ? (
+          <>
+            <div className="flex justify-between items-center text-xs text-muted-foreground">
+              <span>Subtotal</span>
+              <span>
+                ₹{(PRICING[state.packageType] * state.partySize).toLocaleString("en-IN")}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-xs text-green-400">
+              <span className="truncate mr-2" title={state.discount.label}>
+                {state.discount.label} ({state.discount.badge})
+              </span>
+              <span>− ₹{state.discount.amountOff.toLocaleString("en-IN")}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Total</span>
+              <span className="font-bold text-lg text-green-400">
+                ₹{(PRICING[state.packageType] * state.partySize - state.discount.amountOff).toLocaleString("en-IN")}
+              </span>
+            </div>
+          </>
+        ) : (
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">Total</span>
+            <span className="font-bold text-lg">
+              ₹{(PRICING[state.packageType] * state.partySize).toLocaleString("en-IN")}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

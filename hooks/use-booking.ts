@@ -7,6 +7,15 @@ import type {
   TimeSlot,
 } from "@/lib/booking-types";
 
+export interface ActiveDiscount {
+  id: string;
+  label: string;
+  type: "percent" | "flat";
+  value: number;
+  badge: string;
+  amountOff: number;
+}
+
 export interface BookingState {
   step: 1 | 2 | 3 | 4 | 5;
   selectedDate: string | null;
@@ -24,6 +33,7 @@ export interface BookingState {
   paymentMethod: PaymentMethod | null;
   bookingId: string | null;
   amount: number;
+  discount: ActiveDiscount | null;
   isLoading: boolean;
   error: string | null;
   availableSlots: TimeSlot[];
@@ -39,6 +49,7 @@ type Action =
   | { type: "SET_PAYMENT_METHOD"; method: PaymentMethod }
   | { type: "SET_BOOKING_ID"; id: string }
   | { type: "SET_AMOUNT"; amount: number }
+  | { type: "SET_DISCOUNT"; discount: ActiveDiscount | null }
   | { type: "SET_LOADING"; loading: boolean }
   | { type: "SET_ERROR"; error: string | null }
   | { type: "SET_SLOTS"; slots: TimeSlot[] }
@@ -58,6 +69,7 @@ const initialState: BookingState = {
   paymentMethod: null,
   bookingId: null,
   amount: 0,
+  discount: null,
   isLoading: false,
   error: null,
   availableSlots: [],
@@ -94,6 +106,8 @@ function reducer(state: BookingState, action: Action): BookingState {
       return { ...state, bookingId: action.id };
     case "SET_AMOUNT":
       return { ...state, amount: action.amount };
+    case "SET_DISCOUNT":
+      return { ...state, discount: action.discount };
     case "SET_LOADING":
       return { ...state, isLoading: action.loading };
     case "SET_ERROR":

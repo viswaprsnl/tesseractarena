@@ -49,7 +49,8 @@ export function BookingWizard({ preselectedGame }: { preselectedGame?: string })
 
   // Step 3: Package confirmed (auto-advance via button)
   const handlePackageConfirm = () => {
-    const amount = calculatePrice(state.packageType, state.partySize);
+    const base = calculatePrice(state.packageType, state.partySize);
+    const amount = state.discount ? base - state.discount.amountOff : base;
     dispatch({ type: "SET_AMOUNT", amount });
     dispatch({ type: "NEXT_STEP" });
   };
@@ -69,7 +70,8 @@ export function BookingWizard({ preselectedGame }: { preselectedGame?: string })
         specialRequests: details.specialRequests || "",
       },
     });
-    const amount = calculatePrice(state.packageType, state.partySize);
+    const base = calculatePrice(state.packageType, state.partySize);
+    const amount = state.discount ? base - state.discount.amountOff : base;
     dispatch({ type: "SET_AMOUNT", amount });
     dispatch({ type: "NEXT_STEP" });
   };
@@ -224,11 +226,15 @@ export function BookingWizard({ preselectedGame }: { preselectedGame?: string })
                 <PackageSelector
                   partySize={state.partySize}
                   packageType={state.packageType}
+                  sessionDate={state.selectedDate}
                   onPartySizeChange={(size) =>
                     dispatch({ type: "SET_PARTY_SIZE", size })
                   }
                   onPackageChange={(pkg) =>
                     dispatch({ type: "SET_PACKAGE", pkg })
+                  }
+                  onDiscountChange={(discount) =>
+                    dispatch({ type: "SET_DISCOUNT", discount })
                   }
                 />
                 <div className="flex justify-center mt-6">

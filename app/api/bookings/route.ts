@@ -8,6 +8,8 @@ import {
   appendBooking,
   getActiveBookingsByContact,
 } from "@/lib/google-sheets";
+import { listDiscounts } from "@/lib/discount-sheets";
+import { pickActiveDiscount, applyDiscount } from "@/lib/discount-config";
 import { sendBookingConfirmation, sendOwnerNotification } from "@/lib/email";
 import {
   calculatePrice,
@@ -117,9 +119,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate booking ID
+    // Generate booking ID.
+    // Base price comes from the config; any active seasonal discount for the
+    // session date is applied server-side so the client cannot understate it.
     const bookingId = `TA-${nanoid(6).toUpperCase()}`;
-    const amount = calculatePrice(data.package, data.partySize);
+    const basePrice = calculatePrice(data.package, data.partySize);
+    let amount = basePrice;
+    try {
+      const discounts = await listDiscounts();
+      const active = pickActiveDiscount(discounts, data.date, data.package, basePrice);
+      if (active) amount = applyDiscount(basePrice, active);
+    } catch (err) {
+      // Discount lookup failure should not block a booking — fall back to base.
+      console.error("Discount lookup failed:", err);
+    }
     const nowIST = toZonedTime(new Date(), "Asia/Kolkata");
     const createdAt = format(nowIST, "yyyy-MM-dd'T'HH:mm:ssxxx");
 

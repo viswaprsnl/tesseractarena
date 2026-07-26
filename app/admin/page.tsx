@@ -23,6 +23,7 @@ import {
   Plus,
   Settings,
   ExternalLink,
+  Tag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatTimeDisplay } from "@/lib/booking-config";
 import type { BookingRow } from "@/lib/booking-types";
 import { allGames, availableGames, comingSoonGames, type Game, type GameCategory } from "@/data/games";
+import { formatDiscountBadge, type Discount, type DiscountScope, type DiscountType } from "@/lib/discount-config";
 
 type GameStatus = "available" | "unavailable" | "coming_soon" | "maintenance";
 
@@ -81,6 +83,154 @@ function ServiceCard({ name, purpose, plan, limits, upgrade, url, login, status 
   );
 }
 
+interface DiscountFormPayload {
+  label: string;
+  type: DiscountType;
+  value: number;
+  appliesTo: DiscountScope;
+  startsOn: string;
+  endsOn: string;
+  active: boolean;
+}
+
+function DiscountForm({
+  initial,
+  busy,
+  onSubmit,
+  onCancel,
+}: {
+  initial: Discount | null;
+  busy: boolean;
+  onSubmit: (p: DiscountFormPayload) => void;
+  onCancel: () => void;
+}) {
+  const today = format(new Date(), "yyyy-MM-dd");
+  const [label, setLabel] = useState(initial?.label || "");
+  const [type, setType] = useState<DiscountType>(initial?.type || "percent");
+  const [value, setValue] = useState<string>(initial ? String(initial.value) : "10");
+  const [appliesTo, setAppliesTo] = useState<DiscountScope>(initial?.appliesTo || "all");
+  const [startsOn, setStartsOn] = useState(initial?.startsOn || today);
+  const [endsOn, setEndsOn] = useState(initial?.endsOn || format(addDays(new Date(), 14), "yyyy-MM-dd"));
+  const [active, setActive] = useState(initial?.active ?? true);
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        const numeric = Number(value);
+        if (!label.trim() || !Number.isFinite(numeric) || numeric <= 0) return;
+        onSubmit({ label: label.trim(), type, value: numeric, appliesTo, startsOn, endsOn, active });
+      }}
+      className="glass-card p-5 space-y-3"
+    >
+      <h4 className="text-sm font-bold">{initial ? "Edit discount" : "New discount"}</h4>
+
+      <div className="space-y-1">
+        <label className="text-xs text-muted-foreground">Label (shown to customers)</label>
+        <Input
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder="e.g. Diwali Sale"
+          required
+          className="bg-card/60 border-white/10 text-xs h-9"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground">Type</label>
+          <select
+            value={type}
+            onChange={(e) => setType(e.target.value as DiscountType)}
+            className="w-full h-9 rounded-md bg-card/60 border border-white/10 px-2 text-xs"
+          >
+            <option value="percent">Percent off</option>
+            <option value="flat">Flat ₹ off</option>
+          </select>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground">
+            Value {type === "percent" ? "(0-100)" : "(₹)"}
+          </label>
+          <Input
+            type="number"
+            min="1"
+            max={type === "percent" ? 100 : undefined}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            required
+            className="bg-card/60 border-white/10 text-xs h-9"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-xs text-muted-foreground">Applies to</label>
+        <select
+          value={appliesTo}
+          onChange={(e) => setAppliesTo(e.target.value as DiscountScope)}
+          className="w-full h-9 rounded-md bg-card/60 border border-white/10 px-2 text-xs"
+        >
+          <option value="all">Site-wide (all packages)</option>
+          <option value="solo">Solo only</option>
+          <option value="squad">Squad only</option>
+          <option value="party">Party only</option>
+        </select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground">Starts on</label>
+          <Input
+            type="date"
+            value={startsOn}
+            onChange={(e) => setStartsOn(e.target.value)}
+            required
+            className="bg-card/60 border-white/10 text-xs h-9"
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground">Ends on</label>
+          <Input
+            type="date"
+            value={endsOn}
+            onChange={(e) => setEndsOn(e.target.value)}
+            required
+            className="bg-card/60 border-white/10 text-xs h-9"
+          />
+        </div>
+      </div>
+
+      <label className="flex items-center gap-2 text-xs cursor-pointer">
+        <input
+          type="checkbox"
+          checked={active}
+          onChange={(e) => setActive(e.target.checked)}
+          className="accent-primary"
+        />
+        Active — apply this discount when it&apos;s in-window
+      </label>
+
+      <div className="flex gap-2 justify-end pt-1">
+        <Button
+          type="button"
+          onClick={onCancel}
+          className="bg-secondary hover:bg-secondary/80 text-xs h-8"
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          disabled={busy}
+          className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs h-8"
+        >
+          {busy ? "Saving…" : initial ? "Save changes" : "Create discount"}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 export default function AdminPage() {
   const [pin, setPin] = useState("");
   const [authenticated, setAuthenticated] = useState(false);
@@ -93,7 +243,11 @@ export default function AdminPage() {
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [waiverCheck, setWaiverCheck] = useState<Record<string, boolean | null>>({});
-  const [activeTab, setActiveTab] = useState<"bookings" | "games" | "services" | "schedule">("bookings");
+  const [activeTab, setActiveTab] = useState<"bookings" | "games" | "services" | "schedule" | "discounts">("bookings");
+  const [discounts, setDiscounts] = useState<Discount[]>([]);
+  const [discountBusy, setDiscountBusy] = useState<string | null>(null);
+  const [showDiscountForm, setShowDiscountForm] = useState(false);
+  const [editingDiscount, setEditingDiscount] = useState<Discount | null>(null);
   const [gameStatuses, setGameStatuses] = useState<Record<string, { status: GameStatus; note: string; videoUrl?: string; hidden?: boolean }>>({});
   const [gameProvider, setGameProvider] = useState<"all" | GameCategory>("all");
   const [gameSearch, setGameSearch] = useState("");
@@ -196,6 +350,66 @@ export default function AdminPage() {
       setError("Failed to update game status");
     }
     setUpdatingGame(null);
+  };
+
+  const fetchDiscounts = useCallback(async (authPin: string) => {
+    try {
+      const res = await fetch(`/api/admin/discounts?pin=${authPin}`);
+      const data = await res.json();
+      if (data.discounts) setDiscounts(data.discounts);
+    } catch {
+      // Silently fail
+    }
+  }, []);
+
+  const saveDiscount = async (payload: {
+    id?: string;
+    label: string;
+    type: DiscountType;
+    value: number;
+    appliesTo: DiscountScope;
+    startsOn: string;
+    endsOn: string;
+    active: boolean;
+  }) => {
+    setDiscountBusy(payload.id || "new");
+    try {
+      const method = payload.id ? "PATCH" : "POST";
+      const res = await fetch(`/api/admin/discounts?pin=${pin}`, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Failed to save discount");
+      } else {
+        setShowDiscountForm(false);
+        setEditingDiscount(null);
+        await fetchDiscounts(pin);
+      }
+    } catch {
+      setError("Failed to save discount");
+    }
+    setDiscountBusy(null);
+  };
+
+  const toggleDiscountActive = async (d: Discount) => {
+    await saveDiscount({ ...d, active: !d.active });
+  };
+
+  const removeDiscount = async (id: string) => {
+    if (!confirm("Delete this discount permanently?")) return;
+    setDiscountBusy(id);
+    try {
+      const res = await fetch(`/api/admin/discounts?pin=${pin}&id=${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) await fetchDiscounts(pin);
+    } catch {
+      setError("Failed to delete discount");
+    }
+    setDiscountBusy(null);
   };
 
   const fetchSchedule = useCallback(async (date: string) => {
@@ -411,6 +625,17 @@ export default function AdminPage() {
           >
             <Clock size={16} />
             Schedule
+          </button>
+          <button
+            onClick={() => { setActiveTab("discounts"); fetchDiscounts(pin); }}
+            className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+              activeTab === "discounts"
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Tag size={16} />
+            Discounts
           </button>
         </div>
 
@@ -1057,6 +1282,118 @@ export default function AdminPage() {
                   <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span> Admin Blocked</span>
                   <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500"></span> Customer Booked</span>
                 </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "discounts" && (
+          <div className="space-y-4">
+            <div className="text-center mb-6">
+              <h2 className="font-heading text-lg font-bold mb-2">Seasonal Discounts</h2>
+              <p className="text-xs text-muted-foreground max-w-lg mx-auto">
+                Create date-bounded campaigns. Only campaigns that are <strong>active</strong> and
+                whose window covers the customer&apos;s session date are applied.
+                If two overlap, the one giving the bigger rupee saving wins.
+              </p>
+            </div>
+
+            <div className="flex justify-center">
+              <Button
+                onClick={() => {
+                  setEditingDiscount(null);
+                  setShowDiscountForm(!showDiscountForm);
+                }}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs"
+              >
+                <Plus size={14} className="mr-1" />
+                {showDiscountForm ? "Cancel" : "New discount"}
+              </Button>
+            </div>
+
+            {showDiscountForm && (
+              <DiscountForm
+                initial={editingDiscount}
+                busy={discountBusy === (editingDiscount?.id || "new")}
+                onSubmit={(payload) =>
+                  saveDiscount(editingDiscount ? { ...payload, id: editingDiscount.id } : payload)
+                }
+                onCancel={() => {
+                  setShowDiscountForm(false);
+                  setEditingDiscount(null);
+                }}
+              />
+            )}
+
+            {discounts.length === 0 ? (
+              <p className="text-center text-xs text-muted-foreground py-8">
+                No discounts yet. Create one to run a seasonal campaign.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {discounts.map((d) => {
+                  const today = format(new Date(), "yyyy-MM-dd");
+                  const inWindow = d.startsOn <= today && d.endsOn >= today;
+                  const live = d.active && inWindow;
+                  return (
+                    <div key={d.id} className="glass-card p-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex-1">
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <span className="text-sm font-medium">{d.label}</span>
+                            <Badge className="text-[10px] bg-secondary text-muted-foreground">
+                              {formatDiscountBadge(d)}
+                            </Badge>
+                            <Badge className="text-[10px] bg-secondary text-muted-foreground capitalize">
+                              {d.appliesTo === "all" ? "All packages" : d.appliesTo}
+                            </Badge>
+                            {live ? (
+                              <Badge className="text-[10px] bg-green-500/20 text-green-400">Live now</Badge>
+                            ) : d.active ? (
+                              <Badge className="text-[10px] bg-amber-500/20 text-amber-400">
+                                {d.startsOn > today ? "Scheduled" : "Ended"}
+                              </Badge>
+                            ) : (
+                              <Badge className="text-[10px] bg-secondary text-muted-foreground">Paused</Badge>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground">
+                            {d.startsOn} → {d.endsOn}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Button
+                            onClick={() => toggleDiscountActive(d)}
+                            disabled={discountBusy === d.id}
+                            className={`text-xs h-8 px-3 ${
+                              d.active
+                                ? "bg-amber-500/20 hover:bg-amber-500/30 text-amber-400"
+                                : "bg-green-500/20 hover:bg-green-500/30 text-green-400"
+                            }`}
+                          >
+                            {d.active ? "Pause" : "Activate"}
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              setEditingDiscount(d);
+                              setShowDiscountForm(true);
+                            }}
+                            className="bg-secondary hover:bg-secondary/80 text-xs h-8 px-3"
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            onClick={() => removeDiscount(d.id)}
+                            disabled={discountBusy === d.id}
+                            className="bg-red-500/20 hover:bg-red-500/30 text-red-400 h-8 px-2"
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
