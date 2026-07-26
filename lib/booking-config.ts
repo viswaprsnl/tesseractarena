@@ -5,7 +5,7 @@ import type { PackageType, TimeSlot } from "./booking-types";
 const TIMEZONE = "Asia/Kolkata";
 
 export const SLOT_DURATION_MINUTES = 40;
-export const MAX_PLAYERS = 10;
+export const MAX_PLAYERS = 8;
 
 // Flat advance per person paid at booking. Remaining is paid at the center.
 export const ADVANCE_PER_PERSON = 500;

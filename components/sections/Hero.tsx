@@ -53,7 +53,7 @@ export function Hero() {
           variants={fadeInUp}
           className="text-base sm:text-xl text-white/90 max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2"
         >
-          India&apos;s first multi-game standalone VR arena — up to 10 players,
+          India&apos;s first multi-game standalone VR arena — up to 8 players,
           zero PC required. Premium free-roam experiences that put you inside the
           game.
         </motion.p>

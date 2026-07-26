@@ -36,8 +36,8 @@ const packages = [
   {
     type: "party" as const,
     name: "Party",
-    desc: "6-10 players",
-    range: "6-10 players",
+    desc: "6-8 players",
+    range: "6-8 players",
   },
 ];
 

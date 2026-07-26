@@ -29,7 +29,7 @@ const steps = [
     icon: Users,
     title: "Play Together",
     description:
-      "Step into the arena with up to 10 players. Walk freely, communicate with your team, and experience VR like never before.",
+      "Step into the arena with up to 8 players. Walk freely, communicate with your team, and experience VR like never before.",
     image:
       "https://images.pexels.com/photos/7047331/pexels-photo-7047331.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop",
   },
