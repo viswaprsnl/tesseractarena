@@ -5,11 +5,15 @@ import { formatTimeDisplay } from "@/lib/booking-config";
 
 export async function GET(request: NextRequest) {
   try {
-    // Verify cron secret (prevents unauthorized calls)
-    const authHeader = request.headers.get("authorization");
+    // Verify cron secret (prevents unauthorized calls). Fail closed if unset.
     const cronSecret = process.env.CRON_SECRET;
-
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    if (!cronSecret) {
+      return NextResponse.json(
+        { error: "Cron not configured" },
+        { status: 503 }
+      );
+    }
+    if (request.headers.get("authorization") !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
