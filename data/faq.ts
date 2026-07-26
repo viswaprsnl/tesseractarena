@@ -7,7 +7,7 @@ export const faqItems: FAQItem[] = [
   {
     question: "What is Tesseract Arena?",
     answer:
-      "Tesseract Arena is India's first multi-game standalone VR arena. We offer premium free-roam virtual reality experiences where groups of up to 10 players can step into immersive worlds together — no PCs, no wires, no limits.",
+      "Tesseract Arena is India's first multi-game standalone VR arena. We offer premium free-roam virtual reality experiences where groups of up to 8 players can step into immersive worlds together — no PCs, no wires, no limits.",
   },
   {
     question: "Do I need any VR experience to play?",
@@ -22,7 +22,7 @@ export const faqItems: FAQItem[] = [
   {
     question: "How many people can play at once?",
     answer:
-      "Our standard sessions support up to 10 simultaneous players in the same virtual world. For party packages with larger groups, we rotate teams so everyone gets to play while others watch the action on our spectator screens.",
+      "Our standard sessions support up to 8 simultaneous players in the same virtual world. For party packages with larger groups, we rotate teams so everyone gets to play while others watch the action on our spectator screens.",
   },
   {
     question: "What should I wear?",
@@ -32,7 +32,7 @@ export const faqItems: FAQItem[] = [
   {
     question: "How long is a session?",
     answer:
-      "A standard session includes approximately 5 minutes of orientation and gear-up time, followed by 30 minutes of active gameplay. Party packages include 60 minutes of play time with the option to try multiple games.",
+      "A standard Solo or Squad session is 45 minutes: 15 minutes of setup and briefing, followed by 30 minutes of active VR gameplay. Party packages run 90 minutes — two back-to-back 45-min sessions so your group can try a second game.",
   },
   {
     question: "Do I need to book in advance?",

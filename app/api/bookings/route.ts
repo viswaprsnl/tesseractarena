@@ -24,7 +24,7 @@ const bookingSchema = z
     phone: z.string().min(10).max(15),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     timeSlot: z.string().regex(/^\d{2}:\d{2}$/),
-    partySize: z.number().int().min(1).max(10),
+    partySize: z.number().int().min(1).max(8),
     package: z.enum(["solo", "squad", "party"]),
     gamePreference: z.string().min(1),
     paymentMethod: z.enum(["razorpay", "pay_at_center"]),
@@ -37,7 +37,7 @@ const bookingSchema = z
       if (data.package === "squad")
         return data.partySize >= 2 && data.partySize <= 5;
       if (data.package === "party")
-        return data.partySize >= 6 && data.partySize <= 10;
+        return data.partySize >= 6 && data.partySize <= 8;
       return true;
     },
     { message: "Party size does not match selected package" }
@@ -90,13 +90,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for double-booking
+    // Check for double-booking. Party bookings (>=6 players) run ~90 min and
+    // need both the chosen slot and the next one free.
     const bookedSlots = await getBookedSlotsForDate(data.date, data.arenaId);
     if (bookedSlots.includes(data.timeSlot)) {
       return NextResponse.json(
         { error: "This slot is already booked. Please select another time." },
         { status: 409 }
       );
+    }
+    if (data.partySize >= 6) {
+      const daySlots = getSlotsForDate(data.date);
+      const idx = daySlots.indexOf(data.timeSlot);
+      const nextSlot = idx >= 0 ? daySlots[idx + 1] : undefined;
+      if (!nextSlot) {
+        return NextResponse.json(
+          { error: "Party bookings run 90 minutes — please pick an earlier slot so the follow-on slot fits within the day." },
+          { status: 409 }
+        );
+      }
+      if (bookedSlots.includes(nextSlot)) {
+        return NextResponse.json(
+          { error: "Party bookings need two back-to-back slots free. The slot after your selection is taken — please pick another time." },
+          { status: 409 }
+        );
+      }
     }
 
     // Generate booking ID

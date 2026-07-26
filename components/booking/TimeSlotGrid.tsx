@@ -45,7 +45,7 @@ export function TimeSlotGrid({
       ) : (
         <>
           <p className="text-xs text-muted-foreground text-center mb-4">
-            {availableCount} slot{availableCount !== 1 ? "s" : ""} available · 30 min session + 10 min setup
+            {availableCount} slot{availableCount !== 1 ? "s" : ""} available · 45 min session (30 min VR + 15 min setup)
           </p>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

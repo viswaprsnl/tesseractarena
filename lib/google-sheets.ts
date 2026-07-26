@@ -1,5 +1,6 @@
 import { google } from "googleapis";
 import type { BookingRow } from "./booking-types";
+import { getSlotsForDate } from "./booking-config";
 
 function getAuth() {
   const privateKey = Buffer.from(
@@ -42,12 +43,26 @@ export async function getBookingsForDate(
     .map(rowToBooking);
 }
 
+// Party bookings (partySize >= 6) run ~90 min and physically block the
+// following slot too. Return that follow-on slot alongside the booked one so
+// both the slot picker and the double-booking check treat it as taken.
 export async function getBookedSlotsForDate(
   date: string,
   arenaId: string = "arena-1"
 ): Promise<string[]> {
   const bookings = await getBookingsForDate(date, arenaId);
-  return bookings.map((b) => b.timeSlot);
+  const slotsInDay = getSlotsForDate(date);
+  const blocked = new Set<string>();
+  for (const b of bookings) {
+    blocked.add(b.timeSlot);
+    if (b.partySize >= 6) {
+      const idx = slotsInDay.indexOf(b.timeSlot);
+      if (idx >= 0 && idx + 1 < slotsInDay.length) {
+        blocked.add(slotsInDay[idx + 1]);
+      }
+    }
+  }
+  return [...blocked];
 }
 
 export async function getActiveBookingsByContact(
