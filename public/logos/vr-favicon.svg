@@ -1,0 +1,17 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Tesseract Arena VR favicon</title>
+  <defs>
+    <linearGradient id="vf" x1="3" y1="6" x2="29" y2="26" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6C3BFF"/><stop offset="1" stop-color="#00F5FF"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="7" fill="#0A0A0F"/>
+  <g fill="none" stroke="url(#vf)" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M8 9 H24 Q27 9 27 13 L27 18 Q27 21 24 21 L19 22 Q16 20 13 22 L8 21 Q5 21 5 18 L5 13 Q5 9 8 9 Z"/>
+    <rect x="12.5" y="11.5" width="7" height="7" rx="1"/>
+    <line x1="12.5" y1="11.5" x2="14.5" y2="13.5"/>
+    <line x1="19.5" y1="11.5" x2="17.5" y2="13.5"/>
+    <line x1="19.5" y1="18.5" x2="17.5" y2="16.5"/>
+    <line x1="12.5" y1="18.5" x2="14.5" y2="16.5"/>
+  </g>
+</svg>

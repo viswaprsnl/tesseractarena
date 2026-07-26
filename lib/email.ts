@@ -127,7 +127,7 @@ export async function sendBookingConfirmation(data: BookingEmailData): Promise<{
             </p>
           </div>
           <p style="margin-top: 10px;">
-            <a href="https://tesseractarena.com/book/cancel?id=${data.bookingId}" style="color: #888; font-size: 11px; text-decoration: underline;">
+            <a href="https://tesseractarena.com/book/cancel?id=${data.bookingId}&date=${data.date}&time=${encodeURIComponent(data.time)}" style="color: #888; font-size: 11px; text-decoration: underline;">
               Need to cancel? Click here
             </a>
           </p>

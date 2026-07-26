@@ -1,0 +1,23 @@
+<svg width="520" height="140" viewBox="0 0 520 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Tesseract Arena horizontal logo</title>
+  <defs>
+    <linearGradient id="taGradH" x1="20" y1="32" x2="96" y2="108" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6C3BFF"/>
+      <stop offset="1" stop-color="#00F5FF"/>
+    </linearGradient>
+    <linearGradient id="taTextH" x1="150" y1="0" x2="470" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8A5BFF"/>
+      <stop offset="1" stop-color="#00F5FF"/>
+    </linearGradient>
+  </defs>
+  <g stroke="url(#taGradH)" stroke-width="5" fill="none" stroke-linejoin="round" stroke-linecap="round">
+    <rect x="28" y="36" width="72" height="72" rx="4"/>
+    <rect x="49" y="57" width="30" height="30" rx="2"/>
+    <line x1="28" y1="36" x2="49" y2="57"/>
+    <line x1="100" y1="36" x2="79" y2="57"/>
+    <line x1="100" y1="108" x2="79" y2="87"/>
+    <line x1="28" y1="108" x2="49" y2="87"/>
+  </g>
+  <text x="132" y="66" font-family="Orbitron, 'Arial Black', sans-serif" font-size="30" font-weight="800" letter-spacing="5" fill="#FFFFFF">TESSERACT</text>
+  <text x="134" y="102" font-family="Orbitron, 'Arial Black', sans-serif" font-size="25" font-weight="800" letter-spacing="15" fill="url(#taTextH)">ARENA</text>
+</svg>

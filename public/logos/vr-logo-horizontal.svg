@@ -1,0 +1,22 @@
+<svg width="520" height="150" viewBox="0 0 520 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Tesseract Arena VR horizontal logo</title>
+  <defs>
+    <linearGradient id="vgh" x1="20" y1="40" x2="150" y2="110" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6C3BFF"/><stop offset="1" stop-color="#00F5FF"/>
+    </linearGradient>
+    <linearGradient id="vth" x1="170" y1="0" x2="500" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8A5BFF"/><stop offset="1" stop-color="#00F5FF"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke="url(#vgh)" stroke-width="6" stroke-linejoin="round" stroke-linecap="round" transform="translate(16,40) scale(0.62)">
+    <path d="M38 24 H162 Q184 24 185 48 L187 66 Q188 88 166 90 L116 93 Q100 86 84 93 L34 90 Q12 88 13 66 L15 48 Q16 24 38 24 Z"/>
+    <rect x="78" y="34" width="44" height="44" rx="3"/>
+    <rect x="90" y="46" width="20" height="20" rx="2"/>
+    <line x1="78" y1="34" x2="90" y2="46"/>
+    <line x1="122" y1="34" x2="110" y2="46"/>
+    <line x1="122" y1="78" x2="110" y2="66"/>
+    <line x1="78" y1="78" x2="90" y2="66"/>
+  </g>
+  <text x="150" y="72" font-family="Orbitron,'Arial Black',sans-serif" font-size="30" font-weight="800" letter-spacing="5" fill="#FFFFFF">TESSERACT</text>
+  <text x="152" y="106" font-family="Orbitron,'Arial Black',sans-serif" font-size="24" font-weight="800" letter-spacing="16" fill="url(#vth)">ARENA</text>
+</svg>

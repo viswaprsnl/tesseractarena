@@ -1,0 +1,18 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Tesseract Arena favicon</title>
+  <defs>
+    <linearGradient id="taFav" x1="5" y1="5" x2="27" y2="27" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6C3BFF"/>
+      <stop offset="1" stop-color="#00F5FF"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="7" fill="#0A0A0F"/>
+  <g stroke="url(#taFav)" stroke-width="2" fill="none" stroke-linejoin="round" stroke-linecap="round">
+    <rect x="7" y="7" width="18" height="18" rx="1.5"/>
+    <rect x="12.5" y="12.5" width="7" height="7" rx="1"/>
+    <line x1="7" y1="7" x2="12.5" y2="12.5"/>
+    <line x1="25" y1="7" x2="19.5" y2="12.5"/>
+    <line x1="25" y1="25" x2="19.5" y2="19.5"/>
+    <line x1="7" y1="25" x2="12.5" y2="19.5"/>
+  </g>
+</svg>

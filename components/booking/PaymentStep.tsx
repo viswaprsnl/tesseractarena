@@ -6,7 +6,12 @@ import { motion } from "framer-motion";
 import { CreditCard, Loader2, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { BookingState } from "@/hooks/use-booking";
-import { formatTimeDisplay, calculateAdvance } from "@/lib/booking-config";
+import {
+  formatTimeDisplay,
+  calculateAdvance,
+  getRefundCutoffHours,
+  isWeekend,
+} from "@/lib/booking-config";
 
 declare global {
   interface Window {
@@ -28,6 +33,10 @@ export function PaymentStep({
 
   const advance = calculateAdvance(state.partySize, state.amount);
   const atCenter = state.amount - advance;
+
+  const sessionDate = state.selectedDate || "";
+  const cutoffHours = sessionDate ? getRefundCutoffHours(sessionDate) : 6;
+  const dayLabel = sessionDate && isWeekend(sessionDate) ? "weekend" : "weekday";
 
   const handlePayOnline = async () => {
     setProcessing(true);
@@ -113,14 +122,14 @@ export function PaymentStep({
         </div>
       </Button>
 
-      {/* Cancellation policy */}
+      {/* Cancellation policy — specific to the selected date */}
       <div className="mt-6 p-3 rounded-lg bg-secondary/30 border border-border">
         <p className="text-[11px] text-muted-foreground leading-relaxed">
-          <span className="font-medium text-foreground">Cancellation policy:</span> Full
-          refund if you cancel at least <span className="text-foreground">6 hours before
-          (weekdays)</span> or <span className="text-foreground">24 hours before
-          (weekends)</span>. Late cancellations and no-shows are non-refundable. Cancel
-          anytime using the link in your confirmation email.
+          <span className="font-medium text-foreground">Cancellation policy:</span> Your
+          session is on a {dayLabel}, so you get a full refund if you cancel at least{" "}
+          <span className="text-foreground">{cutoffHours} hours before</span> your slot.
+          Late cancellations and no-shows are non-refundable. Cancel anytime using the
+          link in your confirmation email.
         </p>
       </div>
 
