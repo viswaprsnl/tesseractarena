@@ -37,7 +37,7 @@ const initThemeScript = `
 (function() {
   try {
     var saved = localStorage.getItem('theme');
-    var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    var preferred = saved || 'dark';
     if (preferred === 'dark') {
       document.documentElement.classList.add('dark');
     } else {

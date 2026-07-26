@@ -17,14 +17,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("dark");
   const [mounted, setMounted] = useState(false);
 
-  // On mount, read saved preference (or system preference)
+  // On mount, honour the saved preference; otherwise default to dark.
+  // OS prefers-color-scheme is intentionally ignored — this is a dark-first
+  // brand and light mode is opt-in via the toggle.
   useEffect(() => {
     const saved = localStorage.getItem("theme") as Theme | null;
-    const preferred: Theme =
-      saved ||
-      (window.matchMedia("(prefers-color-scheme: light)").matches
-        ? "light"
-        : "dark");
+    const preferred: Theme = saved || "dark";
     setThemeState(preferred);
     setMounted(true);
   }, []);
