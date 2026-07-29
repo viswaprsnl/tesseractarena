@@ -28,7 +28,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { formatTimeDisplay } from "@/lib/booking-config";
+import { formatTimeDisplay, getTodayISTString } from "@/lib/booking-config";
 import type { BookingRow } from "@/lib/booking-types";
 import { allGames, availableGames, comingSoonGames, type Game, type GameCategory } from "@/data/games";
 import { formatDiscountBadge, type Discount, type DiscountScope, type DiscountType } from "@/lib/discount-config";
@@ -104,13 +104,17 @@ function DiscountForm({
   onSubmit: (p: DiscountFormPayload) => void;
   onCancel: () => void;
 }) {
-  const today = format(new Date(), "yyyy-MM-dd");
+  // "Today" and defaults are anchored to IST because the arena operates
+  // in India — an admin maintaining from another timezone must not see
+  // their local date leak into campaign windows.
+  const today = getTodayISTString();
+  const twoWeeksOut = format(addDays(new Date(today + "T00:00:00Z"), 14), "yyyy-MM-dd");
   const [label, setLabel] = useState(initial?.label || "");
   const [type, setType] = useState<DiscountType>(initial?.type || "percent");
   const [value, setValue] = useState<string>(initial ? String(initial.value) : "10");
   const [appliesTo, setAppliesTo] = useState<DiscountScope>(initial?.appliesTo || "all");
   const [startsOn, setStartsOn] = useState(initial?.startsOn || today);
-  const [endsOn, setEndsOn] = useState(initial?.endsOn || format(addDays(new Date(), 14), "yyyy-MM-dd"));
+  const [endsOn, setEndsOn] = useState(initial?.endsOn || twoWeeksOut);
   const [active, setActive] = useState(initial?.active ?? true);
 
   return (
@@ -234,9 +238,7 @@ function DiscountForm({
 export default function AdminPage() {
   const [pin, setPin] = useState("");
   const [authenticated, setAuthenticated] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(
-    format(new Date(), "yyyy-MM-dd")
-  );
+  const [selectedDate, setSelectedDate] = useState(getTodayISTString());
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(false);
@@ -255,7 +257,7 @@ export default function AdminPage() {
   const [editNote, setEditNote] = useState("");
   const [customGames, setCustomGames] = useState<Game[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [scheduleDate, setScheduleDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [scheduleDate, setScheduleDate] = useState(getTodayISTString());
   const [scheduleBlock, setScheduleBlock] = useState<{
     type: string; blockedSlots: string[]; reason: string;
   } | null>(null);
@@ -1332,7 +1334,7 @@ export default function AdminPage() {
             ) : (
               <div className="space-y-2">
                 {discounts.map((d) => {
-                  const today = format(new Date(), "yyyy-MM-dd");
+                  const today = getTodayISTString();
                   const inWindow = d.startsOn <= today && d.endsOn >= today;
                   const live = d.active && inWindow;
                   return (

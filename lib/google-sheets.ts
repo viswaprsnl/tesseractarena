@@ -1,6 +1,6 @@
 import { google } from "googleapis";
 import type { BookingRow } from "./booking-types";
-import { getSlotsForDate } from "./booking-config";
+import { getSlotsForDate, getTodayISTString } from "./booking-config";
 
 function getAuth() {
   const privateKey = Buffer.from(
@@ -76,7 +76,7 @@ export async function getActiveBookingsByContact(
   });
 
   const rows = res.data.values || [];
-  const today = new Date().toISOString().split("T")[0];
+  const today = getTodayISTString();
 
   return rows
     .filter(
