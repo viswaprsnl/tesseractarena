@@ -19,6 +19,7 @@ import {
 } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
+import { getTodayISTString } from "@/lib/booking-config";
 
 interface DatePickerProps {
   selectedDate: string | null;
@@ -28,7 +29,10 @@ interface DatePickerProps {
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function DatePicker({ selectedDate, onSelectDate }: DatePickerProps) {
-  const today = startOfDay(new Date());
+  // Anchor "today" to IST — the arena's operating timezone. This matches
+  // the server's isDateBookable check so a customer whose browser clock
+  // is behind IST can't be shown a date the server will then reject.
+  const today = startOfDay(new Date(getTodayISTString() + "T00:00:00"));
   const maxDate = addDays(today, 30);
   const [viewMonth, setViewMonth] = useState(today);
 

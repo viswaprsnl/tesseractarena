@@ -113,13 +113,20 @@ export function generateSlots(
   });
 }
 
-export function isDateBookable(dateStr: string): boolean {
-  const nowIST = toZonedTime(new Date(), TIMEZONE);
-  const today = startOfDay(nowIST);
-  const date = new Date(dateStr + "T00:00:00");
-  const maxDate = addDays(today, 30);
+// "Today" in the arena's operating timezone (Asia/Kolkata) as a YYYY-MM-DD
+// string. Both server and client anchor date comparisons on this so a
+// customer whose device clock is in a different zone can't select a date
+// that is already past for the arena.
+export function getTodayISTString(): string {
+  return format(toZonedTime(new Date(), TIMEZONE), "yyyy-MM-dd");
+}
 
-  return !isBefore(date, today) && !isAfter(date, maxDate);
+export function isDateBookable(dateStr: string): boolean {
+  const today = getTodayISTString();
+  const todayDate = new Date(today + "T00:00:00Z");
+  const maxDate = addDays(todayDate, 30);
+  const maxDateStr = format(maxDate, "yyyy-MM-dd");
+  return dateStr >= today && dateStr <= maxDateStr;
 }
 
 export function calculatePrice(
@@ -136,11 +143,11 @@ export function getPackageForSize(partySize: number): PackageType {
 }
 
 export function getBookableDates(): string[] {
-  const nowIST = toZonedTime(new Date(), TIMEZONE);
-  const today = startOfDay(nowIST);
+  const today = getTodayISTString();
+  const todayDate = new Date(today + "T00:00:00Z");
   const dates: string[] = [];
   for (let i = 0; i <= 30; i++) {
-    dates.push(format(addDays(today, i), "yyyy-MM-dd"));
+    dates.push(format(addDays(todayDate, i), "yyyy-MM-dd"));
   }
   return dates;
 }
