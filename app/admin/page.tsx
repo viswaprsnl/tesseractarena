@@ -24,6 +24,7 @@ import {
   Settings,
   ExternalLink,
   Tag,
+  TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,7 @@ import { formatTimeDisplay, getTodayISTString } from "@/lib/booking-config";
 import type { BookingRow } from "@/lib/booking-types";
 import { allGames, availableGames, comingSoonGames, type Game, type GameCategory } from "@/data/games";
 import { formatDiscountBadge, type Discount, type DiscountScope, type DiscountType } from "@/lib/discount-config";
+import { RevenueTab } from "@/components/admin/RevenueTab";
 
 type GameStatus = "available" | "unavailable" | "coming_soon" | "maintenance";
 
@@ -245,7 +247,7 @@ export default function AdminPage() {
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [waiverCheck, setWaiverCheck] = useState<Record<string, boolean | null>>({});
-  const [activeTab, setActiveTab] = useState<"bookings" | "games" | "services" | "schedule" | "discounts">("bookings");
+  const [activeTab, setActiveTab] = useState<"bookings" | "games" | "services" | "schedule" | "discounts" | "revenue">("bookings");
   const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [discountBusy, setDiscountBusy] = useState<string | null>(null);
   const [showDiscountForm, setShowDiscountForm] = useState(false);
@@ -639,7 +641,20 @@ export default function AdminPage() {
             <Tag size={16} />
             Discounts
           </button>
+          <button
+            onClick={() => setActiveTab("revenue")}
+            className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+              activeTab === "revenue"
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <TrendingUp size={16} />
+            Revenue
+          </button>
         </div>
+
+        {activeTab === "revenue" && <RevenueTab pin={pin} />}
 
         {activeTab === "services" && (
           <div className="space-y-6 mb-8">
