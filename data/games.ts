@@ -68,7 +68,7 @@ export const availableGames: Game[] = [
     genre: "Fantasy Action",
     duration: "30 min",
     difficulty: "Medium",
-    image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a68d8293b602d32b55cd056_Arrowsong_DarkOmen_Banner.jpg",
+    image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a68b7eedb11f5e66e38e39c_Arrowsong%20-%20Dark%20Omen.png",
     tags: ["fantasy", "co-op", "archery", "free-roam"],
   },
   {
@@ -81,7 +81,7 @@ export const availableGames: Game[] = [
     genre: "Sci-Fi Shooter",
     duration: "30 min",
     difficulty: "Medium",
-    image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/698504367c959b729c2c1899_Terminator%201.jpg",
+    image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a68ba7cf358cafdc3486a7e_Terminator%20poster.png",
     tags: ["sci-fi", "co-op", "action", "free-roam"],
   },
   {
@@ -94,7 +94,7 @@ export const availableGames: Game[] = [
     genre: "Party Game",
     duration: "30 min",
     difficulty: "Easy",
-    image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/699f4b56ffb28457e31f76ff_Monkey%20Madness%201.jpg",
+    image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbb05528de02514b83158_MonkeyMadness_Poster.avif",
     tags: ["party", "casual", "family", "co-op"],
   },
   {
@@ -107,7 +107,7 @@ export const availableGames: Game[] = [
     genre: "Zombie Shooter",
     duration: "30 min",
     difficulty: "Medium",
-    image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6984fd41360dd4a281a0cdfb_Dead%20Ahead%201.jpg",
+    image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a68ba49e225a3204503ff60_Dead%20Ahead%20poster.png",
     tags: ["action", "co-op", "horror", "shooter"],
   },
   {
@@ -120,7 +120,7 @@ export const availableGames: Game[] = [
     genre: "Sci-Fi Adventure",
     duration: "30 min",
     difficulty: "Medium",
-    image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6984fd88e685edaaade37488_Wayfinders%201.jpg",
+    image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbd845097819d0cd21a44_Wayfinders_Poster.avif",
     tags: ["sci-fi", "adventure", "co-op", "cinematic"],
   },
   {
@@ -133,7 +133,7 @@ export const availableGames: Game[] = [
     genre: "PvP Shooter",
     duration: "30 min",
     difficulty: "Medium",
-    image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/698500597a5b0645664c748d_Cops%20vs%20Robbers%201.jpg",
+    image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbc56528de02514b935b4_HZ%20Game%20Cops%20vs%20Robbers.avif",
     tags: ["pvp", "competitive", "action", "multiplayer"],
   },
 ];
@@ -227,10 +227,7 @@ export const comingSoonGames: Game[] = [
     genre: "PvP Shooter",
     duration: "30 min",
     difficulty: "Medium",
-    // NOTE: HeroZone reuses asset URLs across titles — this image path
-    // is labelled MonkeyMadness on their CDN. Swap when a proper Versus
-    // banner is available.
-    image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbb05528de02514b83158_MonkeyMadness_Poster.avif",
+    image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbdfcfb1b2037358a6381_HZ%20Game%20Versus.avif",
     tags: ["pvp", "competitive", "action", "laser-tag"],
   },
   {
@@ -295,9 +292,7 @@ export const comingSoonGames: Game[] = [
     genre: "Tower Defense",
     duration: "30 min",
     difficulty: "Easy",
-    // NOTE: HeroZone reuses asset URLs — this path is labelled Wayfinders
-    // on their CDN. Swap when a proper Plush Rush banner is available.
-    image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbd845097819d0cd21a44_Wayfinders_Poster.avif",
+    image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbd2f3031db7ec7cc4c41_Plush%20Rush_Poster.avif",
     tags: ["action", "family", "co-op", "casual"],
   },
   {
