@@ -204,6 +204,128 @@ export const comingSoonGames: Game[] = [
     image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1486660/header.jpg?t=1619858252",
     tags: ["adventure", "family", "fantasy", "flying"],
   },
+  {
+    id: "trials-of-atlantis",
+    title: "Trials of Atlantis",
+    category: "coming_soon",
+    description:
+      "Modular underwater escape room. Teams complete five unique trials that blend puzzles and action in a visually stunning sunken city.",
+    players: "1-6",
+    genre: "Escape Room",
+    duration: "30 min",
+    difficulty: "Medium",
+    image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a60d65e059c66262de183fb_ToA_Poster.jpg",
+    tags: ["escape", "puzzle", "co-op", "adventure"],
+  },
+  {
+    id: "versus",
+    title: "Versus",
+    category: "coming_soon",
+    description:
+      "Retro-futuristic PvP laser tag. Dual-wield futuristic weapons in Team Battle or Free-For-All modes on neon-lit arenas.",
+    players: "2-8",
+    genre: "PvP Shooter",
+    duration: "30 min",
+    difficulty: "Medium",
+    // NOTE: HeroZone reuses asset URLs across titles — this image path
+    // is labelled MonkeyMadness on their CDN. Swap when a proper Versus
+    // banner is available.
+    image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbb05528de02514b83158_MonkeyMadness_Poster.avif",
+    tags: ["pvp", "competitive", "action", "laser-tag"],
+  },
+  {
+    id: "quantum-arena",
+    title: "Quantum Arena",
+    category: "coming_soon",
+    description:
+      "Intense futuristic tournament with bouncing bullets, interactive levels, and booby traps across multiple game modes.",
+    players: "2-6",
+    genre: "PvP Shooter",
+    duration: "30 min",
+    difficulty: "Medium",
+    image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbb88502c96c1ab0b6ffe_HZ%20Game%20Quantum%20Arena.avif",
+    tags: ["pvp", "competitive", "action", "sci-fi"],
+  },
+  {
+    id: "wizard-academy",
+    title: "Wizard Academy",
+    category: "coming_soon",
+    description:
+      "Cooperative puzzle game where wizard students complete magical tasks and solve mysteries before time expires.",
+    players: "1-8",
+    genre: "Puzzle Adventure",
+    duration: "30 min",
+    difficulty: "Easy",
+    image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbb92167da01a1eb71619_HZ%20Game%20Wizard%20Academy.avif",
+    tags: ["puzzle", "family", "co-op", "fantasy"],
+  },
+  {
+    id: "espionage-express",
+    title: "Espionage Express",
+    category: "coming_soon",
+    description:
+      "Agents escape a hacked train by solving puzzles and working together in a thrilling game of cat-and-mouse.",
+    players: "1-6",
+    genre: "Escape Room",
+    duration: "30 min",
+    difficulty: "Medium",
+    image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbcbf87bdd7de8ad3ad9f_HZ%20Game%20Espionage%20Express.avif",
+    tags: ["escape", "puzzle", "co-op", "family"],
+  },
+  {
+    id: "cookd-up",
+    title: "Cook'd Up",
+    category: "coming_soon",
+    description:
+      "Family-friendly team-building game. Chefs cooperate to cook burgers and satisfy hungry customers before the kitchen falls behind.",
+    players: "1-6",
+    genre: "Party Game",
+    duration: "30 min",
+    difficulty: "Easy",
+    image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbbc4230c7f32c94ab288_HZ%20Game%20Cook%E2%80%99d%20Up.avif",
+    tags: ["party", "casual", "family", "team-building"],
+  },
+  {
+    id: "plush-rush",
+    title: "Plush Rush",
+    category: "coming_soon",
+    description:
+      "Tower defense adventure. Toy-sized teams protect candy jars from mischievous enemies with arcade-grade excitement.",
+    players: "1-8",
+    genre: "Tower Defense",
+    duration: "30 min",
+    difficulty: "Easy",
+    // NOTE: HeroZone reuses asset URLs — this path is labelled Wayfinders
+    // on their CDN. Swap when a proper Plush Rush banner is available.
+    image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbd845097819d0cd21a44_Wayfinders_Poster.avif",
+    tags: ["action", "family", "co-op", "casual"],
+  },
+  {
+    id: "arrowsong",
+    title: "Arrowsong",
+    category: "coming_soon",
+    description:
+      "Adventurous archery game. Heroes defend the sacred tree against goblins, machines, and — inevitably — a dragon.",
+    players: "1-6",
+    genre: "Action Archery",
+    duration: "30 min",
+    difficulty: "Easy",
+    image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbb69e93df905241e960c_HZ%20Game%20Arrowsong2.avif",
+    tags: ["action", "archery", "family", "fantasy"],
+  },
+  {
+    id: "cyber-shock",
+    title: "Cyber Shock",
+    category: "coming_soon",
+    description:
+      "Fast-paced futuristic shooter. Digital warriors battle viruses through neon-charged virtual combat.",
+    players: "1-6",
+    genre: "Sci-Fi Shooter",
+    duration: "30 min",
+    difficulty: "Medium",
+    image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbe7b3089a6e2d584a237_HZ%20Cyber%20Shock_Poster.avif",
+    tags: ["sci-fi", "action", "co-op", "shooter"],
+  },
 ];
 
 export const allGames: Game[] = [...availableGames, ...comingSoonGames];
