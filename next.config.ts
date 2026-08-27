@@ -12,6 +12,7 @@ const nextConfig: NextConfig = {
       { hostname: "static.tildacdn.com" },
       { hostname: "thb.tildacdn.com" },
       { hostname: "inoui-vr.fr" },
+      { hostname: "cdn.prod.website-files.com" },
     ],
   },
 };
