@@ -10,6 +10,11 @@ export function Testimonials() {
   const [current, setCurrent] = useState(0);
   const [direction, setDirection] = useState(0);
 
+  // Hide the section entirely while there are no real reviews to display.
+  // The data file starts empty; add customer reviews there and this section
+  // reappears automatically.
+  if (testimonials.length === 0) return null;
+
   const next = useCallback(() => {
     setDirection(1);
     setCurrent((prev) => (prev + 1) % testimonials.length);

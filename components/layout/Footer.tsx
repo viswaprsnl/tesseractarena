@@ -123,18 +123,30 @@ export function Footer() {
           <p className="text-xs text-muted-foreground">
             &copy; {new Date().getFullYear()} Tesseract Arena. All rights reserved.
           </p>
-          <div className="flex gap-6">
+          <div className="flex flex-wrap gap-x-6 gap-y-2 justify-center sm:justify-end">
             <Link
-              href="#"
+              href="/privacy"
               className="text-xs text-muted-foreground hover:text-primary transition-colors"
             >
               Privacy Policy
             </Link>
             <Link
-              href="#"
+              href="/terms"
               className="text-xs text-muted-foreground hover:text-primary transition-colors"
             >
-              Terms of Service
+              Terms &amp; Conditions
+            </Link>
+            <Link
+              href="/refund"
+              className="text-xs text-muted-foreground hover:text-primary transition-colors"
+            >
+              Refund Policy
+            </Link>
+            <Link
+              href="/safety"
+              className="text-xs text-muted-foreground hover:text-primary transition-colors"
+            >
+              Safety
             </Link>
           </div>
         </div>
