@@ -116,6 +116,25 @@ export async function findBookingById(
   return { booking: rowToBooking(rows[index]), rowIndex: index + 2 };
 }
 
+// Fallback lookup for the webhook when notes.bookingId is missing
+// (typically only for orders created before order.notes rollout).
+// Column M holds razorpayOrderId.
+export async function findBookingByOrderId(
+  orderId: string
+): Promise<{ booking: BookingRow; rowIndex: number } | null> {
+  const sheets = getSheets();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${SHEET_NAME}!A2:R`,
+  });
+
+  const rows = res.data.values || [];
+  const index = rows.findIndex((row) => row[12] === orderId);
+  if (index === -1) return null;
+
+  return { booking: rowToBooking(rows[index]), rowIndex: index + 2 };
+}
+
 export async function updateBookingCells(
   rowIndex: number,
   updates: Record<string, string>
