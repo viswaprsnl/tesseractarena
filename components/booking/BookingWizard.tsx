@@ -108,13 +108,16 @@ export function BookingWizard({ preselectedGame }: { preselectedGame?: string })
       }
 
       const bookingId = bookingData.booking.bookingId;
+      // Total session cost — displayed on the confirmation page. The advance
+      // Razorpay actually charges is derived server-side from bookingId, so
+      // no amount is sent here to keep the client tamper-proof.
       const amount = bookingData.booking.amount;
 
-      // 2. Create Razorpay order
+      // 2. Create Razorpay order (server computes the advance from the booking)
       const payRes = await fetch("/api/payments/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookingId, amount }),
+        body: JSON.stringify({ bookingId }),
       });
 
       const payData = await payRes.json();

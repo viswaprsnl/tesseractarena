@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createOrder } from "@/lib/razorpay";
 import { findBookingById, updateBookingCells } from "@/lib/google-sheets";
+import { calculateAdvance } from "@/lib/booking-config";
 
+// The client sends only the bookingId. The amount to charge is derived
+// server-side from the booking row so a tampered client cannot short-pay
+// or over-charge. Kept `amount` optional in the schema for backwards
+// compatibility with any in-flight browsers but the value is ignored.
 const createPaymentSchema = z.object({
   bookingId: z.string().min(1),
-  amount: z.number().positive(),
+  amount: z.number().positive().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -20,7 +25,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { bookingId, amount } = parsed.data;
+    const { bookingId } = parsed.data;
 
     // Verify booking exists
     const result = await findBookingById(bookingId);
@@ -38,8 +43,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create Razorpay order
-    const order = await createOrder(amount, bookingId);
+    // Charge only the advance (₹500/person, capped at total). The rest is
+    // collected at the arena counter.
+    const advance = calculateAdvance(
+      result.booking.partySize,
+      result.booking.amount
+    );
+
+    // Create Razorpay order for the advance amount
+    const order = await createOrder(advance, bookingId);
 
     // Update booking with order ID
     await updateBookingCells(result.rowIndex, {
