@@ -105,10 +105,18 @@ export function generateSlots(
       isPast = isBefore(slotDate, nowIST);
     }
 
+    // Booked wins over past — a slot that IS actually booked stays labelled
+    // "booked" even after it starts, so the admin still sees the customer.
+    const status: TimeSlot["status"] = isBooked
+      ? "booked"
+      : isPast
+      ? "past"
+      : "available";
+
     return {
       time,
       displayTime: formatTimeDisplay(time),
-      status: isBooked || isPast ? "booked" : "available",
+      status,
     };
   });
 }

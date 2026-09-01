@@ -2,7 +2,9 @@ export type PackageType = "solo" | "squad" | "party";
 export type PaymentMethod = "razorpay" | "pay_at_center";
 export type PaymentStatus = "pending" | "paid" | "pay_at_center";
 export type BookingStatus = "confirmed" | "cancelled";
-export type SlotStatus = "available" | "booked";
+// "past" is emitted for slots on today's date whose start time has already
+// elapsed — visually distinct from a real customer booking in the admin UI.
+export type SlotStatus = "available" | "booked" | "past";
 
 export interface TimeSlot {
   time: string;

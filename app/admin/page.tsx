@@ -1263,30 +1263,34 @@ export default function AdminPage() {
                     {scheduleSlots.map((slot) => {
                       const isAdminBlocked = scheduleBlock?.blockedSlots?.includes(slot.time);
                       const isBooked = slot.status === "booked" && !isAdminBlocked;
+                      const isPast = slot.status === "past" && !isAdminBlocked;
+                      const isLocked = isBooked || isPast;
 
                       return (
                         <button
                           key={slot.time}
                           onClick={() => {
-                            if (isBooked) return; // Can't unblock a customer booking
+                            if (isLocked) return; // Can't unblock a booking or a past slot
                             if (isAdminBlocked) {
                               scheduleAction("unblock_slots", [slot.time]);
                             } else {
                               scheduleAction("block_slots", [slot.time]);
                             }
                           }}
-                          disabled={isBooked || scheduleLoading}
+                          disabled={isLocked || scheduleLoading}
                           className={`py-3 px-2 rounded-lg text-xs font-medium transition-all flex flex-col items-center gap-1 ${
                             isAdminBlocked
                               ? "bg-red-500/20 border border-red-500/30 text-red-400"
                               : isBooked
                               ? "bg-amber-500/10 border border-amber-500/20 text-amber-400/60 cursor-not-allowed"
+                              : isPast
+                              ? "bg-secondary/40 border border-white/5 text-muted-foreground/50 cursor-not-allowed"
                               : "bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20"
                           }`}
                         >
-                          <span>{slot.displayTime}</span>
+                          <span className={isPast ? "line-through" : ""}>{slot.displayTime}</span>
                           <span className="text-[10px] opacity-70">
-                            {isAdminBlocked ? "Blocked" : isBooked ? "Booked" : "Open"}
+                            {isAdminBlocked ? "Blocked" : isBooked ? "Booked" : isPast ? "Past" : "Open"}
                           </span>
                         </button>
                       );
@@ -1294,10 +1298,11 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                <div className="flex gap-4 mt-4 text-[10px] text-muted-foreground">
+                <div className="flex flex-wrap gap-4 mt-4 text-[10px] text-muted-foreground">
                   <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span> Open</span>
                   <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span> Admin Blocked</span>
                   <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500"></span> Customer Booked</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-muted-foreground/50"></span> Past</span>
                 </div>
               </div>
             )}
