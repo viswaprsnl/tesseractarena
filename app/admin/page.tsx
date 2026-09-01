@@ -245,6 +245,7 @@ export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(false);
   const [cancelling, setCancelling] = useState<string | null>(null);
+  const [markingPaid, setMarkingPaid] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [waiverCheck, setWaiverCheck] = useState<Record<string, boolean | null>>({});
   const [activeTab, setActiveTab] = useState<"bookings" | "games" | "services" | "schedule" | "discounts" | "revenue">("bookings");
@@ -525,6 +526,29 @@ export default function AdminPage() {
       setError("Failed to cancel booking");
     }
     setCancelling(null);
+  };
+
+  // Marks the counter balance as collected — customer paid the remainder in
+  // cash/UPI at the arena. Sets amountPaid = total, balanceDue = 0.
+  const markBalancePaid = async (bookingId: string) => {
+    if (!confirm(`Mark the remaining balance for ${bookingId} as collected at the counter?`)) return;
+    setMarkingPaid(bookingId);
+    try {
+      const res = await fetch("/api/admin/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin, action: "mark_balance_paid", bookingId }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        fetchBookings(selectedDate, pin);
+      } else {
+        setError(data.error || "Failed to mark paid");
+      }
+    } catch {
+      setError("Failed to mark paid");
+    }
+    setMarkingPaid(null);
   };
 
   if (!authenticated) {
@@ -1554,6 +1578,16 @@ export default function AdminPage() {
                           </span>
                           <span>{booking.phone}</span>
                         </div>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] mt-1.5">
+                          <span className="text-green-400">
+                            Paid ₹{booking.amountPaid.toLocaleString("en-IN")}
+                          </span>
+                          <span className={booking.balanceDue > 0 ? "text-amber-400" : "text-muted-foreground"}>
+                            {booking.balanceDue > 0
+                              ? `Balance ₹${booking.balanceDue.toLocaleString("en-IN")} due at counter`
+                              : "Balance ₹0 · fully paid"}
+                          </span>
+                        </div>
                         {booking.gamePreference && (
                           <p className="text-xs text-muted-foreground mt-1">
                             Game: {booking.gamePreference}
@@ -1567,19 +1601,36 @@ export default function AdminPage() {
                         )}
                       </div>
 
-                      <Button
-                        onClick={() => handleCancel(booking.bookingId)}
-                        disabled={cancelling === booking.bookingId}
-                        variant="outline"
-                        className="border-destructive/30 text-destructive hover:bg-destructive/10 text-xs shrink-0"
-                      >
-                        {cancelling === booking.bookingId ? (
-                          <Loader2 size={14} className="animate-spin mr-1" />
-                        ) : (
-                          <XCircle size={14} className="mr-1" />
+                      <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                        {booking.balanceDue > 0 && (
+                          <Button
+                            onClick={() => markBalancePaid(booking.bookingId)}
+                            disabled={markingPaid === booking.bookingId}
+                            variant="outline"
+                            className="border-green-500/30 text-green-400 hover:bg-green-500/10 text-xs"
+                          >
+                            {markingPaid === booking.bookingId ? (
+                              <Loader2 size={14} className="animate-spin mr-1" />
+                            ) : (
+                              <CheckCircle2 size={14} className="mr-1" />
+                            )}
+                            Mark ₹{booking.balanceDue.toLocaleString("en-IN")} collected
+                          </Button>
                         )}
-                        Cancel
-                      </Button>
+                        <Button
+                          onClick={() => handleCancel(booking.bookingId)}
+                          disabled={cancelling === booking.bookingId}
+                          variant="outline"
+                          className="border-destructive/30 text-destructive hover:bg-destructive/10 text-xs"
+                        >
+                          {cancelling === booking.bookingId ? (
+                            <Loader2 size={14} className="animate-spin mr-1" />
+                          ) : (
+                            <XCircle size={14} className="mr-1" />
+                          )}
+                          Cancel
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}

@@ -158,6 +158,10 @@ export async function POST(request: NextRequest) {
       specialRequests: data.specialRequests || "",
       createdAt,
       status: "confirmed",
+      // At booking creation nothing is captured yet — verify/webhook will
+      // flip amountPaid to the advance once Razorpay confirms the charge.
+      amountPaid: 0,
+      balanceDue: amount,
     };
 
     // Save to Google Sheets

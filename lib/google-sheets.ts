@@ -29,7 +29,7 @@ export async function getBookingsForDate(
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A2:R`,
+    range: `${SHEET_NAME}!A2:T`,
   });
 
   const rows = res.data.values || [];
@@ -72,7 +72,7 @@ export async function getActiveBookingsByContact(
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A2:R`,
+    range: `${SHEET_NAME}!A2:T`,
   });
 
   const rows = res.data.values || [];
@@ -92,7 +92,7 @@ export async function appendBooking(booking: BookingRow): Promise<void> {
   const sheets = getSheets();
   await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A:R`,
+    range: `${SHEET_NAME}!A:T`,
     valueInputOption: "RAW",
     requestBody: {
       values: [bookingToRow(booking)],
@@ -106,7 +106,7 @@ export async function findBookingById(
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A2:R`,
+    range: `${SHEET_NAME}!A2:T`,
   });
 
   const rows = res.data.values || [];
@@ -125,7 +125,7 @@ export async function findBookingByOrderId(
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A2:R`,
+    range: `${SHEET_NAME}!A2:T`,
   });
 
   const rows = res.data.values || [];
@@ -145,6 +145,8 @@ export async function updateBookingCells(
     razorpayOrderId: "M",
     razorpayPaymentId: "N",
     status: "R",
+    amountPaid: "S",
+    balanceDue: "T",
   };
 
   const requests = Object.entries(updates).map(([field, value]) => ({
@@ -165,7 +167,7 @@ export async function getExpiredPayAtCenterBookings(): Promise<{ booking: Bookin
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A2:R`,
+    range: `${SHEET_NAME}!A2:T`,
   });
 
   const rows = res.data.values || [];
@@ -216,10 +218,42 @@ function bookingToRow(b: BookingRow): string[] {
     b.specialRequests,
     b.createdAt,
     b.status,
+    String(b.amountPaid),
+    String(b.balanceDue),
   ];
 }
 
+// Best-guess fallback for legacy rows written before columns S/T existed.
+// Uses paymentStatus + amount + partySize to reconstruct what should be
+// there. `advance` here is the standard ₹500-per-person cap.
+function inferAmountPaid(
+  paymentStatus: string,
+  amount: number,
+  partySize: number
+): number {
+  if (paymentStatus === "paid") {
+    return Math.min(500 * partySize, amount);
+  }
+  return 0;
+}
+
 function rowToBooking(row: string[]): BookingRow {
+  const partySize = parseInt(row[7] || "1");
+  const amount = parseInt(row[14] || "0");
+  const paymentStatus = (row[10] || "pending") as BookingRow["paymentStatus"];
+
+  const rawPaid = row[18];
+  const amountPaid =
+    rawPaid !== undefined && rawPaid !== ""
+      ? parseInt(rawPaid)
+      : inferAmountPaid(paymentStatus, amount, partySize);
+
+  const rawBalance = row[19];
+  const balanceDue =
+    rawBalance !== undefined && rawBalance !== ""
+      ? parseInt(rawBalance)
+      : Math.max(0, amount - amountPaid);
+
   return {
     bookingId: row[0] || "",
     arenaId: row[1] || "arena-1",
@@ -228,16 +262,18 @@ function rowToBooking(row: string[]): BookingRow {
     phone: row[4] || "",
     date: row[5] || "",
     timeSlot: row[6] || "",
-    partySize: parseInt(row[7] || "1"),
+    partySize,
     package: (row[8] || "solo") as BookingRow["package"],
     gamePreference: row[9] || "",
-    paymentStatus: (row[10] || "pending") as BookingRow["paymentStatus"],
+    paymentStatus,
     paymentMethod: (row[11] || "pay_at_center") as BookingRow["paymentMethod"],
     razorpayOrderId: row[12] || "",
     razorpayPaymentId: row[13] || "",
-    amount: parseInt(row[14] || "0"),
+    amount,
     specialRequests: row[15] || "",
     createdAt: row[16] || "",
     status: (row[17] || "confirmed") as BookingRow["status"],
+    amountPaid,
+    balanceDue,
   };
 }

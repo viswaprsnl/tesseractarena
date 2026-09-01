@@ -5,6 +5,7 @@ import {
   findBookingByOrderId,
   updateBookingCells,
 } from "@/lib/google-sheets";
+import { calculateAdvance } from "@/lib/booking-config";
 
 // Razorpay may retry the same event on non-2xx. Every handler below is
 // designed to be idempotent — replaying a "payment.captured" event on an
@@ -97,9 +98,15 @@ export async function POST(request: NextRequest) {
         if (hit.booking.paymentStatus === "paid") {
           return NextResponse.json({ ok: true, already: "paid" });
         }
+        const advance = calculateAdvance(
+          hit.booking.partySize,
+          hit.booking.amount
+        );
         const updates: Record<string, string> = {
           paymentStatus: "paid",
           status: "confirmed",
+          amountPaid: String(advance),
+          balanceDue: String(Math.max(0, hit.booking.amount - advance)),
         };
         if (payment?.id) updates.razorpayPaymentId = payment.id;
         if (payment?.order_id) updates.razorpayOrderId = payment.order_id;
@@ -124,9 +131,13 @@ export async function POST(request: NextRequest) {
         if (hit.booking.status === "cancelled") {
           return NextResponse.json({ ok: true, already: "cancelled" });
         }
+        // Refund resets money-collected back to zero and puts the full
+        // amount back in the outstanding column so reporting stays honest.
         await updateBookingCells(hit.rowIndex, {
           status: "cancelled",
           paymentStatus: "refunded",
+          amountPaid: "0",
+          balanceDue: String(hit.booking.amount),
         });
         return NextResponse.json({ ok: true, updated: "refunded" });
       }

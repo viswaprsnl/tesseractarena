@@ -63,8 +63,10 @@ export interface BookingRow {
   paymentMethod: PaymentMethod;
   razorpayOrderId: string;
   razorpayPaymentId: string;
-  amount: number;
+  amount: number;         // Total session cost.
   specialRequests: string;
   createdAt: string;
   status: BookingStatus;
+  amountPaid: number;     // Cumulative paid so far (advance online + counter).
+  balanceDue: number;     // Remaining amount to collect at the counter.
 }

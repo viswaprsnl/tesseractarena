@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { verifyPaymentSignature } from "@/lib/razorpay";
 import { findBookingById, updateBookingCells } from "@/lib/google-sheets";
+import { calculateAdvance } from "@/lib/booking-config";
 
 const verifySchema = z.object({
   razorpay_order_id: z.string().min(1),
@@ -48,9 +49,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Advance = ₹500 per player, capped at total. Balance = total − advance.
+    const advance = calculateAdvance(
+      result.booking.partySize,
+      result.booking.amount
+    );
     await updateBookingCells(result.rowIndex, {
       paymentStatus: "paid",
       razorpayPaymentId: razorpay_payment_id,
+      amountPaid: String(advance),
+      balanceDue: String(Math.max(0, result.booking.amount - advance)),
     });
 
     // Send payment confirmation email
