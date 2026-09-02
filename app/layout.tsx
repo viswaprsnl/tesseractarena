@@ -97,7 +97,7 @@ const businessJsonLd = {
   description:
     "A premium free-roam virtual reality gaming arena in Gachibowli, Hyderabad.",
   url: `${SITE_URL}/`,
-  telephone: "+91-89256-66211",
+  telephone: "+91-99081-16444",
   email: "admin@tesseractarena.com",
   priceRange: "₹₹",
   image: `${SITE_URL}/logos/logo-horizontal.svg`,

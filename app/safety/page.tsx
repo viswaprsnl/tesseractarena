@@ -116,8 +116,8 @@ export default function SafetyPage() {
             <p>
               If you&apos;re unsure whether VR is right for you or a family
               member, call{" "}
-              <a className="text-primary" href="tel:+918925666211">
-                +91 89256 66211
+              <a className="text-primary" href="tel:+919908116444">
+                +91 99081 16444
               </a>{" "}
               or email{" "}
               <a className="text-primary" href="mailto:admin@tesseractarena.com">

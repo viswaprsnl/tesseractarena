@@ -141,8 +141,8 @@ export default function TermsPage() {
                 admin@tesseractarena.com
               </a>{" "}
               or call{" "}
-              <a className="text-primary" href="tel:+918925666211">
-                +91 89256 66211
+              <a className="text-primary" href="tel:+919908116444">
+                +91 99081 16444
               </a>
               .
             </p>

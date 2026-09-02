@@ -108,7 +108,7 @@ export async function sendBookingConfirmation(data: BookingEmailData): Promise<{
             Hyderabad 500032
           </p>
           <p style="margin: 10px 0 0 0; font-size: 13px;">
-            📞 +91 89256 66211<br/>
+            📞 +91 99081 16444<br/>
             ✉️ admin@tesseractarena.com
           </p>
         </div>
