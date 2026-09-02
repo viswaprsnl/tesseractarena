@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, Trash2, Pencil, X } from "lucide-react";
+import { Trash2, Pencil, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -43,7 +43,10 @@ function costForMonth(month: string, overrides: MonthlyCost[]): number {
   return overrides.find((c) => c.month === month)?.cost ?? DEFAULT_MONTHLY_COST;
 }
 
-export function RevenueTab({ pin }: { pin: string }) {
+// Revenue is owner-only. `ownerPin` gates the GET (list + costs). Edits and
+// deletes still route through the same endpoint using the owner pin.
+export function RevenueTab({ ownerPin }: { ownerPin: string }) {
+  const pin = ownerPin;
   const today = getTodayISTString();
   const [rangeKey, setRangeKey] = useState<RangeKey>("30");
   const rangeDays = RANGE_OPTIONS.find((r) => r.key === rangeKey)!.days;
@@ -335,100 +338,99 @@ export function RevenueTab({ pin }: { pin: string }) {
         </div>
       </div>
 
-      {/* Walk-in entry form */}
-      <div className="glass-card p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h4 className="text-sm font-medium">
-            {editingId ? "Edit walk-in" : "Log a walk-in session"}
-          </h4>
-          {editingId && (
+      {/* Edit-walk-in panel — only shown when an owner clicks the edit
+          icon on a row below. New walk-ins are logged from the Bookings
+          tab. */}
+      {editingId && (
+        <div className="glass-card p-4 space-y-3 border border-primary/30">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-medium">Edit walk-in</h4>
             <Button
               onClick={resetForm}
               className="bg-secondary hover:bg-secondary/80 text-xs h-7"
             >
               <X size={12} className="mr-1" /> Cancel edit
             </Button>
-          )}
-        </div>
+          </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
-          <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Date</label>
-            <Input
-              type="date"
-              value={formDate}
-              onChange={(e) => setFormDate(e.target.value)}
-              className="bg-card/60 border-white/10 text-xs h-9"
-            />
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Date</label>
+              <Input
+                type="date"
+                value={formDate}
+                onChange={(e) => setFormDate(e.target.value)}
+                className="bg-card/60 border-white/10 text-xs h-9"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Group</label>
+              <select
+                value={formGroup}
+                onChange={(e) => setFormGroup(e.target.value as GroupType)}
+                className="w-full h-9 rounded-md bg-card/60 border border-white/10 px-2 text-xs"
+              >
+                <option value="solo">Solo</option>
+                <option value="squad">Squad</option>
+                <option value="party">Party</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Players</label>
+              <Input
+                type="number"
+                min="1"
+                max="20"
+                value={formPlayers}
+                onChange={(e) => setFormPlayers(Math.max(1, Number(e.target.value) || 1))}
+                className="bg-card/60 border-white/10 text-xs h-9"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Revenue ₹</label>
+              <Input
+                type="number"
+                min="0"
+                value={formRevenue}
+                onChange={(e) => setFormRevenue(e.target.value)}
+                className="bg-card/60 border-white/10 text-xs h-9"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Payment</label>
+              <select
+                value={formPayment}
+                onChange={(e) => setFormPayment(e.target.value as PaymentMethod)}
+                className="w-full h-9 rounded-md bg-card/60 border border-white/10 px-2 text-xs"
+              >
+                <option value="upi">UPI</option>
+                <option value="cash">Cash</option>
+                <option value="card">Card</option>
+                <option value="razorpay">Razorpay</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Notes</label>
+              <Input
+                value={formNotes}
+                onChange={(e) => setFormNotes(e.target.value)}
+                placeholder="e.g. birthday party"
+                className="bg-card/60 border-white/10 text-xs h-9"
+              />
+            </div>
           </div>
-          <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Group</label>
-            <select
-              value={formGroup}
-              onChange={(e) => setFormGroup(e.target.value as GroupType)}
-              className="w-full h-9 rounded-md bg-card/60 border border-white/10 px-2 text-xs"
-            >
-              <option value="solo">Solo</option>
-              <option value="squad">Squad</option>
-              <option value="party">Party</option>
-            </select>
-          </div>
-          <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Players</label>
-            <Input
-              type="number"
-              min="1"
-              max="20"
-              value={formPlayers}
-              onChange={(e) => setFormPlayers(Math.max(1, Number(e.target.value) || 1))}
-              className="bg-card/60 border-white/10 text-xs h-9"
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Revenue ₹</label>
-            <Input
-              type="number"
-              min="0"
-              value={formRevenue}
-              onChange={(e) => setFormRevenue(e.target.value)}
-              className="bg-card/60 border-white/10 text-xs h-9"
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Payment</label>
-            <select
-              value={formPayment}
-              onChange={(e) => setFormPayment(e.target.value as PaymentMethod)}
-              className="w-full h-9 rounded-md bg-card/60 border border-white/10 px-2 text-xs"
-            >
-              <option value="upi">UPI</option>
-              <option value="cash">Cash</option>
-              <option value="card">Card</option>
-              <option value="razorpay">Razorpay</option>
-            </select>
-          </div>
-          <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Notes</label>
-            <Input
-              value={formNotes}
-              onChange={(e) => setFormNotes(e.target.value)}
-              placeholder="e.g. birthday party"
-              className="bg-card/60 border-white/10 text-xs h-9"
-            />
-          </div>
-        </div>
 
-        <div className="flex justify-end">
-          <Button
-            onClick={submitWalkin}
-            disabled={busy}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs h-8"
-          >
-            <Plus size={12} className="mr-1" />
-            {editingId ? "Save changes" : "Add walk-in"}
-          </Button>
+          <div className="flex justify-end">
+            <Button
+              onClick={submitWalkin}
+              disabled={busy}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs h-8"
+            >
+              {busy ? "Saving…" : "Save changes"}
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Range picker + chart */}
       <div className="flex items-center justify-between flex-wrap gap-2">

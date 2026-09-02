@@ -21,19 +21,29 @@ const entryBodySchema = z.object({
   notes: z.string().max(200).optional().default(""),
 });
 
-function checkPin(request: NextRequest): boolean {
-  const { searchParams } = new URL(request.url);
-  const pin = searchParams.get("pin");
-  const adminPin = process.env.ADMIN_PIN || "1234";
-  return pin === adminPin;
+// Two-tier auth: staff pin lets counter staff log/edit walk-ins on the
+// Bookings tab. Owner pin gates the finance dashboard (list + delete).
+function checkStaffPin(request: NextRequest): boolean {
+  const pin = new URL(request.url).searchParams.get("pin");
+  const staffPin = process.env.ADMIN_PIN || "1234";
+  const ownerPin = process.env.OWNER_PIN;
+  // Owner pin also satisfies staff-only endpoints — owners can do anything staff can.
+  return pin === staffPin || (!!ownerPin && pin === ownerPin);
+}
+
+function checkOwnerPin(request: NextRequest): boolean {
+  const pin = new URL(request.url).searchParams.get("pin");
+  const ownerPin = process.env.OWNER_PIN;
+  if (!ownerPin) return false;
+  return pin === ownerPin;
 }
 
 // GET ?from=YYYY-MM-DD&to=YYYY-MM-DD — returns walk-ins + booking-derived
 // entries merged into one list plus the monthly cost overrides. Filtering
 // happens after the merge so a single range covers both sources.
 export async function GET(request: NextRequest) {
-  if (!checkPin(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!checkOwnerPin(request)) {
+    return NextResponse.json({ error: "Owner PIN required" }, { status: 401 });
   }
   try {
     const { searchParams } = new URL(request.url);
@@ -67,7 +77,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!checkPin(request)) {
+  if (!checkStaffPin(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {
@@ -109,7 +119,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  if (!checkPin(request)) {
+  if (!checkStaffPin(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {
@@ -157,8 +167,9 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  if (!checkPin(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Deletion touches the audit trail — owner only.
+  if (!checkOwnerPin(request)) {
+    return NextResponse.json({ error: "Owner PIN required" }, { status: 401 });
   }
   try {
     const { searchParams } = new URL(request.url);

@@ -7,11 +7,12 @@ const costBodySchema = z.object({
   cost: z.number().int().min(0).max(100_000_000),
 });
 
+// Monthly cost is an owner-side setting — staff shouldn't rewrite it.
 function checkPin(request: NextRequest): boolean {
-  const { searchParams } = new URL(request.url);
-  const pin = searchParams.get("pin");
-  const adminPin = process.env.ADMIN_PIN || "1234";
-  return pin === adminPin;
+  const pin = new URL(request.url).searchParams.get("pin");
+  const ownerPin = process.env.OWNER_PIN;
+  if (!ownerPin) return false;
+  return pin === ownerPin;
 }
 
 export async function GET(request: NextRequest) {

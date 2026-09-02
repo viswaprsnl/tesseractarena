@@ -25,6 +25,7 @@ import {
   ExternalLink,
   Tag,
   TrendingUp,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,7 @@ import type { BookingRow } from "@/lib/booking-types";
 import { allGames, availableGames, comingSoonGames, type Game, type GameCategory } from "@/data/games";
 import { formatDiscountBadge, type Discount, type DiscountScope, type DiscountType } from "@/lib/discount-config";
 import { RevenueTab } from "@/components/admin/RevenueTab";
+import { WalkinLogger } from "@/components/admin/WalkinLogger";
 
 type GameStatus = "available" | "unavailable" | "coming_soon" | "maintenance";
 
@@ -80,6 +82,57 @@ function ServiceCard({ name, purpose, plan, limits, upgrade, url, login, status 
         >
           Dashboard <ExternalLink size={10} />
         </a>
+      </div>
+    </div>
+  );
+}
+
+// Inline PIN prompt shown when a staff-authenticated user clicks an
+// owner-only tab. Once the PIN is verified once per session, this doesn't
+// reappear until logout.
+function OwnerGate({
+  title,
+  subtitle,
+  busy,
+  error,
+  onSubmit,
+}: {
+  title: string;
+  subtitle: string;
+  busy: boolean;
+  error: string | null;
+  onSubmit: (pin: string) => void;
+}) {
+  const [candidate, setCandidate] = useState("");
+  return (
+    <div className="max-w-sm mx-auto mt-12">
+      <div className="glass-card p-6 text-center space-y-4">
+        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+          <Lock size={20} className="text-primary" />
+        </div>
+        <div>
+          <h3 className="font-heading text-lg font-bold">{title}</h3>
+          <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+        </div>
+        <Input
+          type="password"
+          inputMode="numeric"
+          placeholder="Owner PIN"
+          value={candidate}
+          onChange={(e) => setCandidate(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && candidate.trim()) onSubmit(candidate.trim());
+          }}
+          className="bg-card/60 border-white/10 text-center tracking-widest"
+        />
+        {error && <p className="text-xs text-destructive">{error}</p>}
+        <Button
+          onClick={() => candidate.trim() && onSubmit(candidate.trim())}
+          disabled={busy || !candidate.trim()}
+          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+        >
+          {busy ? "Verifying…" : "Unlock"}
+        </Button>
       </div>
     </div>
   );
@@ -239,6 +292,35 @@ function DiscountForm({
 
 export default function AdminPage() {
   const [pin, setPin] = useState("");
+  // Owner-level PIN unlocks the Revenue and Services tabs. Kept separate
+  // from the staff `pin` so a staff member on the counter can't accidentally
+  // see finance data or credentials.
+  const [ownerPin, setOwnerPin] = useState("");
+  const [ownerAuthed, setOwnerAuthed] = useState(false);
+  const [ownerCheckError, setOwnerCheckError] = useState<string | null>(null);
+  const [checkingOwner, setCheckingOwner] = useState(false);
+
+  const verifyOwnerPin = async (candidate: string) => {
+    setCheckingOwner(true);
+    setOwnerCheckError(null);
+    try {
+      // Round-trip through the revenue GET — it's owner-gated, so a 200
+      // means the PIN is correct without needing a separate auth endpoint.
+      const today = new Date().toISOString().slice(0, 10);
+      const res = await fetch(
+        `/api/admin/revenue?pin=${candidate}&from=${today}&to=${today}`
+      );
+      if (res.ok) {
+        setOwnerPin(candidate);
+        setOwnerAuthed(true);
+      } else {
+        setOwnerCheckError("Incorrect owner PIN");
+      }
+    } catch {
+      setOwnerCheckError("Failed to verify — try again");
+    }
+    setCheckingOwner(false);
+  };
   const [authenticated, setAuthenticated] = useState(false);
   const [selectedDate, setSelectedDate] = useState(getTodayISTString());
   const [bookings, setBookings] = useState<BookingRow[]>([]);
@@ -642,6 +724,7 @@ export default function AdminPage() {
           >
             <Settings size={16} />
             Services
+            {!ownerAuthed && <Lock size={11} className="opacity-60" />}
           </button>
           <button
             onClick={() => { setActiveTab("schedule"); fetchSchedule(scheduleDate); }}
@@ -675,12 +758,35 @@ export default function AdminPage() {
           >
             <TrendingUp size={16} />
             Revenue
+            {!ownerAuthed && <Lock size={11} className="opacity-60" />}
           </button>
         </div>
 
-        {activeTab === "revenue" && <RevenueTab pin={pin} />}
+        {activeTab === "revenue" && (
+          ownerAuthed ? (
+            <RevenueTab ownerPin={ownerPin} />
+          ) : (
+            <OwnerGate
+              title="Revenue"
+              subtitle="Finance dashboard — enter the owner PIN to view."
+              busy={checkingOwner}
+              error={ownerCheckError}
+              onSubmit={verifyOwnerPin}
+            />
+          )
+        )}
 
-        {activeTab === "services" && (
+        {activeTab === "services" && !ownerAuthed && (
+          <OwnerGate
+            title="Services"
+            subtitle="Integration credentials & external dashboards — owner PIN required."
+            busy={checkingOwner}
+            error={ownerCheckError}
+            onSubmit={verifyOwnerPin}
+          />
+        )}
+
+        {activeTab === "services" && ownerAuthed && (
           <div className="space-y-6 mb-8">
             <div>
               <h2 className="font-heading text-lg font-bold mb-2">Service Dashboard</h2>
@@ -1446,6 +1552,11 @@ export default function AdminPage() {
         )}
 
         {activeTab === "bookings" && <>
+        {/* Walk-in logger — for counter customers who paid without booking online */}
+        <div className="mb-6">
+          <WalkinLogger pin={pin} />
+        </div>
+
         {/* Date navigation */}
         <div className="flex items-center justify-center gap-4 mb-6">
           <button
