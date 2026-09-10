@@ -5,6 +5,7 @@ const quickLinks = [
   { href: "/", label: "Home" },
   { href: "/games", label: "Games" },
   { href: "/book", label: "Book Now" },
+  { href: "/birthday", label: "Birthday Parties" },
   { href: "/about", label: "About Us" },
   { href: "/faq", label: "FAQ" },
   { href: "/contact", label: "Contact" },

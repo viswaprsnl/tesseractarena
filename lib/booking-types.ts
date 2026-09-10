@@ -1,4 +1,22 @@
-export type PackageType = "solo" | "squad" | "party";
+// Per-person session packages — priced per player, one 30-min VR session.
+export type PerPersonPackageType = "solo" | "squad" | "party";
+
+// Fixed-price birthday packages. Each blocks N consecutive slots and the
+// advance is a percentage (see BIRTHDAY_ADVANCE_PERCENT in data/birthday).
+export type BirthdayPackageType =
+  | "birthday-essentials"
+  | "birthday-plus"
+  | "birthday-ultimate";
+
+export type PackageType = PerPersonPackageType | BirthdayPackageType;
+
+export function isBirthdayPackage(p: string): p is BirthdayPackageType {
+  return (
+    p === "birthday-essentials" ||
+    p === "birthday-plus" ||
+    p === "birthday-ultimate"
+  );
+}
 export type PaymentMethod = "razorpay" | "pay_at_center";
 export type PaymentStatus = "pending" | "paid" | "pay_at_center";
 export type BookingStatus = "confirmed" | "cancelled";

@@ -1,6 +1,22 @@
 import { google } from "googleapis";
 import type { BookingRow } from "./booking-types";
+import { isBirthdayPackage } from "./booking-types";
 import { getSlotsForDate, getTodayISTString } from "./booking-config";
+import { BIRTHDAY_PACKAGES } from "@/data/birthday";
+
+// How many consecutive slots this booking physically occupies.
+// - Party (partySize >= 6): 2 slots (existing 90-min behavior)
+// - Birthday: whatever the package's slotsBlocked says (2 or 3)
+// - Everything else: 1 slot
+function slotsOccupiedBy(booking: BookingRow): number {
+  if (isBirthdayPackage(booking.package)) {
+    const key = booking.package.replace("birthday-", "");
+    const pkg = BIRTHDAY_PACKAGES.find((p) => p.id === key);
+    if (pkg) return pkg.slotsBlocked;
+  }
+  if (booking.partySize >= 6) return 2;
+  return 1;
+}
 
 function getAuth() {
   const privateKey = Buffer.from(
@@ -43,9 +59,10 @@ export async function getBookingsForDate(
     .map(rowToBooking);
 }
 
-// Party bookings (partySize >= 6) run ~90 min and physically block the
-// following slot too. Return that follow-on slot alongside the booked one so
-// both the slot picker and the double-booking check treat it as taken.
+// Party bookings (partySize >= 6) run ~90 min and physically block the next
+// slot too. Birthday packages block 2 or 3 consecutive slots depending on
+// tier. Both the slot picker and the double-booking check treat every
+// occupied slot as taken.
 export async function getBookedSlotsForDate(
   date: string,
   arenaId: string = "arena-1"
@@ -55,10 +72,13 @@ export async function getBookedSlotsForDate(
   const blocked = new Set<string>();
   for (const b of bookings) {
     blocked.add(b.timeSlot);
-    if (b.partySize >= 6) {
+    const occupies = slotsOccupiedBy(b);
+    if (occupies > 1) {
       const idx = slotsInDay.indexOf(b.timeSlot);
-      if (idx >= 0 && idx + 1 < slotsInDay.length) {
-        blocked.add(slotsInDay[idx + 1]);
+      if (idx >= 0) {
+        for (let i = 1; i < occupies && idx + i < slotsInDay.length; i++) {
+          blocked.add(slotsInDay[idx + i]);
+        }
       }
     }
   }

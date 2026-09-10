@@ -1,6 +1,7 @@
 import { format, addDays, isAfter, isBefore, startOfDay, getDay } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
-import type { PackageType, TimeSlot } from "./booking-types";
+import type { PackageType, PerPersonPackageType, TimeSlot } from "./booking-types";
+import { isBirthdayPackage } from "./booking-types";
 
 const TIMEZONE = "Asia/Kolkata";
 
@@ -10,15 +11,30 @@ export const MAX_PLAYERS = 8;
 // Flat advance per person paid at booking. Remaining is paid at the center.
 export const ADVANCE_PER_PERSON = 500;
 
+// Per-person session pricing. Birthday packages are priced flat and live
+// in data/birthday.ts (see BIRTHDAY_PACKAGES) — indexing PRICING with a
+// birthday key returns 0, which callers should treat as "not a per-person
+// package, look elsewhere".
 export const PRICING: Record<PackageType, number> = {
   solo: 1499,
   squad: 1199,
   party: 999,
+  "birthday-essentials": 0,
+  "birthday-plus": 0,
+  "birthday-ultimate": 0,
 };
 
-// Advance amount = ₹500 per player (capped at the total if total is lower)
+// Advance amount for a per-person booking = ₹500 per player, capped at the
+// total if the total is somehow lower. Birthday advances are computed in
+// data/birthday.ts as a percentage of the flat package price.
 export function calculateAdvance(partySize: number, total: number): number {
   return Math.min(ADVANCE_PER_PERSON * partySize, total);
+}
+
+// True when the package needs the "per person × party size" pricing model.
+// Birthday packages are flat and follow a different code path.
+export function isPerPersonPackage(p: PackageType): p is PerPersonPackageType {
+  return !isBirthdayPackage(p);
 }
 
 // Refund cutoff (hours before the session start) for a full refund.

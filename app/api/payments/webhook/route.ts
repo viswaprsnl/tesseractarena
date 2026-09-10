@@ -6,6 +6,8 @@ import {
   updateBookingCells,
 } from "@/lib/google-sheets";
 import { calculateAdvance } from "@/lib/booking-config";
+import { isBirthdayPackage } from "@/lib/booking-types";
+import { birthdayAdvance } from "@/data/birthday";
 
 // Razorpay may retry the same event on non-2xx. Every handler below is
 // designed to be idempotent — replaying a "payment.captured" event on an
@@ -98,10 +100,9 @@ export async function POST(request: NextRequest) {
         if (hit.booking.paymentStatus === "paid") {
           return NextResponse.json({ ok: true, already: "paid" });
         }
-        const advance = calculateAdvance(
-          hit.booking.partySize,
-          hit.booking.amount
-        );
+        const advance = isBirthdayPackage(hit.booking.package)
+          ? birthdayAdvance(hit.booking.amount)
+          : calculateAdvance(hit.booking.partySize, hit.booking.amount);
         const updates: Record<string, string> = {
           paymentStatus: "paid",
           status: "confirmed",

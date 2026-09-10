@@ -3,6 +3,8 @@ import { z } from "zod";
 import { createOrder } from "@/lib/razorpay";
 import { findBookingById, updateBookingCells } from "@/lib/google-sheets";
 import { calculateAdvance } from "@/lib/booking-config";
+import { isBirthdayPackage } from "@/lib/booking-types";
+import { birthdayAdvance } from "@/data/birthday";
 
 // The client sends only the bookingId. The amount to charge is derived
 // server-side from the booking row so a tampered client cannot short-pay
@@ -43,12 +45,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Charge only the advance (₹500/person, capped at total). The rest is
-    // collected at the arena counter.
-    const advance = calculateAdvance(
-      result.booking.partySize,
-      result.booking.amount
-    );
+    // Charge only the advance. Regular sessions collect ₹500/person (capped
+    // at total); birthday packages collect BIRTHDAY_ADVANCE_PERCENT of the
+    // package total. Rest is settled at the arena counter.
+    const advance = isBirthdayPackage(result.booking.package)
+      ? birthdayAdvance(result.booking.amount)
+      : calculateAdvance(result.booking.partySize, result.booking.amount);
 
     // Create Razorpay order for the advance amount
     const order = await createOrder(advance, bookingId);

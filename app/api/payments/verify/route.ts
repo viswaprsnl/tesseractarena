@@ -3,6 +3,8 @@ import { z } from "zod";
 import { verifyPaymentSignature } from "@/lib/razorpay";
 import { findBookingById, updateBookingCells } from "@/lib/google-sheets";
 import { calculateAdvance } from "@/lib/booking-config";
+import { isBirthdayPackage } from "@/lib/booking-types";
+import { birthdayAdvance } from "@/data/birthday";
 
 const verifySchema = z.object({
   razorpay_order_id: z.string().min(1),
@@ -49,11 +51,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Advance = ₹500 per player, capped at total. Balance = total − advance.
-    const advance = calculateAdvance(
-      result.booking.partySize,
-      result.booking.amount
-    );
+    // Advance = ₹500 per player for regular sessions, capped at total; 20%
+    // of the flat package total for birthdays. Balance = total − advance.
+    const advance = isBirthdayPackage(result.booking.package)
+      ? birthdayAdvance(result.booking.amount)
+      : calculateAdvance(result.booking.partySize, result.booking.amount);
     await updateBookingCells(result.rowIndex, {
       paymentStatus: "paid",
       razorpayPaymentId: razorpay_payment_id,
