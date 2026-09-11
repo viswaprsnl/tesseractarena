@@ -105,13 +105,6 @@ export const BIRTHDAY_ADDONS: BirthdayAddon[] = [
     unit: "per-kid",
     description: "Take-home goodie bag for each kid.",
   },
-  {
-    id: "photography",
-    label: "Photography session",
-    price: 1999,
-    unit: "flat",
-    description: "30-min photographer covering the whole party.",
-  },
 ];
 
 // Percentage of package price collected as an online advance to hold the
