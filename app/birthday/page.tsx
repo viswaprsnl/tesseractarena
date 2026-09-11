@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Cake, Users, Clock, Check, MessageCircle, Sparkles, ChevronRight } from "lucide-react";
+import { Cake, Users, Clock, Check, MessageCircle, Sparkles, ChevronRight, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -15,6 +16,16 @@ import {
 } from "@/data/birthday";
 import { fadeInUp, staggerContainer } from "@/lib/animations";
 
+// Serialise the parent-picked add-on quantities into a URL param the
+// birthday wizard understands. Empty selections drop out so a clean
+// "no add-ons" click still gets a clean URL.
+function encodeAddons(qty: Record<string, number>): string {
+  return Object.entries(qty)
+    .filter(([, n]) => n > 0)
+    .map(([id, n]) => `${id}:${n}`)
+    .join(",");
+}
+
 // The birthday landing page has two co-existing CTAs on every package card:
 // "Book online now" (fast lane for parents who know what they want) and
 // "WhatsApp us" (fallback for anyone who wants to discuss dates or
@@ -22,6 +33,32 @@ import { fadeInUp, staggerContainer } from "@/lib/animations";
 // visual weight — many Indian parents prefer chat over form flows.
 
 export default function BirthdayPage() {
+  // Add-on selections made on this page follow the parent into the wizard
+  // via the ?addons= URL param on every "Book online now" link.
+  const [addonQty, setAddonQty] = useState<Record<string, number>>({});
+  // Bump by +1 / -1. Reads the previous quantity inside the setter so rapid
+  // clicks don't collapse into a single increment (the standard React
+  // closure trap — using a target value from the render frame would).
+  const bumpQty = (id: string, delta: number) =>
+    setAddonQty((q) => ({
+      ...q,
+      [id]: Math.max(0, (q[id] ?? 0) + delta),
+    }));
+  const toggleFlat = (id: string) =>
+    setAddonQty((q) => ({ ...q, [id]: (q[id] ?? 0) > 0 ? 0 : 1 }));
+
+  const addonsSubtotal = BIRTHDAY_ADDONS.reduce((sum, a) => {
+    const n = addonQty[a.id] ?? 0;
+    if (n <= 0) return sum;
+    return sum + (a.unit === "per-kid" ? a.price * n : a.price);
+  }, 0);
+  const addonsPickedCount = Object.values(addonQty).filter((n) => n > 0).length;
+  const addonQuery = encodeAddons(addonQty);
+  const bookHref = (packageId: string) =>
+    addonQuery
+      ? `/birthday/book?package=${packageId}&addons=${encodeURIComponent(addonQuery)}`
+      : `/birthday/book?package=${packageId}`;
+
   return (
     <div className="pt-24 pb-16 px-4">
       <div className="max-w-6xl mx-auto">
@@ -120,7 +157,7 @@ export default function BirthdayPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {BIRTHDAY_PACKAGES.map((pkg) => (
-              <PackageCard key={pkg.id} pkg={pkg} />
+              <PackageCard key={pkg.id} pkg={pkg} bookHref={bookHref(pkg.id)} addonsSubtotal={addonsSubtotal} />
             ))}
           </div>
         </motion.section>
@@ -133,31 +170,110 @@ export default function BirthdayPage() {
           variants={staggerContainer}
           className="mb-16"
         >
-          <motion.h2
-            variants={fadeInUp}
-            className="text-2xl sm:text-3xl font-bold text-center mb-8"
-          >
-            Optional <span className="gradient-text">add-ons</span>
-          </motion.h2>
+          <motion.div variants={fadeInUp} className="text-center mb-8">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2">
+              Optional <span className="gradient-text">add-ons</span>
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Tap + to include with your booking. Your picks travel to the checkout
+              automatically.
+            </p>
+          </motion.div>
+
+          {addonsPickedCount > 0 && (
+            <motion.div
+              variants={fadeInUp}
+              className="glass-card p-3 mb-4 text-xs flex items-center justify-between border border-primary/30"
+            >
+              <span className="text-muted-foreground">
+                {addonsPickedCount} add-on{addonsPickedCount === 1 ? "" : "s"} selected
+              </span>
+              <span className="font-bold text-primary">
+                + ₹{addonsSubtotal.toLocaleString("en-IN")}
+              </span>
+            </motion.div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {BIRTHDAY_ADDONS.map((a) => (
-              <motion.div key={a.id} variants={fadeInUp} className="glass-card p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium mb-1">{a.label}</p>
-                    <p className="text-xs text-muted-foreground">{a.description}</p>
+            {BIRTHDAY_ADDONS.map((a) => {
+              const qty = addonQty[a.id] ?? 0;
+              const isPerKid = a.unit === "per-kid";
+              return (
+                <motion.div
+                  key={a.id}
+                  variants={fadeInUp}
+                  className={`glass-card p-4 transition-colors ${
+                    qty > 0 ? "border border-primary/40" : ""
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium mb-1">{a.label}</p>
+                      <p className="text-xs text-muted-foreground">{a.description}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-lg font-bold">
+                        ₹{a.price.toLocaleString("en-IN")}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {isPerKid ? "per kid" : "flat"}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-lg font-bold">
-                      ₹{a.price.toLocaleString("en-IN")}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {a.unit === "per-kid" ? "per kid" : "flat"}
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+
+                  {isPerKid ? (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">
+                        {qty > 0
+                          ? `${qty} kid${qty === 1 ? "" : "s"} · +₹${(a.price * qty).toLocaleString("en-IN")}`
+                          : "Not added"}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => bumpQty(a.id, -1)}
+                          disabled={qty === 0}
+                          className="w-7 h-7 rounded bg-secondary hover:bg-primary/20 disabled:opacity-30 flex items-center justify-center"
+                          aria-label={`Remove one ${a.label}`}
+                        >
+                          <Minus size={12} />
+                        </button>
+                        <span className="w-6 text-center text-sm font-medium">{qty}</span>
+                        <button
+                          onClick={() => bumpQty(a.id, 1)}
+                          className="w-7 h-7 rounded bg-primary hover:bg-primary/80 text-primary-foreground flex items-center justify-center"
+                          aria-label={`Add one ${a.label}`}
+                        >
+                          <Plus size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex justify-end">
+                      <Button
+                        onClick={() => toggleFlat(a.id)}
+                        variant={qty > 0 ? "default" : "outline"}
+                        size="sm"
+                        className={
+                          qty > 0
+                            ? "bg-primary hover:bg-primary/90 text-primary-foreground text-xs"
+                            : "text-xs"
+                        }
+                      >
+                        {qty > 0 ? (
+                          <>
+                            <Check size={12} className="mr-1" /> Added
+                          </>
+                        ) : (
+                          <>
+                            <Plus size={12} className="mr-1" /> Add
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </motion.div>
+              );
+            })}
           </div>
         </motion.section>
 
@@ -226,8 +342,17 @@ export default function BirthdayPage() {
   );
 }
 
-function PackageCard({ pkg }: { pkg: BirthdayPackage }) {
-  const advance = birthdayAdvance(pkg.price);
+function PackageCard({
+  pkg,
+  bookHref,
+  addonsSubtotal,
+}: {
+  pkg: BirthdayPackage;
+  bookHref: string;
+  addonsSubtotal: number;
+}) {
+  const total = pkg.price + addonsSubtotal;
+  const advance = birthdayAdvance(total);
   return (
     <motion.div
       variants={fadeInUp}
@@ -248,14 +373,20 @@ function PackageCard({ pkg }: { pkg: BirthdayPackage }) {
 
       <div className="text-center mb-5">
         <p className="text-4xl font-bold">
-          ₹{pkg.price.toLocaleString("en-IN")}
+          ₹{total.toLocaleString("en-IN")}
           <span className="text-xs text-muted-foreground font-normal ml-1">
-            flat
+            {addonsSubtotal > 0 ? "with add-ons" : "flat"}
           </span>
         </p>
+        {addonsSubtotal > 0 && (
+          <p className="text-[10px] text-muted-foreground mt-1">
+            ₹{pkg.price.toLocaleString("en-IN")} package + ₹
+            {addonsSubtotal.toLocaleString("en-IN")} add-ons
+          </p>
+        )}
         <p className="text-[11px] text-muted-foreground mt-1">
           Pay ₹{advance.toLocaleString("en-IN")} online ·
-          ₹{(pkg.price - advance).toLocaleString("en-IN")} at the arena
+          ₹{(total - advance).toLocaleString("en-IN")} at the arena
         </p>
       </div>
 
@@ -278,7 +409,7 @@ function PackageCard({ pkg }: { pkg: BirthdayPackage }) {
       </ul>
 
       <div className="space-y-2">
-        <Link href={`/birthday/book?package=${pkg.id}`}>
+        <Link href={bookHref}>
           <Button
             size="lg"
             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"

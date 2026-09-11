@@ -61,6 +61,21 @@ interface BirthdayState {
 // type) would fail TypeScript's "duplicate global augmentation" check on
 // production builds. We just consume it via that existing declaration.
 
+// Parses "extra-kid:2,custom-cake:1" → { "extra-kid": 2, "custom-cake": 1 }.
+// Unknown add-on IDs are ignored so URL-tampering can't inject phantom items.
+function parseAddonsParam(raw: string | null): Record<string, number> {
+  if (!raw) return {};
+  const valid = new Set(BIRTHDAY_ADDONS.map((a) => a.id));
+  const out: Record<string, number> = {};
+  for (const part of raw.split(",")) {
+    const [id, qtyStr] = part.split(":");
+    if (!id || !valid.has(id)) continue;
+    const qty = Math.max(0, Math.min(24, parseInt(qtyStr || "1", 10) || 0));
+    if (qty > 0) out[id] = qty;
+  }
+  return out;
+}
+
 export function BirthdayWizard() {
   const router = useRouter();
   const search = useSearchParams();
@@ -68,6 +83,7 @@ export function BirthdayWizard() {
   const initialPkg = BIRTHDAY_PACKAGES.find((p) => p.id === requested)
     ? requested
     : "plus";
+  const initialAddons = parseAddonsParam(search.get("addons"));
 
   const [state, setState] = useState<BirthdayState>({
     step: 1,
@@ -82,7 +98,7 @@ export function BirthdayWizard() {
     birthdayKidAge: "",
     guestCount: "",
     specialRequests: "",
-    addonQty: {},
+    addonQty: initialAddons,
     availableSlots: [],
     loadingSlots: false,
     submitting: false,
