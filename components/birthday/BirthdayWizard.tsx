@@ -56,11 +56,10 @@ interface BirthdayState {
   error: string | null;
 }
 
-declare global {
-  interface Window {
-    Razorpay: new (opts: Record<string, unknown>) => { open: () => void };
-  }
-}
+// window.Razorpay is already declared as `any` in
+// components/booking/PaymentStep.tsx; redeclaring it here (with a stricter
+// type) would fail TypeScript's "duplicate global augmentation" check on
+// production builds. We just consume it via that existing declaration.
 
 export function BirthdayWizard() {
   const router = useRouter();
