@@ -2,13 +2,18 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Check } from "lucide-react";
+import { Check, Building2, MessageCircle, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { pricingTiers } from "@/data/pricing";
 import { availableGames } from "@/data/games";
 import { fadeInUp, staggerContainer } from "@/lib/animations";
+import {
+  PHONE_DISPLAY,
+  WHATSAPP_NUMBER,
+  whatsappCorporateLink,
+} from "@/lib/contact";
 
 export function Pricing() {
   // Per-head rate for each tier is game.pricePerPerson × tier.multiplier.
@@ -128,6 +133,62 @@ export function Pricing() {
               </Link>
             </motion.div>
           ))}
+        </motion.div>
+
+        {/* Corporate banner — for team offsites, product launches, and any
+            group larger than the 8-player Party cap. Not a self-serve tier;
+            routes to WhatsApp / phone for a bespoke quote. */}
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          variants={fadeInUp}
+          className="max-w-5xl mx-auto mt-10"
+        >
+          <div className="glass-card p-6 sm:p-8 border-primary/20 flex flex-col md:flex-row items-start md:items-center gap-6">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+              <Building2 size={22} className="text-primary" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-heading text-lg font-bold mb-1">
+                Corporate &amp; Team Building
+              </h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Team offsites, product launches, quarterly kickoffs, client
+                events — we host 10 to 60+ players across staggered sessions
+                with a dedicated event lead. Custom pricing based on group
+                size and format.
+              </p>
+              <p className="text-[11px] text-muted-foreground/80 mt-2">
+                For groups beyond our 8-player Party cap, contact us for a
+                tailored plan.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row md:flex-col gap-2 w-full md:w-auto">
+              <Link
+                href={whatsappCorporateLink()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                  buttonVariants(),
+                  "justify-center bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
+                )}
+              >
+                <MessageCircle size={16} />
+                WhatsApp us
+              </Link>
+              <Link
+                href={`tel:+${WHATSAPP_NUMBER}`}
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "justify-center gap-2 border-primary/30"
+                )}
+              >
+                <Phone size={14} />
+                {PHONE_DISPLAY}
+              </Link>
+            </div>
+          </div>
         </motion.div>
       </div>
     </section>

@@ -115,12 +115,13 @@ export function birthdayAdvance(total: number): number {
   return Math.round((total * BIRTHDAY_ADVANCE_PERCENT) / 100);
 }
 
-// Public phone number used for the WhatsApp CTA. Kept here so the landing
-// page and any other birthday touchpoint import a single source.
-export const WHATSAPP_NUMBER = "919908116444";
+// Re-exported for backward compatibility with older imports. New code
+// should import WHATSAPP_NUMBER from lib/contact.ts directly.
+export { WHATSAPP_NUMBER } from "@/lib/contact";
+import { WHATSAPP_NUMBER as _WA } from "@/lib/contact";
 
 export function whatsappBirthdayLink(pkg?: BirthdayPackage): string {
-  const base = `https://wa.me/${WHATSAPP_NUMBER}`;
+  const base = `https://wa.me/${_WA}`;
   const msg = pkg
     ? `Hi! I'd like to book the ${pkg.name} birthday package (₹${pkg.price.toLocaleString(
         "en-IN"

@@ -20,6 +20,7 @@ import {
 } from "@/lib/discount-config";
 import type { ActiveDiscount } from "@/hooks/use-booking";
 import { availableGames, getGamePlayerRange } from "@/data/games";
+import { whatsappCorporateLink } from "@/lib/contact";
 
 interface PackageSelectorProps {
   partySize: number;
@@ -459,6 +460,21 @@ export function PackageSelector({
           </p>
         </div>
       </div>
+
+      {/* Corporate escape hatch — anything beyond the 8-player Party cap or
+          a bespoke team event routes to WhatsApp. Kept subtle so it doesn't
+          distract from the self-serve flow. */}
+      <p className="text-[11px] text-center text-muted-foreground/80 mt-6">
+        Booking for 9+ players or a corporate event?{" "}
+        <a
+          href={whatsappCorporateLink()}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:underline"
+        >
+          Contact us for a custom quote →
+        </a>
+      </p>
     </motion.div>
   );
 }
