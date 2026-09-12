@@ -147,7 +147,14 @@ function reducer(state: BookingState, action: Action): BookingState {
   }
 }
 
-export function useBooking() {
-  const [state, dispatch] = useReducer(reducer, initialState);
+// Pass initialGame when the wizard is entered via /book?game=xxx so the
+// game is set on the very first render rather than through a follow-up
+// useEffect (which can no-op in React StrictMode's second render pass and
+// leave the state null).
+export function useBooking(options?: { initialGame?: string | null }) {
+  const [state, dispatch] = useReducer(reducer, {
+    ...initialState,
+    selectedGame: options?.initialGame ?? initialState.selectedGame,
+  });
   return { state, dispatch };
 }

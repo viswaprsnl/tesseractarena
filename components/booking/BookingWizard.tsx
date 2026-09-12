@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft } from "lucide-react";
@@ -21,16 +20,9 @@ import { BookingSummary } from "./BookingSummary";
 
 export function BookingWizard({ preselectedGame }: { preselectedGame?: string }) {
   const router = useRouter();
-  const { state, dispatch } = useBooking();
-
-  // If the wizard was entered via /book?game=xxx, seed the state once so
-  // PackageSelector renders with the game pre-picked.
-  useEffect(() => {
-    if (preselectedGame && !state.selectedGame) {
-      dispatch({ type: "SET_GAME", gameId: preselectedGame });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preselectedGame]);
+  // Seed selectedGame on the first render so step 3 already shows the
+  // /games modal's choice ticked when the user arrives.
+  const { state, dispatch } = useBooking({ initialGame: preselectedGame });
 
   // Fetch slots when date is selected
   const fetchSlots = async (date: string) => {
