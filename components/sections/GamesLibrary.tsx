@@ -42,7 +42,7 @@ function GameCard({ game, status, onClick }: { game: Game; status?: GameStatusIn
         />
         {game.featured && !isUnavailable && (
           <Badge className="absolute top-3 left-3 z-10 bg-primary text-primary-foreground text-[10px]">
-            Featured
+            Most Played
           </Badge>
         )}
         {isUnavailable && status && STATUS_BADGES[status.status] && (

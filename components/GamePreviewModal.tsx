@@ -167,7 +167,7 @@ export function GamePreviewModal({
                     </Badge>
                     {game.featured && (
                       <Badge className="text-[10px] bg-primary text-primary-foreground">
-                        Featured
+                        Most Played
                       </Badge>
                     )}
                   </div>

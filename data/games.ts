@@ -134,6 +134,7 @@ export const availableGames: Game[] = [
     difficulty: "Medium",
     image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbd845097819d0cd21a44_Wayfinders_Poster.avif",
     pricePerPerson: 1359,
+    featured: true,
     tags: ["sci-fi", "adventure", "co-op", "cinematic"],
   },
   {

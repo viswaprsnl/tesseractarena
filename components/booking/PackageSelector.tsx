@@ -210,6 +210,11 @@ export function PackageSelector({
                       <Check size={12} className="text-primary-foreground" />
                     </div>
                   )}
+                  {!isSelected && g.featured && (
+                    <Badge className="absolute top-2 left-2 bg-primary text-primary-foreground text-[9px]">
+                      Most Played
+                    </Badge>
+                  )}
                   <div className="absolute bottom-2 left-2 right-2">
                     <p className="text-xs font-semibold text-white leading-tight line-clamp-2">
                       {g.title}
