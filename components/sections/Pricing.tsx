@@ -155,13 +155,14 @@ export function Pricing() {
               </h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 Team offsites, product launches, quarterly kickoffs, client
-                events — we host 10 to 60+ players across staggered sessions
-                with a dedicated event lead. Custom pricing based on group
-                size and format.
+                events — we host groups of 10 to 24 players across
+                staggered 40-min sessions with a dedicated event lead, plus
+                lounge time, briefings, and photo ops built into the flow.
+                Custom pricing based on group size and event length.
               </p>
               <p className="text-[11px] text-muted-foreground/80 mt-2">
-                For groups beyond our 8-player Party cap, contact us for a
-                tailored plan.
+                Larger groups can be split across a half-day or multi-day
+                format — contact us for a tailored plan.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row md:flex-col gap-2 w-full md:w-auto">
