@@ -359,3 +359,20 @@ export const comingSoonGames: Game[] = [
 ];
 
 export const allGames: Game[] = [...availableGames, ...comingSoonGames];
+
+// Parse a game's `players` string ("1-6", "2-8", "4") into [min, max].
+// Anvio 30-min co-op titles cap at 6; Revolta (PvP) allows 8; some short
+// PvP titles start at 2. Callers use this to clamp partySize and gate the
+// Party tier (which needs at least 6) per game.
+export function getGamePlayerRange(playersStr: string): [number, number] {
+  const range = playersStr.match(/(\d+)\s*-\s*(\d+)/);
+  if (range) {
+    return [parseInt(range[1], 10), parseInt(range[2], 10)];
+  }
+  const single = playersStr.match(/^\s*(\d+)\s*$/);
+  if (single) {
+    const n = parseInt(single[1], 10);
+    return [n, n];
+  }
+  return [1, 8];
+}

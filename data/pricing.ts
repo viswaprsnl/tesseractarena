@@ -1,14 +1,14 @@
 // Pricing is now driven by the chosen game (see Game.pricePerPerson in
 // data/games.ts). These tiers are the marketing-facing frame around it:
 // what a customer gets at each group size, plus the tier multiplier
-// (100/90/80) that determines how much cheaper each seat gets as the group
+// (100/90/85) that determines how much cheaper each seat gets as the group
 // grows. Actual rupee amounts on the /#pricing home section are computed
 // live from the min/max game price so they stay in sync automatically.
 
 export interface PricingTier {
   name: string;
-  discountLabel: string;   // e.g. "no discount", "10% off/head", "20% off/head"
-  multiplier: number;      // Solo 1.0, Squad 0.9, Party 0.8
+  discountLabel: string;   // e.g. "no discount", "10% off/head", "15% off/head"
+  multiplier: number;      // Solo 1.0, Squad 0.9, Party 0.85
   groupRange: string;
   description: string;
   features: string[];
@@ -52,8 +52,8 @@ export const pricingTiers: PricingTier[] = [
   },
   {
     name: "Party",
-    discountLabel: "20% off / head",
-    multiplier: 0.8,
+    discountLabel: "15% off / head",
+    multiplier: 0.85,
     groupRange: "6-8 players",
     description: "Birthdays, team builds, or just an epic night out. Minimum 6 players.",
     features: [
@@ -63,7 +63,7 @@ export const pricingTiers: PricingTier[] = [
       "All equipment provided",
       "Private arena session",
       "Dedicated event host",
-      "20% off per head vs Solo — best value for groups",
+      "15% off per head vs Solo — best value for full-venue bookings",
       "Group photo + video",
     ],
     cta: "Book Party",

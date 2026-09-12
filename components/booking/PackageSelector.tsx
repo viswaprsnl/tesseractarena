@@ -19,7 +19,7 @@ import {
   type Discount,
 } from "@/lib/discount-config";
 import type { ActiveDiscount } from "@/hooks/use-booking";
-import { availableGames } from "@/data/games";
+import { availableGames, getGamePlayerRange } from "@/data/games";
 
 interface PackageSelectorProps {
   partySize: number;
@@ -91,6 +91,18 @@ export function PackageSelector({
   const game = bookableGames.find((g) => g.id === selectedGame) ?? null;
   const perHeadBase = game?.pricePerPerson ?? 0;
 
+  // Per-game player range — Anvio 30-min titles cap at 6; Revolta at 8;
+  // Versus starts at 2. When no game is picked the tier UI shows the full
+  // 1..MAX_PLAYERS range; once a game is picked the stepper and Party card
+  // clamp to what that specific game supports.
+  const [gameMinPlayers, gameMaxPlayers] = game
+    ? getGamePlayerRange(game.players)
+    : [1, MAX_PLAYERS];
+  const effectiveMax = Math.min(MAX_PLAYERS, gameMaxPlayers);
+  const effectiveMin = Math.max(1, gameMinPlayers);
+  const partySupported = effectiveMax >= 6;
+  const soloSupported = effectiveMin <= 1;
+
   // Fetch active discounts once per session date. Filtering per-package
   // happens client-side with pickActiveDiscount, so a single request covers
   // all three cards.
@@ -143,9 +155,30 @@ export function PackageSelector({
   }, [activeDiscount?.id, savings]);
 
   const handleSizeChange = (newSize: number) => {
-    const clamped = Math.max(1, Math.min(MAX_PLAYERS, newSize));
+    // Clamp to the intersection of the global cap and the current game's
+    // supported range. Without a game picked yet, the full 1..MAX_PLAYERS
+    // range is allowed.
+    const upper = game ? effectiveMax : MAX_PLAYERS;
+    const lower = game ? effectiveMin : 1;
+    const clamped = Math.max(lower, Math.min(upper, newSize));
     onPartySizeChange(clamped);
     onPackageChange(getPackageForSize(clamped));
+  };
+
+  // When switching games, clamp the current party size down (or up) to
+  // whatever the newly-picked game supports, and rebalance the tier.
+  const handleGameSelect = (gameId: string) => {
+    const picked = bookableGames.find((g) => g.id === gameId);
+    onGameChange(gameId);
+    if (!picked) return;
+    const [gMin, gMax] = getGamePlayerRange(picked.players);
+    const upper = Math.min(MAX_PLAYERS, gMax);
+    const lower = Math.max(1, gMin);
+    if (partySize > upper || partySize < lower) {
+      const clamped = Math.max(lower, Math.min(upper, partySize));
+      onPartySizeChange(clamped);
+      onPackageChange(getPackageForSize(clamped));
+    }
   };
 
   return (
@@ -182,7 +215,7 @@ export function PackageSelector({
             return (
               <button
                 key={g.id}
-                onClick={() => onGameChange(g.id)}
+                onClick={() => handleGameSelect(g.id)}
                 className={`glass-card overflow-hidden text-left relative transition-all group ${
                   isSelected
                     ? "border-primary/60 glow-violet ring-1 ring-primary/30"
@@ -245,30 +278,37 @@ export function PackageSelector({
       </div>
 
       {/* Party size stepper */}
-      <div className="flex items-center justify-center gap-6 mb-8">
-        <span className="text-sm text-muted-foreground flex items-center gap-2">
-          <Users size={16} className="text-primary" />
-          Players
-        </span>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => handleSizeChange(partySize - 1)}
-            disabled={partySize <= 1}
-            className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center hover:bg-primary/20 disabled:opacity-30 transition-colors"
-          >
-            <Minus size={16} />
-          </button>
-          <span className="text-2xl font-bold w-10 text-center">
-            {partySize}
+      <div className="flex flex-col items-center gap-2 mb-8">
+        <div className="flex items-center justify-center gap-6">
+          <span className="text-sm text-muted-foreground flex items-center gap-2">
+            <Users size={16} className="text-primary" />
+            Players
           </span>
-          <button
-            onClick={() => handleSizeChange(partySize + 1)}
-            disabled={partySize >= MAX_PLAYERS}
-            className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center hover:bg-primary/20 disabled:opacity-30 transition-colors"
-          >
-            <Plus size={16} />
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => handleSizeChange(partySize - 1)}
+              disabled={partySize <= effectiveMin}
+              className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center hover:bg-primary/20 disabled:opacity-30 transition-colors"
+            >
+              <Minus size={16} />
+            </button>
+            <span className="text-2xl font-bold w-10 text-center">
+              {partySize}
+            </span>
+            <button
+              onClick={() => handleSizeChange(partySize + 1)}
+              disabled={partySize >= effectiveMax}
+              className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center hover:bg-primary/20 disabled:opacity-30 transition-colors"
+            >
+              <Plus size={16} />
+            </button>
+          </div>
         </div>
+        {game && (effectiveMax < MAX_PLAYERS || effectiveMin > 1) && (
+          <p className="text-[10px] text-muted-foreground">
+            {game.title} supports {game.players} players
+          </p>
+        )}
       </div>
 
       {/* Package cards */}
@@ -288,19 +328,26 @@ export function PackageSelector({
           const perPersonAfter = Math.round(cardTotal / Math.max(1, partySize));
           const showDiscount = cardDiscount && cardTotal < cardBaseTotal;
 
+          const tierDisabled =
+            (pkg.type === "solo" && !soloSupported) ||
+            (pkg.type === "party" && !partySupported);
           return (
             <button
               key={pkg.type}
+              disabled={tierDisabled}
               onClick={() => {
+                if (tierDisabled) return;
                 onPackageChange(pkg.type);
                 if (pkg.type === "solo") onPartySizeChange(1);
                 else if (pkg.type === "squad" && (partySize < 2 || partySize > 5))
-                  onPartySizeChange(2);
+                  onPartySizeChange(Math.max(2, effectiveMin));
                 else if (pkg.type === "party" && partySize < 6)
                   onPartySizeChange(6);
               }}
               className={`glass-card p-5 text-left relative transition-all ${
-                isSelected
+                tierDisabled
+                  ? "opacity-40 cursor-not-allowed"
+                  : isSelected
                   ? "border-primary/40 glow-violet"
                   : "hover:border-white/20"
               }`}
@@ -349,7 +396,12 @@ export function PackageSelector({
               <p className="text-xs text-muted-foreground">{pkg.range}</p>
               {pkg.type !== "solo" && perHeadBase > 0 && (
                 <p className="text-[10px] text-primary/70 mt-1">
-                  {pkg.type === "squad" ? "10% off/head" : "20% off/head"}
+                  {pkg.type === "squad" ? "10% off/head" : "15% off/head"}
+                </p>
+              )}
+              {tierDisabled && game && (
+                <p className="text-[10px] text-amber-400/80 mt-1">
+                  Not available on {game.title}
                 </p>
               )}
             </button>
@@ -380,7 +432,7 @@ export function PackageSelector({
           )}
           <p className="text-xs text-muted-foreground mt-1">
             {game
-              ? `${partySize} × ₹${perHeadAtTier(perHeadBase, perPersonPkg).toLocaleString("en-IN")} (${packageType}${packageType === "solo" ? "" : packageType === "squad" ? " · 10% off" : " · 20% off"}) — ${game.title}`
+              ? `${partySize} × ₹${perHeadAtTier(perHeadBase, perPersonPkg).toLocaleString("en-IN")} (${packageType}${packageType === "solo" ? "" : packageType === "squad" ? " · 10% off" : " · 15% off"}) — ${game.title}`
               : "Pick a game above to see the total"}
           </p>
         </div>

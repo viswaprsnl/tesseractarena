@@ -19,7 +19,7 @@ import {
   formatTimeDisplay,
 } from "@/lib/booking-config";
 import type { BookingRow, PerPersonPackageType } from "@/lib/booking-types";
-import { allGames } from "@/data/games";
+import { allGames, getGamePlayerRange } from "@/data/games";
 
 const bookingSchema = z
   .object({
@@ -76,6 +76,23 @@ export async function POST(request: NextRequest) {
         { error: "Invalid time slot for this date" },
         { status: 400 }
       );
+    }
+
+    // Verify partySize fits the chosen game's supported range. Anvio 30-min
+    // titles cap at 6; Revolta (PvP) allows 8; Versus starts at 2. Custom
+    // admin-created games have no `players` field on our known list so this
+    // check is skipped for them (they use the legacy fallback).
+    const gameForCheck = allGames.find((g) => g.id === data.gamePreference);
+    if (gameForCheck) {
+      const [gMin, gMax] = getGamePlayerRange(gameForCheck.players);
+      if (data.partySize < gMin || data.partySize > gMax) {
+        return NextResponse.json(
+          {
+            error: `${gameForCheck.title} supports ${gameForCheck.players} players. Please adjust your party size or pick a different game.`,
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // Check booking limit (max 2 active bookings per person)

@@ -26,11 +26,13 @@ export const PRICING: Record<PackageType, number> = {
 
 // Session price = game.pricePerPerson × partySize × tier multiplier.
 // Larger groups get progressively better per-head pricing to reward
-// bookings that fill more seats.
+// bookings that fill more seats. Party is 0.85 (15% off) rather than 0.80
+// because a Party booking already locks the venue — the extra 5% discount
+// left too much revenue on the table on 7-8 player bookings.
 export const PACKAGE_TIER_MULTIPLIER: Record<PerPersonPackageType, number> = {
   solo: 1.0,
   squad: 0.9,
-  party: 0.8,
+  party: 0.85,
 };
 
 // Per-head price at a given tier, rounded to whole rupees so nothing shown
