@@ -210,10 +210,19 @@ export function PackageSelector({
                       <Check size={12} className="text-primary-foreground" />
                     </div>
                   )}
-                  {!isSelected && g.featured && (
-                    <Badge className="absolute top-2 left-2 bg-primary text-primary-foreground text-[9px]">
-                      Most Played
-                    </Badge>
+                  {!isSelected && (g.featured || g.kidsFriendly) && (
+                    <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
+                      {g.featured && (
+                        <Badge className="bg-primary text-primary-foreground text-[9px]">
+                          Most Played
+                        </Badge>
+                      )}
+                      {g.kidsFriendly && (
+                        <Badge className="bg-green-500 text-white text-[9px]">
+                          Kids Friendly
+                        </Badge>
+                      )}
+                    </div>
                   )}
                   <div className="absolute bottom-2 left-2 right-2">
                     <p className="text-xs font-semibold text-white leading-tight line-clamp-2">

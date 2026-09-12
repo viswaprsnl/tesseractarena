@@ -170,6 +170,11 @@ export function GamePreviewModal({
                         Most Played
                       </Badge>
                     )}
+                    {game.kidsFriendly && (
+                      <Badge className="text-[10px] bg-green-500 text-white">
+                        Kids Friendly
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </div>

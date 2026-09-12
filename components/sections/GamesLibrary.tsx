@@ -40,10 +40,19 @@ function GameCard({ game, status, onClick }: { game: Game; status?: GameStatusIn
           }`}
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
         />
-        {game.featured && !isUnavailable && (
-          <Badge className="absolute top-3 left-3 z-10 bg-primary text-primary-foreground text-[10px]">
-            Most Played
-          </Badge>
+        {!isUnavailable && (game.featured || game.kidsFriendly) && (
+          <div className="absolute top-3 left-3 z-10 flex flex-col gap-1 items-start">
+            {game.featured && (
+              <Badge className="bg-primary text-primary-foreground text-[10px]">
+                Most Played
+              </Badge>
+            )}
+            {game.kidsFriendly && (
+              <Badge className="bg-green-500 text-white text-[10px]">
+                Kids Friendly
+              </Badge>
+            )}
+          </div>
         )}
         {isUnavailable && status && STATUS_BADGES[status.status] && (
           <Badge className={`absolute top-3 left-3 z-10 text-[10px] ${STATUS_BADGES[status.status].color}`}>

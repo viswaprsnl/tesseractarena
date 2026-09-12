@@ -11,7 +11,12 @@ export interface Game {
   difficulty: string;
   image: string;
   videoUrl?: string;
+  // Adds the violet "Most Played" pill on cards. Reserved for our 30-min
+  // Anvio / Wayfinders lineup right now.
   featured?: boolean;
+  // Adds the green "Kids Friendly" pill on cards. Used for gentler titles
+  // parents can comfortably book for younger groups (~8+).
+  kidsFriendly?: boolean;
   tags: string[];
   // Base per-person price at Solo tier. Squad and Party tiers derive from
   // this using PACKAGE_TIER_MULTIPLIER in lib/booking-config.ts. Full 30-min
@@ -106,6 +111,7 @@ export const availableGames: Game[] = [
     difficulty: "Easy",
     image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbb05528de02514b83158_MonkeyMadness_Poster.avif",
     pricePerPerson: 799,
+    kidsFriendly: true,
     tags: ["party", "casual", "family", "co-op"],
   },
   {
