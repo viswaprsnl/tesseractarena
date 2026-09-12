@@ -8,14 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useState, useEffect } from "react";
-import { allGames } from "@/data/games";
 
+// gamePreference lives in the wizard state now (picked in the Package step)
+// and is injected in the wizard's handleDetailsSubmit — this form only owns
+// the contact fields.
 const detailsSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email"),
   phone: z.string().min(10, "Please enter a valid phone number"),
-  gamePreference: z.string().min(1, "Please select a game"),
   specialRequests: z.string().optional(),
 });
 
@@ -24,33 +24,19 @@ type DetailsForm = z.infer<typeof detailsSchema>;
 interface PersonalDetailsFormProps {
   onSubmit: (data: DetailsForm) => void;
   initialValues?: DetailsForm | null;
-  preselectedGame?: string;
 }
 
 export function PersonalDetailsForm({
   onSubmit,
   initialValues,
-  preselectedGame,
 }: PersonalDetailsFormProps) {
-  const [gameStatuses, setGameStatuses] = useState<Record<string, { status: string; note: string }>>({});
-
-  useEffect(() => {
-    fetch("/api/admin/games")
-      .then((res) => res.json())
-      .then((data) => { if (data.statuses) setGameStatuses(data.statuses); })
-      .catch(() => {});
-  }, []);
-
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<DetailsForm>({
     resolver: zodResolver(detailsSchema),
-    defaultValues: initialValues || {
-      gamePreference: preselectedGame || "",
-      phone: "+91 ",
-    },
+    defaultValues: initialValues || { phone: "+91 " },
   });
 
   return (
@@ -103,37 +89,6 @@ export function PersonalDetailsForm({
           />
           {errors.phone && (
             <p className="text-xs text-destructive">{errors.phone.message}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="game">Preferred Game</Label>
-          <select
-            id="game"
-            className="w-full h-9 rounded-md bg-card/60 border border-white/10 px-3 text-sm"
-            {...register("gamePreference")}
-          >
-            <option value="">Select a game</option>
-            {allGames.map((game) => {
-              const gs = gameStatuses[game.id];
-              const categoryUnavailable = game.category !== "available";
-              const adminUnavailable = gs && gs.status !== "available";
-              const isUnavailable = categoryUnavailable || adminUnavailable;
-              const statusLabel = categoryUnavailable ? " — Coming Soon"
-                : gs?.status === "unavailable" ? " — Unavailable"
-                : gs?.status === "maintenance" ? " — Maintenance"
-                : gs?.status === "coming_soon" ? " — Coming Soon" : "";
-              return (
-                <option key={game.id} value={game.id} disabled={isUnavailable}>
-                  {game.title}{statusLabel}
-                </option>
-              );
-            })}
-          </select>
-          {errors.gamePreference && (
-            <p className="text-xs text-destructive">
-              {errors.gamePreference.message}
-            </p>
           )}
         </div>
 

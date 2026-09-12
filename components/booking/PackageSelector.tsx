@@ -1,17 +1,17 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
-import { Minus, Plus, Check, Users, Tag } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Minus, Plus, Check, Users, Tag, Gamepad2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
-  PRICING,
-  calculatePrice,
+  calculateSessionPrice,
   getPackageForSize,
   calculateAdvance,
+  perHeadAtTier,
   MAX_PLAYERS,
 } from "@/lib/booking-config";
-import type { PackageType } from "@/lib/booking-types";
+import type { PackageType, PerPersonPackageType } from "@/lib/booking-types";
 import {
   applyDiscount,
   pickActiveDiscount,
@@ -19,13 +19,16 @@ import {
   type Discount,
 } from "@/lib/discount-config";
 import type { ActiveDiscount } from "@/hooks/use-booking";
+import { availableGames } from "@/data/games";
 
 interface PackageSelectorProps {
   partySize: number;
   packageType: PackageType;
   sessionDate: string | null;
+  selectedGame: string | null;
   onPartySizeChange: (size: number) => void;
   onPackageChange: (pkg: PackageType) => void;
+  onGameChange: (gameId: string | null) => void;
   onDiscountChange?: (discount: ActiveDiscount | null) => void;
 }
 
@@ -55,11 +58,38 @@ export function PackageSelector({
   partySize,
   packageType,
   sessionDate,
+  selectedGame,
   onPartySizeChange,
   onPackageChange,
+  onGameChange,
   onDiscountChange,
 }: PackageSelectorProps) {
   const [discounts, setDiscounts] = useState<Discount[]>([]);
+  const [gameStatuses, setGameStatuses] = useState<Record<string, { status: string; hidden?: boolean }>>({});
+
+  // Games available for booking. Any admin-hidden / non-available game is
+  // filtered out so the dropdown only offers real choices.
+  const bookableGames = useMemo(
+    () =>
+      availableGames.filter((g) => {
+        const gs = gameStatuses[g.id];
+        if (gs?.hidden) return false;
+        if (gs && gs.status !== "available") return false;
+        return true;
+      }),
+    [gameStatuses]
+  );
+
+  // Live-status fetch runs once. Failure falls back to the raw game list.
+  useEffect(() => {
+    fetch("/api/admin/games")
+      .then((r) => r.json())
+      .then((d) => { if (d.statuses) setGameStatuses(d.statuses); })
+      .catch(() => {});
+  }, []);
+
+  const game = bookableGames.find((g) => g.id === selectedGame) ?? null;
+  const perHeadBase = game?.pricePerPerson ?? 0;
 
   // Fetch active discounts once per session date. Filtering per-package
   // happens client-side with pickActiveDiscount, so a single request covers
@@ -80,8 +110,13 @@ export function PackageSelector({
     };
   }, [sessionDate]);
 
-  const baseTotal = calculatePrice(packageType, partySize);
-  const activeDiscount = sessionDate
+  // Session pricing is now game-driven. When no game is selected yet the
+  // total shows as ₹0 and Continue is blocked at the wizard level.
+  const perPersonPkg = packageType as PerPersonPackageType;
+  const baseTotal = perHeadBase
+    ? calculateSessionPrice(perHeadBase, perPersonPkg, partySize)
+    : 0;
+  const activeDiscount = sessionDate && perHeadBase
     ? pickActiveDiscount(discounts, sessionDate, packageType, baseTotal)
     : null;
   const amount = activeDiscount ? applyDiscount(baseTotal, activeDiscount) : baseTotal;
@@ -120,8 +155,80 @@ export function PackageSelector({
       className="max-w-2xl mx-auto"
     >
       <h3 className="font-heading text-lg font-bold text-center mb-6">
-        Choose Your Package
+        Pick a Game &amp; Package
       </h3>
+
+      {/* Game picker — a visual card strip beats a native <select> here,
+          both because parents / groups shop games by looking at them, and
+          because it lets us surface the per-person price prominently on
+          each card. Selection drives the pricing on the tier cards below. */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <label className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+            <Gamepad2 size={12} className="text-primary" />
+            Choose your game
+          </label>
+          {!selectedGame && (
+            <span className="text-[10px] text-muted-foreground">
+              Tap a card to lock in the price →
+            </span>
+          )}
+        </div>
+        <div
+          className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[360px] overflow-y-auto pr-1 -mr-1"
+        >
+          {bookableGames.map((g) => {
+            const isSelected = selectedGame === g.id;
+            return (
+              <button
+                key={g.id}
+                onClick={() => onGameChange(g.id)}
+                className={`glass-card overflow-hidden text-left relative transition-all group ${
+                  isSelected
+                    ? "border-primary/60 glow-violet ring-1 ring-primary/30"
+                    : "hover:border-white/20"
+                }`}
+              >
+                <div className="relative aspect-[16/10] bg-card">
+                  {/* Using <img> instead of next/image so we don't have to
+                      configure remote hosts for every game asset on this
+                      compact tile. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={g.image}
+                    alt={g.title}
+                    className={`w-full h-full object-cover transition-transform ${
+                      isSelected ? "" : "group-hover:scale-105"
+                    }`}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                  <Badge className="absolute top-2 right-2 bg-black/70 text-white text-[9px] backdrop-blur-sm">
+                    ₹{g.pricePerPerson.toLocaleString("en-IN")}
+                  </Badge>
+                  {isSelected && (
+                    <div className="absolute top-2 left-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center shadow-lg">
+                      <Check size={12} className="text-primary-foreground" />
+                    </div>
+                  )}
+                  <div className="absolute bottom-2 left-2 right-2">
+                    <p className="text-xs font-semibold text-white leading-tight line-clamp-2">
+                      {g.title}
+                    </p>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+        {game && (
+          <div className="glass-card p-3 mt-3">
+            <p className="text-[11px] text-muted-foreground">
+              <span className="text-primary font-medium">{game.title}</span> —{" "}
+              {game.description}
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* Party size stepper */}
       <div className="flex items-center justify-center gap-6 mb-8">
@@ -154,11 +261,13 @@ export function PackageSelector({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {packages.map((pkg) => {
           const isSelected = packageType === pkg.type;
-          const perPersonBase = PRICING[pkg.type];
-          // Per-person savings mirror the total-total math so the card
-          // matches the "Total Session Cost" line exactly for this party.
+          // Per-head price for this tier of the currently-chosen game.
+          // Falls back to zero (rendered as "—") while no game is picked.
+          const perPersonBase = perHeadBase
+            ? perHeadAtTier(perHeadBase, pkg.type)
+            : 0;
           const cardBaseTotal = perPersonBase * Math.max(1, partySize);
-          const cardDiscount = sessionDate
+          const cardDiscount = sessionDate && perPersonBase
             ? pickActiveDiscount(discounts, sessionDate, pkg.type, cardBaseTotal)
             : null;
           const cardTotal = cardDiscount ? applyDiscount(cardBaseTotal, cardDiscount) : cardBaseTotal;
@@ -196,13 +305,20 @@ export function PackageSelector({
                 <h4 className="font-heading text-base font-bold">{pkg.name}</h4>
                 {isSelected && <Check size={16} className="text-primary" />}
               </div>
-              {showDiscount ? (
+              {!perHeadBase ? (
+                <p className="text-2xl font-bold mb-1 text-muted-foreground">
+                  —
+                  <span className="text-xs text-muted-foreground font-normal ml-1">
+                    /person
+                  </span>
+                </p>
+              ) : showDiscount ? (
                 <div className="mb-1">
                   <span className="text-xs text-muted-foreground line-through mr-2">
-                    ₹{perPersonBase}
+                    ₹{perPersonBase.toLocaleString("en-IN")}
                   </span>
                   <span className="text-2xl font-bold text-green-400">
-                    ₹{perPersonAfter}
+                    ₹{perPersonAfter.toLocaleString("en-IN")}
                   </span>
                   <span className="text-xs text-muted-foreground font-normal ml-1">
                     /person
@@ -210,13 +326,18 @@ export function PackageSelector({
                 </div>
               ) : (
                 <p className="text-2xl font-bold mb-1">
-                  ₹{perPersonBase}
+                  ₹{perPersonBase.toLocaleString("en-IN")}
                   <span className="text-xs text-muted-foreground font-normal ml-1">
                     /person
                   </span>
                 </p>
               )}
               <p className="text-xs text-muted-foreground">{pkg.range}</p>
+              {pkg.type !== "solo" && perHeadBase > 0 && (
+                <p className="text-[10px] text-primary/70 mt-1">
+                  {pkg.type === "squad" ? "10% off/head" : "20% off/head"}
+                </p>
+              )}
             </button>
           );
         })}
@@ -244,8 +365,9 @@ export function PackageSelector({
             </p>
           )}
           <p className="text-xs text-muted-foreground mt-1">
-            {partySize} {partySize === 1 ? "player" : "players"} × ₹
-            {PRICING[packageType]} ({packageType})
+            {game
+              ? `${partySize} × ₹${perHeadAtTier(perHeadBase, perPersonPkg).toLocaleString("en-IN")} (${packageType}${packageType === "solo" ? "" : packageType === "squad" ? " · 10% off" : " · 20% off"}) — ${game.title}`
+              : "Pick a game above to see the total"}
           </p>
         </div>
 

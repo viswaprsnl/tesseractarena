@@ -1,10 +1,16 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft } from "lucide-react";
 import { useBooking } from "@/hooks/use-booking";
-import { calculatePrice } from "@/lib/booking-config";
+import {
+  calculatePrice,
+  calculateSessionPrice,
+} from "@/lib/booking-config";
+import type { PerPersonPackageType } from "@/lib/booking-types";
+import { allGames } from "@/data/games";
 import { StepIndicator } from "./StepIndicator";
 import { DatePicker } from "./DatePicker";
 import { TimeSlotGrid } from "./TimeSlotGrid";
@@ -16,6 +22,15 @@ import { BookingSummary } from "./BookingSummary";
 export function BookingWizard({ preselectedGame }: { preselectedGame?: string }) {
   const router = useRouter();
   const { state, dispatch } = useBooking();
+
+  // If the wizard was entered via /book?game=xxx, seed the state once so
+  // PackageSelector renders with the game pre-picked.
+  useEffect(() => {
+    if (preselectedGame && !state.selectedGame) {
+      dispatch({ type: "SET_GAME", gameId: preselectedGame });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preselectedGame]);
 
   // Fetch slots when date is selected
   const fetchSlots = async (date: string) => {
@@ -49,28 +64,44 @@ export function BookingWizard({ preselectedGame }: { preselectedGame?: string })
 
   // Step 3: Package confirmed (auto-advance via button)
   const handlePackageConfirm = () => {
-    const base = calculatePrice(state.packageType, state.partySize);
+    // Price is derived from the chosen game — perHead × tier × partySize.
+    // Falls back to the legacy per-package pricing if no game is set (only
+    // possible on stale state; UI blocks Continue without a game).
+    const game = allGames.find((g) => g.id === state.selectedGame);
+    const perPersonPkg = state.packageType as PerPersonPackageType;
+    const base = game?.pricePerPerson
+      ? calculateSessionPrice(game.pricePerPerson, perPersonPkg, state.partySize)
+      : calculatePrice(state.packageType, state.partySize);
     const amount = state.discount ? base - state.discount.amountOff : base;
     dispatch({ type: "SET_AMOUNT", amount });
     dispatch({ type: "NEXT_STEP" });
   };
 
-  // Step 4: Details submitted
+  // Step 4: Details submitted. gamePreference is not a form field anymore —
+  // it comes from state.selectedGame (picked in step 3) and gets injected
+  // here so the downstream POST body still carries it.
   const handleDetailsSubmit = (details: {
     name: string;
     email: string;
     phone: string;
-    gamePreference: string;
     specialRequests?: string;
   }) => {
     dispatch({
       type: "SET_DETAILS",
       details: {
         ...details,
+        gamePreference: state.selectedGame || "",
         specialRequests: details.specialRequests || "",
       },
     });
-    const base = calculatePrice(state.packageType, state.partySize);
+    // Price is derived from the chosen game — perHead × tier × partySize.
+    // Falls back to the legacy per-package pricing if no game is set (only
+    // possible on stale state; UI blocks Continue without a game).
+    const game = allGames.find((g) => g.id === state.selectedGame);
+    const perPersonPkg = state.packageType as PerPersonPackageType;
+    const base = game?.pricePerPerson
+      ? calculateSessionPrice(game.pricePerPerson, perPersonPkg, state.partySize)
+      : calculatePrice(state.packageType, state.partySize);
     const amount = state.discount ? base - state.discount.amountOff : base;
     dispatch({ type: "SET_AMOUNT", amount });
     dispatch({ type: "NEXT_STEP" });
@@ -230,23 +261,33 @@ export function BookingWizard({ preselectedGame }: { preselectedGame?: string })
                   partySize={state.partySize}
                   packageType={state.packageType}
                   sessionDate={state.selectedDate}
+                  selectedGame={state.selectedGame}
                   onPartySizeChange={(size) =>
                     dispatch({ type: "SET_PARTY_SIZE", size })
                   }
                   onPackageChange={(pkg) =>
                     dispatch({ type: "SET_PACKAGE", pkg })
                   }
+                  onGameChange={(gameId) =>
+                    dispatch({ type: "SET_GAME", gameId })
+                  }
                   onDiscountChange={(discount) =>
                     dispatch({ type: "SET_DISCOUNT", discount })
                   }
                 />
-                <div className="flex justify-center mt-6">
+                <div className="flex flex-col items-center gap-2 mt-6">
                   <button
                     onClick={handlePackageConfirm}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-2.5 rounded-lg font-medium transition-colors glow-violet"
+                    disabled={!state.selectedGame}
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-2.5 rounded-lg font-medium transition-colors glow-violet disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-primary"
                   >
                     Continue
                   </button>
+                  {!state.selectedGame && (
+                    <p className="text-[11px] text-muted-foreground">
+                      Pick a game above to see pricing and continue.
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -254,8 +295,16 @@ export function BookingWizard({ preselectedGame }: { preselectedGame?: string })
               <PersonalDetailsForm
                 key="details"
                 onSubmit={handleDetailsSubmit}
-                initialValues={state.personalDetails}
-                preselectedGame={preselectedGame}
+                initialValues={
+                  state.personalDetails
+                    ? {
+                        name: state.personalDetails.name,
+                        email: state.personalDetails.email,
+                        phone: state.personalDetails.phone,
+                        specialRequests: state.personalDetails.specialRequests,
+                      }
+                    : null
+                }
               />
             )}
             {state.step === 5 && (

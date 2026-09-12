@@ -7,9 +7,21 @@ import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { pricingTiers } from "@/data/pricing";
+import { availableGames } from "@/data/games";
 import { fadeInUp, staggerContainer } from "@/lib/animations";
 
 export function Pricing() {
+  // Per-head rate for each tier is game.pricePerPerson × tier.multiplier.
+  // We show the range across the Available library so parents / groups see
+  // "from ₹X" and know exactly what drives the cheaper end.
+  const gamePrices = availableGames.map((g) => g.pricePerPerson);
+  const minGamePrice = Math.min(...gamePrices);
+  const maxGamePrice = Math.max(...gamePrices);
+  const tierRange = (multiplier: number) => ({
+    min: Math.round(minGamePrice * multiplier),
+    max: Math.round(maxGamePrice * multiplier),
+  });
+
   return (
     <section id="pricing" className="py-12 sm:py-24 px-4">
       <div className="max-w-7xl mx-auto">
@@ -24,7 +36,9 @@ export function Pricing() {
             Choose Your <span className="gradient-text">Experience</span>
           </h2>
           <p className="text-muted-foreground max-w-xl mx-auto">
-            Flexible packages for solo players, groups, and parties
+            Per-head pricing depends on the game — ₹{minGamePrice} for short-format
+            HeroZone titles, ₹{maxGamePrice} for full 30-min Anvio experiences.
+            Bigger groups get better per-head rates automatically.
           </p>
           <div className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
             <span className="text-sm font-medium text-primary">
@@ -64,10 +78,25 @@ export function Pricing() {
               </div>
 
               <div className="mb-8">
-                <span className="text-4xl font-bold">&#8377;{tier.price}</span>
-                <span className="text-sm text-muted-foreground ml-2">
-                  {tier.unit}
-                </span>
+                {(() => {
+                  const { min, max } = tierRange(tier.multiplier);
+                  return (
+                    <>
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">
+                        Starting at
+                      </p>
+                      <span className="text-4xl font-bold">
+                        &#8377;{min.toLocaleString("en-IN")}
+                      </span>
+                      <span className="text-sm text-muted-foreground ml-2">
+                        per person
+                      </span>
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        {tier.discountLabel} · up to ₹{max.toLocaleString("en-IN")} for full 30-min titles
+                      </p>
+                    </>
+                  );
+                })()}
               </div>
 
               <ul className="space-y-3 mb-8 flex-1">

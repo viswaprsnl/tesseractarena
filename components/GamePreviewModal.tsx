@@ -188,6 +188,11 @@ export function GamePreviewModal({
                   <Swords size={14} className="text-primary" />
                   {game.difficulty}
                 </span>
+                {game.pricePerPerson > 0 && (
+                  <span className="flex items-center gap-1.5 text-primary font-medium">
+                    ₹{game.pricePerPerson.toLocaleString("en-IN")}/person
+                  </span>
+                )}
               </div>
 
               {/* Status note */}

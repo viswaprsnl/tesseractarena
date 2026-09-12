@@ -23,6 +23,10 @@ export interface BookingState {
   selectedSlotDisplay: string | null;
   partySize: number;
   packageType: PackageType;
+  // Chosen game id (matches Game.id in data/games.ts). Picked on the same
+  // step as the Solo/Squad/Party tier so the customer sees the per-game
+  // price live before continuing.
+  selectedGame: string | null;
   personalDetails: {
     name: string;
     email: string;
@@ -45,6 +49,7 @@ type Action =
   | { type: "SET_SLOT"; slot: string; displayTime: string }
   | { type: "SET_PARTY_SIZE"; size: number }
   | { type: "SET_PACKAGE"; pkg: PackageType }
+  | { type: "SET_GAME"; gameId: string | null }
   | { type: "SET_DETAILS"; details: BookingState["personalDetails"] }
   | { type: "SET_PAYMENT_METHOD"; method: PaymentMethod }
   | { type: "SET_BOOKING_ID"; id: string }
@@ -65,6 +70,7 @@ const initialState: BookingState = {
   selectedSlotDisplay: null,
   partySize: 2,
   packageType: "squad",
+  selectedGame: null,
   personalDetails: null,
   paymentMethod: null,
   bookingId: null,
@@ -98,6 +104,8 @@ function reducer(state: BookingState, action: Action): BookingState {
       return { ...state, partySize: action.size };
     case "SET_PACKAGE":
       return { ...state, packageType: action.pkg };
+    case "SET_GAME":
+      return { ...state, selectedGame: action.gameId };
     case "SET_DETAILS":
       return { ...state, personalDetails: action.details };
     case "SET_PAYMENT_METHOD":

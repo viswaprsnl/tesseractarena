@@ -11,10 +11,10 @@ export const MAX_PLAYERS = 8;
 // Flat advance per person paid at booking. Remaining is paid at the center.
 export const ADVANCE_PER_PERSON = 500;
 
-// Per-person session pricing. Birthday packages are priced flat and live
-// in data/birthday.ts (see BIRTHDAY_PACKAGES) — indexing PRICING with a
-// birthday key returns 0, which callers should treat as "not a per-person
-// package, look elsewhere".
+// Legacy per-package pricing — kept as a fallback for admin walk-in logging
+// (RevenueTab / WalkinLogger). Customer-facing session pricing is now
+// per-GAME (see Game.pricePerPerson in data/games.ts) and scales by tier
+// (see PACKAGE_TIER_MULTIPLIER below).
 export const PRICING: Record<PackageType, number> = {
   solo: 1499,
   squad: 1199,
@@ -23,6 +23,34 @@ export const PRICING: Record<PackageType, number> = {
   "birthday-plus": 0,
   "birthday-ultimate": 0,
 };
+
+// Session price = game.pricePerPerson × partySize × tier multiplier.
+// Larger groups get progressively better per-head pricing to reward
+// bookings that fill more seats.
+export const PACKAGE_TIER_MULTIPLIER: Record<PerPersonPackageType, number> = {
+  solo: 1.0,
+  squad: 0.9,
+  party: 0.8,
+};
+
+// Per-head price at a given tier, rounded to whole rupees so nothing shown
+// to the customer ever ends in paise.
+export function perHeadAtTier(
+  gameBasePrice: number,
+  packageType: PerPersonPackageType
+): number {
+  return Math.round(gameBasePrice * PACKAGE_TIER_MULTIPLIER[packageType]);
+}
+
+// Full session price for the given game + tier + party size. Discounts
+// apply on top of this via pickActiveDiscount / applyDiscount.
+export function calculateSessionPrice(
+  gameBasePrice: number,
+  packageType: PerPersonPackageType,
+  partySize: number
+): number {
+  return perHeadAtTier(gameBasePrice, packageType) * partySize;
+}
 
 // Advance amount for a per-person booking = ₹500 per player, capped at the
 // total if the total is somehow lower. Birthday advances are computed in

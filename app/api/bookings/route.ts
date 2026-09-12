@@ -13,11 +13,13 @@ import { pickActiveDiscount, applyDiscount } from "@/lib/discount-config";
 import { sendBookingConfirmation, sendOwnerNotification } from "@/lib/email";
 import {
   calculatePrice,
+  calculateSessionPrice,
   isDateBookable,
   getSlotsForDate,
   formatTimeDisplay,
 } from "@/lib/booking-config";
-import type { BookingRow } from "@/lib/booking-types";
+import type { BookingRow, PerPersonPackageType } from "@/lib/booking-types";
+import { allGames } from "@/data/games";
 
 const bookingSchema = z
   .object({
@@ -120,10 +122,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate booking ID.
-    // Base price comes from the config; any active seasonal discount for the
-    // session date is applied server-side so the client cannot understate it.
+    // Base price is derived server-side from the chosen game + tier + party
+    // size so the client cannot understate it. Falls back to the legacy
+    // package price if the gamePreference doesn't match a known game (e.g.
+    // custom admin-created games without a pricePerPerson value).
     const bookingId = `TA-${nanoid(6).toUpperCase()}`;
-    const basePrice = calculatePrice(data.package, data.partySize);
+    const game = allGames.find((g) => g.id === data.gamePreference);
+    const perPersonPkg = data.package as PerPersonPackageType;
+    const basePrice = game?.pricePerPerson
+      ? calculateSessionPrice(
+          game.pricePerPerson,
+          perPersonPkg,
+          data.partySize
+        )
+      : calculatePrice(data.package, data.partySize);
     let amount = basePrice;
     try {
       const discounts = await listDiscounts();

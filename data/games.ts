@@ -13,6 +13,11 @@ export interface Game {
   videoUrl?: string;
   featured?: boolean;
   tags: string[];
+  // Base per-person price at Solo tier. Squad and Party tiers derive from
+  // this using PACKAGE_TIER_MULTIPLIER in lib/booking-config.ts. Full 30-min
+  // Anvio (and Wayfinders) titles are ₹1,359; the short 10-12 min HeroZone
+  // library is ₹799.
+  pricePerPerson: number;
 }
 
 export const availableGames: Game[] = [
@@ -28,6 +33,7 @@ export const availableGames: Game[] = [
     difficulty: "Medium",
     image: "https://images.worldofescapes.com/uploads/quests/22973/large/anvio-city-z.jpg",
     featured: true,
+    pricePerPerson: 1359,
     tags: ["action", "co-op", "horror", "free-roam"],
   },
   {
@@ -42,6 +48,7 @@ export const availableGames: Game[] = [
     difficulty: "Medium",
     image: "https://images.worldofescapes.com/uploads/quests/22974/large/anvio-station-zarya.jpg",
     featured: true,
+    pricePerPerson: 1359,
     tags: ["sci-fi", "co-op", "action", "free-roam"],
   },
   {
@@ -56,6 +63,7 @@ export const availableGames: Game[] = [
     difficulty: "Medium",
     image: "https://static.tildacdn.com/tild3461-3235-4634-b931-616536383366/__2022-12-01__192405.png",
     featured: true,
+    pricePerPerson: 1359,
     tags: ["pvp", "competitive", "action", "multiplayer"],
   },
   {
@@ -69,6 +77,7 @@ export const availableGames: Game[] = [
     duration: "10-12 min",
     difficulty: "Medium",
     image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a68b7eedb11f5e66e38e39c_Arrowsong%20-%20Dark%20Omen.png",
+    pricePerPerson: 799,
     tags: ["fantasy", "co-op", "archery", "free-roam"],
   },
   {
@@ -82,6 +91,7 @@ export const availableGames: Game[] = [
     duration: "9-12 min",
     difficulty: "Medium",
     image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a68ba7cf358cafdc3486a7e_Terminator%20poster.png",
+    pricePerPerson: 799,
     tags: ["sci-fi", "co-op", "action", "free-roam"],
   },
   {
@@ -95,6 +105,7 @@ export const availableGames: Game[] = [
     duration: "5-20 min",
     difficulty: "Easy",
     image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbb05528de02514b83158_MonkeyMadness_Poster.avif",
+    pricePerPerson: 799,
     tags: ["party", "casual", "family", "co-op"],
   },
   {
@@ -108,6 +119,7 @@ export const availableGames: Game[] = [
     duration: "10-12 min",
     difficulty: "Medium",
     image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a68ba49e225a3204503ff60_Dead%20Ahead%20poster.png",
+    pricePerPerson: 799,
     tags: ["action", "co-op", "horror", "shooter"],
   },
   {
@@ -121,6 +133,7 @@ export const availableGames: Game[] = [
     duration: "30 min",
     difficulty: "Medium",
     image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbd845097819d0cd21a44_Wayfinders_Poster.avif",
+    pricePerPerson: 1359,
     tags: ["sci-fi", "adventure", "co-op", "cinematic"],
   },
   {
@@ -134,6 +147,7 @@ export const availableGames: Game[] = [
     duration: "10-12 min",
     difficulty: "Medium",
     image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbc56528de02514b935b4_HZ%20Game%20Cops%20vs%20Robbers.avif",
+    pricePerPerson: 799,
     tags: ["pvp", "competitive", "action", "multiplayer"],
   },
 ];
@@ -150,6 +164,7 @@ export const comingSoonGames: Game[] = [
     duration: "30 min",
     difficulty: "Medium",
     image: "https://inoui-vr.fr/wp-content/uploads/2025/06/cityZ-survivors.png",
+    pricePerPerson: 1359,
     tags: ["action", "co-op", "horror", "free-roam"],
   },
   {
@@ -163,6 +178,7 @@ export const comingSoonGames: Game[] = [
     duration: "30 min",
     difficulty: "Hard",
     image: "https://static.tildacdn.com/tild3864-3532-4465-b062-666130356135/image.png",
+    pricePerPerson: 1359,
     tags: ["action", "co-op", "horror", "free-roam"],
   },
   {
@@ -176,6 +192,7 @@ export const comingSoonGames: Game[] = [
     duration: "30 min",
     difficulty: "Hard",
     image: "https://static.tildacdn.com/tild6563-3532-4032-b334-646135653933/image.png",
+    pricePerPerson: 1359,
     tags: ["action", "co-op", "horror", "intense"],
   },
   {
@@ -189,6 +206,7 @@ export const comingSoonGames: Game[] = [
     duration: "30 min",
     difficulty: "Easy",
     image: "https://images.worldofescapes.com/uploads/quests/22975/large/anvio-lost-sanctuary.jpg",
+    pricePerPerson: 1359,
     tags: ["adventure", "puzzle", "family", "fantasy"],
   },
   {
@@ -202,6 +220,7 @@ export const comingSoonGames: Game[] = [
     duration: "30 min",
     difficulty: "Easy",
     image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1486660/header.jpg?t=1619858252",
+    pricePerPerson: 1359,
     tags: ["adventure", "family", "fantasy", "flying"],
   },
   {
@@ -215,6 +234,7 @@ export const comingSoonGames: Game[] = [
     duration: "10-20 min",
     difficulty: "Medium",
     image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a60d65e059c66262de183fb_ToA_Poster.jpg",
+    pricePerPerson: 799,
     tags: ["escape", "puzzle", "co-op", "adventure"],
   },
   {
@@ -228,6 +248,7 @@ export const comingSoonGames: Game[] = [
     duration: "3-15 min",
     difficulty: "Medium",
     image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbdfcfb1b2037358a6381_HZ%20Game%20Versus.avif",
+    pricePerPerson: 799,
     tags: ["pvp", "competitive", "action", "laser-tag"],
   },
   {
@@ -241,6 +262,7 @@ export const comingSoonGames: Game[] = [
     duration: "6-12 min",
     difficulty: "Medium",
     image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbb88502c96c1ab0b6ffe_HZ%20Game%20Quantum%20Arena.avif",
+    pricePerPerson: 799,
     tags: ["pvp", "competitive", "action", "sci-fi"],
   },
   {
@@ -254,6 +276,7 @@ export const comingSoonGames: Game[] = [
     duration: "5-20 min",
     difficulty: "Easy",
     image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbb92167da01a1eb71619_HZ%20Game%20Wizard%20Academy.avif",
+    pricePerPerson: 799,
     tags: ["puzzle", "family", "co-op", "fantasy"],
   },
   {
@@ -267,6 +290,7 @@ export const comingSoonGames: Game[] = [
     duration: "10-20 min",
     difficulty: "Medium",
     image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbcbf87bdd7de8ad3ad9f_HZ%20Game%20Espionage%20Express.avif",
+    pricePerPerson: 799,
     tags: ["escape", "puzzle", "co-op", "family"],
   },
   {
@@ -280,6 +304,7 @@ export const comingSoonGames: Game[] = [
     duration: "5-10 min",
     difficulty: "Easy",
     image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbbc4230c7f32c94ab288_HZ%20Game%20Cook%E2%80%99d%20Up.avif",
+    pricePerPerson: 799,
     tags: ["party", "casual", "family", "team-building"],
   },
   {
@@ -293,6 +318,7 @@ export const comingSoonGames: Game[] = [
     duration: "5-15 min",
     difficulty: "Easy",
     image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbd2f3031db7ec7cc4c41_Plush%20Rush_Poster.avif",
+    pricePerPerson: 799,
     tags: ["action", "family", "co-op", "casual"],
   },
   {
@@ -306,6 +332,7 @@ export const comingSoonGames: Game[] = [
     duration: "10-12 min",
     difficulty: "Easy",
     image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbb69e93df905241e960c_HZ%20Game%20Arrowsong2.avif",
+    pricePerPerson: 799,
     tags: ["action", "archery", "family", "fantasy"],
   },
   {
@@ -319,6 +346,7 @@ export const comingSoonGames: Game[] = [
     duration: "10-12 min",
     difficulty: "Medium",
     image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbe7b3089a6e2d584a237_HZ%20Cyber%20Shock_Poster.avif",
+    pricePerPerson: 799,
     tags: ["sci-fi", "action", "co-op", "shooter"],
   },
 ];

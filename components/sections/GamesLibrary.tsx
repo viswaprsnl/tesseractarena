@@ -50,6 +50,11 @@ function GameCard({ game, status, onClick }: { game: Game; status?: GameStatusIn
             {STATUS_BADGES[status.status].label}
           </Badge>
         )}
+        {!isUnavailable && game.pricePerPerson > 0 && (
+          <Badge className="absolute top-3 right-3 z-10 bg-black/70 text-white text-[10px] backdrop-blur-sm">
+            ₹{game.pricePerPerson.toLocaleString("en-IN")}/person
+          </Badge>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
       </div>
 
