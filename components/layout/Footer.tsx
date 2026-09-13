@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { MapPin, Phone, Mail, Clock, Globe, MessageSquare, Share2, Rss } from "lucide-react";
+import { MapPin, Phone, Mail, Clock, MessageCircle } from "lucide-react";
+import { PHONE_DISPLAY, WHATSAPP_NUMBER, CONTACT_EMAIL, whatsappCorporateLink } from "@/lib/contact";
 
 const quickLinks = [
   { href: "/", label: "Home" },
@@ -17,13 +18,6 @@ const gameLinks = [
   { href: "/games", label: "Full Game Library" },
 ];
 
-const socialLinks = [
-  { href: "#", icon: Globe, label: "Website" },
-  { href: "#", icon: MessageSquare, label: "Social" },
-  { href: "#", icon: Share2, label: "Share" },
-  { href: "#", icon: Rss, label: "Feed" },
-];
-
 export function Footer() {
   return (
     <footer className="bg-card/80 border-t border-primary/20">
@@ -38,21 +32,18 @@ export function Footer() {
               TESSERACT ARENA
             </span>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              India&apos;s first multi-game standalone VR arena. Premium
-              free-roam experiences for groups of up to 8 players.
+              India&apos;s first multi-title free-roam VR arena. Premium
+              Anvio and HeroZone experiences for groups of up to 8 players.
             </p>
-            <div className="flex gap-3">
-              {socialLinks.map((social) => (
-                <a
-                  key={social.label}
-                  href={social.href}
-                  aria-label={social.label}
-                  className="p-2 rounded-lg bg-secondary/50 text-muted-foreground hover:text-primary hover:bg-secondary transition-colors"
-                >
-                  <social.icon size={18} />
-                </a>
-              ))}
-            </div>
+            <a
+              href={whatsappCorporateLink()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/30 text-sm text-primary hover:bg-primary/20 transition-colors"
+            >
+              <MessageCircle size={16} />
+              WhatsApp us
+            </a>
           </div>
 
           {/* Quick Links */}
@@ -105,11 +96,21 @@ export function Footer() {
               </li>
               <li className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Phone size={16} className="shrink-0 text-primary" />
-                <span>+91 99081 16444</span>
+                <a
+                  href={`tel:+${WHATSAPP_NUMBER}`}
+                  className="hover:text-primary transition-colors"
+                >
+                  {PHONE_DISPLAY}
+                </a>
               </li>
               <li className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Mail size={16} className="shrink-0 text-primary" />
-                <span>admin@tesseractarena.com</span>
+                <a
+                  href={`mailto:${CONTACT_EMAIL}`}
+                  className="hover:text-primary transition-colors"
+                >
+                  {CONTACT_EMAIL}
+                </a>
               </li>
               <li className="flex items-start gap-2 text-sm text-muted-foreground">
                 <Clock size={16} className="mt-0.5 shrink-0 text-primary" />

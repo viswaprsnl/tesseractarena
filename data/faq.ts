@@ -7,7 +7,7 @@ export const faqItems: FAQItem[] = [
   {
     question: "What is Tesseract Arena?",
     answer:
-      "Tesseract Arena is India's first multi-game standalone VR arena. We offer premium free-roam virtual reality experiences where groups of up to 8 players can step into immersive worlds together — no PCs, no wires, no limits.",
+      "Tesseract Arena is India's first multi-title free-roam VR arena, combining Anvio and HeroZone premium experiences under one roof at Preston Prime Mall, Gachibowli. Groups of up to 8 players walk in and step into immersive worlds together — no PCs, no wires, no limits.",
   },
   {
     question: "Do I need any VR experience to play?",
@@ -17,12 +17,12 @@ export const faqItems: FAQItem[] = [
   {
     question: "What is the age requirement?",
     answer:
-      "Most of our games are suitable for ages 10 and up. Some horror-themed titles like City Z: Necropolis are recommended for ages 16+. Children under 13 must be accompanied by a participating adult. We have family-friendly options like Dragon VR and Lost Sanctuary.",
+      "Our minimum age is 8. Family-friendly titles like Monkey Madness (marked \"Kids Friendly\" on the games page) suit younger players and beginners. Some horror-themed titles like City Z: Necropolis are recommended for ages 16+. Children under 13 must be accompanied by a participating adult.",
   },
   {
     question: "How many people can play at once?",
     answer:
-      "Our standard sessions support up to 8 simultaneous players in the same virtual world. For party packages with larger groups, we rotate teams so everyone gets to play while others watch the action on our spectator screens.",
+      "Our standard sessions support up to 8 simultaneous players in the same virtual world. For corporate events and larger team bookings (up to 24 players), we run staggered 40-min sessions with a dedicated event lead — see the Corporate section on our pricing page for details.",
   },
   {
     question: "What should I wear?",
@@ -32,7 +32,7 @@ export const faqItems: FAQItem[] = [
   {
     question: "How long is a session?",
     answer:
-      "A standard Solo or Squad session is 45 minutes: 15 minutes of setup and briefing, followed by 30 minutes of active VR gameplay. Party packages run 90 minutes — two back-to-back 45-min sessions so your group can try a second game.",
+      "A standard Solo or Squad slot is 40 minutes: about 10 minutes for gear-up and safety briefing, followed by 30 minutes of active VR gameplay. Party packages (6-8 players) run across two back-to-back slots — about 80 minutes of arena time plus check-in and photos.",
   },
   {
     question: "Do I need to book in advance?",

@@ -1,10 +1,10 @@
 # Tesseract Arena
 
-Marketing website for **Tesseract Arena** — India's first multi-game standalone VR arena where groups of up to 10 players can play premium VR experiences together.
+Marketing website for **Tesseract Arena** — India's first multi-title free-roam VR arena, combining Anvio and HeroZone premium experiences under one roof at Preston Prime Mall, Gachibowli. Groups of up to 8 players per session.
 
 ## Tech Stack
 
-- **Framework:** Next.js 15 (App Router, TypeScript)
+- **Framework:** Next.js 16 (App Router, TypeScript, Turbopack)
 - **Styling:** Tailwind CSS v4 + shadcn/ui
 - **Animations:** Framer Motion + GSAP ScrollTrigger
 - **3D Graphics:** React Three Fiber (hero particle field)

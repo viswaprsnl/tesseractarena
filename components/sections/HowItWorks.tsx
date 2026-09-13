@@ -20,7 +20,7 @@ const steps = [
     icon: Headset,
     title: "Gear Up",
     description:
-      "Our team gets you fitted with cutting-edge standalone VR headsets. A quick 5-minute briefing and you're ready to go.",
+      "Our team gets you fitted with cutting-edge standalone VR headsets. A quick 10-minute gear-up and safety briefing, and you're ready to go.",
     image:
       "https://images.pexels.com/photos/8728556/pexels-photo-8728556.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop",
   },

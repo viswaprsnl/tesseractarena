@@ -5,8 +5,14 @@ import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { MapPin, Phone, Mail, Clock, CheckCircle2 } from "lucide-react";
+import { MapPin, Phone, Mail, Clock, CheckCircle2, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  PHONE_DISPLAY,
+  WHATSAPP_NUMBER,
+  CONTACT_EMAIL,
+  whatsappCorporateLink,
+} from "@/lib/contact";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,10 +27,15 @@ const contactSchema = z.object({
 
 type ContactForm = z.infer<typeof contactSchema>;
 
-const contactInfo = [
+const contactInfo: {
+  icon: typeof MapPin;
+  label: string;
+  value: string;
+  href?: string;
+}[] = [
   { icon: MapPin, label: "Address", value: "Preston Prime Mall, Lumbini Avenue, Gachibowli, Hyderabad 500032" },
-  { icon: Phone, label: "Phone", value: "+91 99081 16444" },
-  { icon: Mail, label: "Email", value: "admin@tesseractarena.com" },
+  { icon: Phone, label: "Phone", value: PHONE_DISPLAY, href: `tel:+${WHATSAPP_NUMBER}` },
+  { icon: Mail, label: "Email", value: CONTACT_EMAIL, href: `mailto:${CONTACT_EMAIL}` },
   { icon: Clock, label: "Hours", value: "Mon-Fri: 11AM - 10PM · Sat-Sun: 10AM - 10PM" },
 ];
 
@@ -196,10 +207,28 @@ export default function ContactPage() {
                     <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
                       {item.label}
                     </p>
-                    <p className="text-sm">{item.value}</p>
+                    {item.href ? (
+                      <a
+                        href={item.href}
+                        className="text-sm text-primary hover:underline"
+                      >
+                        {item.value}
+                      </a>
+                    ) : (
+                      <p className="text-sm">{item.value}</p>
+                    )}
                   </div>
                 </div>
               ))}
+              <a
+                href={whatsappCorporateLink()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary/10 border border-primary/30 text-sm text-primary hover:bg-primary/20 transition-colors"
+              >
+                <MessageCircle size={16} />
+                Chat on WhatsApp
+              </a>
             </div>
 
             {/* Google Map — click-to-load for performance */}
