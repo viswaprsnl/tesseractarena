@@ -23,17 +23,17 @@ import { Badge } from "@/components/ui/badge";
 import { fadeInUp, staggerContainer, scaleIn } from "@/lib/animations";
 
 const stats = [
-  { value: "50+", label: "Premium Games", icon: Gamepad2 },
-  { value: "10", label: "Simultaneous Players", icon: Users },
-  { value: "1st", label: "In India", icon: Trophy },
+  { value: "20+", label: "Premium Titles", icon: Gamepad2 },
+  { value: "8", label: "Players / Session", icon: Users },
+  { value: "1st", label: "In a Hyd Mall", icon: Trophy },
   { value: "4-50", label: "Age Range", icon: Baby },
 ];
 
 const whyNow = [
   {
     icon: MapPin,
-    title: "Zero Competition",
-    description: "No standalone multi-game VR arena exists in India today. We define the category.",
+    title: "First in a Hyderabad Mall",
+    description: "Free-roam VR in India is still a handful of venues — Anvio in Bengaluru, Zero Latency at Hyderabad airport. We're the first inside a Hyderabad mall, at Preston Prime, Gachibowli.",
   },
   {
     icon: Wifi,
@@ -76,7 +76,7 @@ const technology = [
   {
     icon: Monitor,
     title: "Powerful Compute Backend",
-    description: "High-performance PC backend for PCVR titles — runs a 350+ premium game catalog seamlessly alongside standalone experiences.",
+    description: "High-performance PC backend for PCVR titles alongside our free-roam library. New games from Anvio and HeroZone are added to the roster regularly.",
   },
   {
     icon: Video,
@@ -100,12 +100,12 @@ const audience = [
   },
   {
     title: "Corporates & Teams (18-50)",
-    items: ["Team-building sessions", "Corporate offsites", "Group bookings", "Company events"],
+    items: ["Team offsites, up to 24 players", "Product launches & kickoffs", "Staggered sessions with event lead", "Custom quote for larger groups"],
   },
 ];
 
 const experience = [
-  { step: "01", title: "Book & Arrive", description: "Reserve online or walk in. Our staff helps you choose from 50+ games based on your group and mood." },
+  { step: "01", title: "Book & Arrive", description: "Reserve online or walk in. Our staff helps you pick from our current lineup based on your group and mood." },
   { step: "02", title: "Gear Up", description: "Fitted with Quest 3 / Pico Enterprise headsets, trackers, and controllers in minutes. Safety briefing included." },
   { step: "03", title: "Step Into the Game", description: "Full free-roam in our arena — walk, run, dodge. Teammates visible in VR. Complete wireless freedom." },
   { step: "04", title: "Session Debrief", description: "Score screens, highlight replays, team photos. Competitive rankings encourage repeat visits." },
@@ -115,7 +115,7 @@ const experience = [
 const values = [
   { icon: Target, title: "Premium Quality", description: "USA-level VR equipment and world-class game studios — experiences you can't get at home." },
   { icon: Heart, title: "Community First", description: "A gathering place for friends, families, and coworkers through shared virtual adventures." },
-  { icon: Zap, title: "Always Evolving", description: "Our game library grows every month. 50+ titles today, with new games added regularly." },
+  { icon: Zap, title: "Always Evolving", description: "New Anvio and HeroZone titles land on the roster every month — the library you played last visit is not the one you'll play next." },
   { icon: Shield, title: "Safe & Inclusive", description: "Clean equipment, trained staff, and a welcoming atmosphere for ages 4 to 50." },
 ];
 
@@ -133,7 +133,7 @@ export default function AboutPage() {
         >
           <motion.div variants={fadeInUp}>
             <Badge variant="outline" className="mb-4 px-4 py-1.5 text-xs font-medium tracking-wider uppercase border-primary/30 text-primary bg-primary/5">
-              India&apos;s First Multi-Game VR Arena
+              Hyderabad&apos;s First Mall-Based Free-Roam VR
             </Badge>
           </motion.div>
           <motion.h1
@@ -148,7 +148,7 @@ export default function AboutPage() {
           >
             Think Sandbox VR — but built for India, from day one. A premium location-based
             entertainment experience where groups of up to 8 players can walk in and play
-            from a curated library of 50+ premium VR titles.
+            from a curated library of Anvio and HeroZone free-roam titles.
           </motion.p>
         </motion.div>
 
@@ -374,11 +374,12 @@ export default function AboutPage() {
         >
           <Briefcase size={32} className="mx-auto mb-4 text-primary" />
           <h2 className="text-xl sm:text-2xl font-bold mb-3">
-            Partner With Us
+            Book a Team Event or Partner With Us
           </h2>
           <p className="text-muted-foreground text-sm max-w-lg mx-auto mb-6">
-            We are seeking strategic partnerships, venue space, and investor conversations.
-            India&apos;s first — but not India&apos;s last. We plan to scale.
+            Corporate offsites, product launches, birthdays — up to 24 players across
+            staggered sessions. Or if you&apos;re a venue, brand, or investor looking to
+            build free-roam VR in India with us, drop us a line.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <a href="/contact" className="px-6 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium transition-colors">
