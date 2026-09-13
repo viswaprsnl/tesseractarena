@@ -25,15 +25,15 @@ import { fadeInUp, staggerContainer, scaleIn } from "@/lib/animations";
 const stats = [
   { value: "20+", label: "Premium Titles", icon: Gamepad2 },
   { value: "8", label: "Players / Session", icon: Users },
-  { value: "1st", label: "In a Hyd Mall", icon: Trophy },
-  { value: "4-50", label: "Age Range", icon: Baby },
+  { value: "1st", label: "In India", icon: Trophy },
+  { value: "8+", label: "Age Range", icon: Baby },
 ];
 
 const whyNow = [
   {
     icon: MapPin,
-    title: "First in a Hyderabad Mall",
-    description: "Free-roam VR in India is still a handful of venues — Anvio in Bengaluru, Zero Latency at Hyderabad airport. We're the first inside a Hyderabad mall, at Preston Prime, Gachibowli.",
+    title: "First Multi-Title Free-Roam in India",
+    description: "Other free-roam venues in India run a single platform's catalog. We combine Anvio and HeroZone under one roof — a bigger, more varied game library than any single-platform arena, at Preston Prime Mall, Gachibowli.",
   },
   {
     icon: Wifi,
@@ -57,8 +57,8 @@ const whyNow = [
   },
   {
     icon: Users,
-    title: "Ages 4 to 50",
-    description: "Unlike adult-only gaming cafes, our family-safe content opens the widest possible audience in India.",
+    title: "Ages 8 and Up",
+    description: "Unlike adult-only gaming cafes, our family-safe content opens the widest possible audience in India — kids from 8, teens, adults, and corporate teams.",
   },
 ];
 
@@ -87,7 +87,7 @@ const technology = [
 
 const audience = [
   {
-    title: "Families & Kids (4-12)",
+    title: "Families & Kids (8-12)",
     items: ["Family weekend outings", "Birthday parties", "Kids' adventure games", "Safe & supervised sessions"],
   },
   {
@@ -116,7 +116,7 @@ const values = [
   { icon: Target, title: "Premium Quality", description: "USA-level VR equipment and world-class game studios — experiences you can't get at home." },
   { icon: Heart, title: "Community First", description: "A gathering place for friends, families, and coworkers through shared virtual adventures." },
   { icon: Zap, title: "Always Evolving", description: "New Anvio and HeroZone titles land on the roster every month — the library you played last visit is not the one you'll play next." },
-  { icon: Shield, title: "Safe & Inclusive", description: "Clean equipment, trained staff, and a welcoming atmosphere for ages 4 to 50." },
+  { icon: Shield, title: "Safe & Inclusive", description: "Clean equipment, trained staff, and a welcoming atmosphere for ages 8 and up." },
 ];
 
 export default function AboutPage() {
@@ -133,7 +133,7 @@ export default function AboutPage() {
         >
           <motion.div variants={fadeInUp}>
             <Badge variant="outline" className="mb-4 px-4 py-1.5 text-xs font-medium tracking-wider uppercase border-primary/30 text-primary bg-primary/5">
-              Hyderabad&apos;s First Mall-Based Free-Roam VR
+              India&apos;s First Multi-Title Free-Roam VR Arena
             </Badge>
           </motion.div>
           <motion.h1
@@ -300,7 +300,7 @@ export default function AboutPage() {
             Built for <span className="gradient-text">Everyone</span>
           </h2>
           <p className="text-muted-foreground text-center max-w-xl mx-auto mb-10">
-            Ages 4 to 50 — the widest VR audience in any Indian entertainment venue
+            Ages 8 and up — one venue for kids, teens, families, and corporate teams
           </p>
           <motion.div
             initial="hidden"
