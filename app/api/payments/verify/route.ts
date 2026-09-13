@@ -51,8 +51,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Advance = ₹500 per player for regular sessions, capped at total; 20%
-    // of the flat package total for birthdays. Balance = total − advance.
+    // Advance = ₹500 per player for regular sessions, capped at total;
+    // BIRTHDAY_ADVANCE_PERCENT of the flat package total for birthdays.
+    // Balance = total − advance.
     const advance = isBirthdayPackage(result.booking.package)
       ? birthdayAdvance(result.booking.amount)
       : calculateAdvance(result.booking.partySize, result.booking.amount);

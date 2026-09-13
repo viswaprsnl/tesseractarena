@@ -1,6 +1,9 @@
 // Birthday-party package definitions used by both the /birthday landing page
-// and the /birthday/book wizard. Numbers are placeholders for launch — swap
-// in real ones once the arena's first parties are running.
+// and the /birthday/book wizard. Prices are market-anchored against
+// Enter Totem Bangalore (₹1,099-₹1,600/kid free-roam VR birthday floor),
+// Anvio Bengaluru (₹1,399+ adult play), and Dubai/US ceilings (₹4-7k/kid).
+// Sits above Smaaash arcade tier, matches Enter Totem free-roam VR floor
+// with an Anvio premium justification.
 
 export type BirthdayPackageId = "essentials" | "plus" | "ultimate";
 
@@ -28,57 +31,57 @@ export const BIRTHDAY_PACKAGES: BirthdayPackage[] = [
   {
     id: "essentials",
     name: "Party Essentials",
-    price: 5999,
-    maxKids: 6,
-    durationLabel: "1 hour · 2 rotations",
-    slotsBlocked: 2,
-    tagline: "The quick fun one — small squad, full-throttle VR.",
+    price: 10999,
+    maxKids: 8,
+    durationLabel: "90 min · 2 HeroZone rotations",
+    slotsBlocked: 3,
+    tagline: "The clean fun one — full 8-player squad, back-to-back VR.",
     includes: [
-      "Up to 6 kids in the arena",
-      "1 hour · 2 x 30-min VR rotations",
-      "Choice of any Available game",
+      "Up to 8 kids in the arena",
+      "90 min · 2 × 30-min HeroZone rotations (same title)",
+      "Choice of any Available HeroZone game",
       "Dedicated party host",
-      "Basic table decor at the party bay",
+      "Basic table decor — balloons + banner at the party bay",
       "All safety gear + waiver assistance",
     ],
   },
   {
     id: "plus",
     name: "Party Plus",
-    price: 9999,
-    maxKids: 10,
-    durationLabel: "90 min · 3 rotations",
+    price: 18999,
+    maxKids: 12,
+    durationLabel: "2 hr · 2 HeroZone + 1 Anvio rotation per kid",
     slotsBlocked: 3,
     popular: true,
-    tagline: "Our most-booked — decor, dedicated host, room to breathe.",
+    tagline: "Our most-booked — mixed HeroZone + Anvio in a private lounge.",
     includes: [
-      "Up to 10 kids in the arena",
-      "90 min · 3 VR rotations",
-      "Two games from the Available library",
+      "Up to 12 kids across 2 staggered waves",
+      "2 hr · each kid gets 2 HeroZone + 1 Anvio 30-min rotation",
+      "Two HeroZone titles + one Anvio title from the Available library",
       "Themed party decorations",
       "Private lounge access for cake-cutting",
-      "Dedicated event host + photographer moments",
-      "Digital highlight clip after the party",
+      "Dedicated event host",
+      "Host-shot party photos shared on WhatsApp",
     ],
   },
   {
     id: "ultimate",
     name: "Ultimate Party",
-    price: 15999,
+    price: 32999,
     maxKids: 16,
-    durationLabel: "2 hours + private lounge",
-    slotsBlocked: 3,
-    tagline: "The full experience — bigger group, longer play, less to organise.",
+    durationLabel: "3 hr morning buyout · 3 rotations per kid",
+    slotsBlocked: 5,
+    tagline: "The full experience — full-venue morning buyout, mixed lineup.",
     includes: [
-      "Up to 16 kids in the arena",
-      "2 hours · unlimited game rotations within the window",
-      "Any 3 games from the Available library",
+      "Up to 16 kids across 2 staggered waves",
+      "3 hr morning buyout (10 AM-1 PM weekends) — no other bookings share the arena",
+      "3 rotations per kid across HeroZone + Anvio titles",
+      "Any 3 titles from the Available library",
       "Premium themed decoration setup",
       "Private lounge for the entire booking",
-      "Custom-frosted cake included",
-      "Party favors for every kid",
-      "Professional photo highlights",
-      "Priority cancellation/rebooking window",
+      "Dedicated event host",
+      "Host-shot party photos shared on WhatsApp",
+      "Priority cancellation / rebooking window",
     ],
   },
 ];
@@ -87,29 +90,38 @@ export const BIRTHDAY_ADDONS: BirthdayAddon[] = [
   {
     id: "extra-kid",
     label: "Extra kid over cap",
-    price: 500,
+    price: 1299,
     unit: "per-kid",
-    description: "Bring one more friend beyond the package's max.",
+    description: "Bring one more friend beyond the package's max. Priced to reflect the incremental rotation slot they take.",
   },
   {
     id: "custom-cake",
     label: "Branded custom cake",
-    price: 1499,
+    price: 1999,
     unit: "flat",
-    description: "Themed birthday cake baked to order (available on Essentials/Plus).",
+    description: "Themed birthday cake baked to order by our bakery partner. BYO cake is welcome too — no extra fee.",
   },
   {
     id: "party-favors",
     label: "Party favor bags",
-    price: 200,
+    price: 250,
     unit: "per-kid",
     description: "Take-home goodie bag for each kid.",
+  },
+  {
+    id: "photographer",
+    label: "Professional photographer",
+    price: 3500,
+    unit: "flat",
+    description: "Dedicated photographer for the party window with edited photo highlights delivered within 48 hours.",
   },
 ];
 
 // Percentage of package price collected as an online advance to hold the
-// slot. Rest is settled at the arena on the day of the party.
-export const BIRTHDAY_ADVANCE_PERCENT = 20;
+// slot. Rest is settled at the arena on the day of the party. Raised from
+// 20% to 25% to better absorb late-cancellation risk on higher-ticket
+// packages.
+export const BIRTHDAY_ADVANCE_PERCENT = 25;
 
 export function birthdayAdvance(total: number): number {
   return Math.round((total * BIRTHDAY_ADVANCE_PERCENT) / 100);

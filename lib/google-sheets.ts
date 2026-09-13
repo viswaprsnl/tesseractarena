@@ -6,7 +6,7 @@ import { BIRTHDAY_PACKAGES } from "@/data/birthday";
 
 // How many consecutive slots this booking physically occupies.
 // - Party (partySize >= 6): 2 slots (existing 90-min behavior)
-// - Birthday: whatever the package's slotsBlocked says (2 or 3)
+// - Birthday: whatever the package's slotsBlocked says (3-5 depending on tier)
 // - Everything else: 1 slot
 function slotsOccupiedBy(booking: BookingRow): number {
   if (isBirthdayPackage(booking.package)) {

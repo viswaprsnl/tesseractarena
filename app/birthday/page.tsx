@@ -86,8 +86,8 @@ export default function BirthdayPage() {
             variants={fadeInUp}
             className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-8"
           >
-            Free-roam VR, a dedicated host, decorations, cake, and a private lounge —
-            packaged so parents can book in under a minute. Pay 20% online to hold your
+            Free-roam VR, a dedicated host, decorations, and a private lounge —
+            packaged so parents can book in under a minute. Pay 25% online to hold your
             slot; settle the rest at the arena on the day.
           </motion.p>
           <motion.div variants={fadeInUp} className="flex flex-wrap justify-center gap-3">
@@ -119,8 +119,8 @@ export default function BirthdayPage() {
           className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-16"
         >
           {[
-            { icon: Users, label: "Up to 16 kids", sub: "one arena, no queues" },
-            { icon: Clock, label: "60-120 min", sub: "multi-rotation packages" },
+            { icon: Users, label: "Up to 16 kids", sub: "across staggered waves" },
+            { icon: Clock, label: "90 min - 3 hr", sub: "multi-rotation packages" },
             { icon: Cake, label: "Cake + decor", sub: "themed to your kid" },
             { icon: Sparkles, label: "Zero PC/setup", sub: "standalone VR only" },
           ].map((v) => (
@@ -443,16 +443,16 @@ const FAQ: { q: string; a: string }[] = [
     a: `Ages 8 and up. Kids between 8 and 14 need a waiver signed by a parent or guardian. We'll steer younger groups toward gentler titles like Monkey Madness; horror titles (City Z, Dead Ahead) are recommended 14+.`,
   },
   {
-    q: `How does the 20% advance work?`,
-    a: `You pay ${BIRTHDAY_ADVANCE_PERCENT}% online via Razorpay to hold your date and time slot. The remaining 80% is settled in cash / UPI / card at the counter on the day of the party. Full refund if you cancel more than 48 hours before the party.`,
+    q: `How does the ${BIRTHDAY_ADVANCE_PERCENT}% advance work?`,
+    a: `You pay ${BIRTHDAY_ADVANCE_PERCENT}% online via Razorpay to hold your date and time slot. The remaining ${100 - BIRTHDAY_ADVANCE_PERCENT}% is settled in cash / UPI / card at the counter on the day of the party. Full refund if you cancel more than 48 hours before the party.`,
   },
   {
     q: `Can I bring my own cake?`,
-    a: `Yes, absolutely — the Essentials and Plus packages assume you're bringing your own cake. If you'd rather we arrange one, add the "Branded custom cake" add-on for ₹1,499. The Ultimate package already includes a custom-frosted cake.`,
+    a: `Yes, absolutely — BYO cake is welcome on any package with no extra fee. If you'd rather we arrange one, add the "Branded custom cake" add-on for ₹1,999 and our bakery partner handles it.`,
   },
   {
     q: `What if we're a bigger group than the package caps?`,
-    a: `Add the "Extra kid over cap" add-on at ₹500 per additional child (up to 8 extras). For groups larger than 24, WhatsApp us — we'll build a custom quote and probably need to combine sessions or block extra slots.`,
+    a: `Add the "Extra kid over cap" add-on at ₹1,299 per additional child (up to 4 extras — beyond that we need another wave). For groups larger than 24, WhatsApp us — we'll build a custom quote and probably need to combine sessions or block extra slots.`,
   },
   {
     q: `Can parents play too?`,

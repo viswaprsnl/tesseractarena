@@ -22,6 +22,7 @@ import { TimeSlotGrid } from "@/components/booking/TimeSlotGrid";
 import {
   BIRTHDAY_PACKAGES,
   BIRTHDAY_ADDONS,
+  BIRTHDAY_ADVANCE_PERCENT,
   birthdayAdvance,
   whatsappBirthdayLink,
   type BirthdayPackage,
@@ -731,7 +732,7 @@ function BirthdaySummary({
       </div>
       <hr className="border-white/10" />
       <div className="flex items-center justify-between">
-        <span className="text-primary">Pay online now (20% advance)</span>
+        <span className="text-primary">Pay online now ({BIRTHDAY_ADVANCE_PERCENT}% advance)</span>
         <span className="font-bold text-primary">
           ₹{advance.toLocaleString("en-IN")}
         </span>
