@@ -24,10 +24,12 @@ import {
   BIRTHDAY_ADDONS,
   BIRTHDAY_ADVANCE_PERCENT,
   birthdayAdvance,
+  getEffectivePackagePrice,
   whatsappBirthdayLink,
   type BirthdayPackage,
   type BirthdayPackageId,
 } from "@/data/birthday";
+import { getTodayISTString } from "@/lib/booking-config";
 import type { TimeSlot } from "@/lib/booking-types";
 import { formatTimeDisplay } from "@/lib/booking-config";
 
@@ -108,13 +110,21 @@ export function BirthdayWizard() {
 
   const pkg = BIRTHDAY_PACKAGES.find((p) => p.id === state.packageId)!;
 
+  // Effective package price for the picked party date (falls back to "today"
+  // when the customer hasn't picked a date yet, so the initial cards still
+  // reflect the current promo status). Launch pricing is a 15% discount on
+  // Essentials + Plus for parties within the launch window.
+  const today = getTodayISTString();
+  const { price: effectivePkgPrice, originalPrice: pkgOriginalPrice, isLaunchPrice } =
+    getEffectivePackagePrice(pkg, state.selectedDate || null, today);
+
   // Compute total including add-ons.
   const addonTotal = BIRTHDAY_ADDONS.reduce((sum, def) => {
     const qty = state.addonQty[def.id] ?? 0;
     if (qty <= 0) return sum;
     return sum + (def.unit === "per-kid" ? def.price * qty : def.price);
   }, 0);
-  const total = pkg.price + addonTotal;
+  const total = effectivePkgPrice + addonTotal;
   const advance = birthdayAdvance(total);
 
   // Fetch slots when date changes.
@@ -685,6 +695,10 @@ function BirthdaySummary({
   total: number;
   advance: number;
 }) {
+  // Effective price is party-date-driven — same helper the parent wizard
+  // and the API use, so the summary line never disagrees with the total.
+  const { price: effectivePkgPrice, originalPrice: pkgOriginalPrice, isLaunchPrice } =
+    getEffectivePackagePrice(pkg, state.selectedDate || null, getTodayISTString());
   return (
     <div className="glass-card p-5 space-y-3 text-sm">
       <div className="flex items-center justify-between">
@@ -716,8 +730,22 @@ function BirthdaySummary({
       <hr className="border-white/10" />
       <div className="flex items-center justify-between text-xs">
         <span className="text-muted-foreground">{pkg.name}</span>
-        <span>₹{pkg.price.toLocaleString("en-IN")}</span>
+        <span>
+          {isLaunchPrice && (
+            <span className="text-muted-foreground line-through mr-2">
+              ₹{pkgOriginalPrice.toLocaleString("en-IN")}
+            </span>
+          )}
+          <span className={isLaunchPrice ? "text-green-400 font-medium" : ""}>
+            ₹{effectivePkgPrice.toLocaleString("en-IN")}
+          </span>
+        </span>
       </div>
+      {isLaunchPrice && (
+        <p className="text-[10px] text-green-400/90 -mt-1">
+          Founding families rate — 15% off
+        </p>
+      )}
       {addonTotal > 0 && (
         <div className="flex items-center justify-between text-xs">
           <span className="text-muted-foreground">Add-ons</span>

@@ -127,6 +127,49 @@ export function birthdayAdvance(total: number): number {
   return Math.round((total * BIRTHDAY_ADVANCE_PERCENT) / 100);
 }
 
+// ---------------------------------------------------------------------------
+// Launch pricing — "Founding families rate"
+// ---------------------------------------------------------------------------
+// A 15% introductory discount on Essentials + Plus for parties whose date
+// falls within the launch window below. Meant to seed the first wave of
+// bookings and word-of-mouth before the arena has any local reference
+// customers to lean on. Ultimate is intentionally excluded — it's the
+// aspirational premium tier and shouldn't be discounted.
+//
+// Dates are in Asia/Kolkata (see getTodayISTString). Window inclusive on
+// both ends. To end the promotion early, set LAUNCH_PRICING_END to a past
+// date and the discount silently stops applying everywhere.
+
+export const LAUNCH_PRICING_START = "2026-09-12";
+export const LAUNCH_PRICING_END = "2026-11-11";
+export const LAUNCH_DISCOUNT_PERCENT = 15;
+const LAUNCH_ELIGIBLE_IDS: BirthdayPackageId[] = ["essentials", "plus"];
+
+// A YYYY-MM-DD Asia/Kolkata date is inside the launch window.
+export function isLaunchWindow(dateISO: string): boolean {
+  return dateISO >= LAUNCH_PRICING_START && dateISO <= LAUNCH_PRICING_END;
+}
+
+// Effective price for a package given the party date. When no date is
+// picked yet (landing page cards), we fall back to "today" so the launch
+// price shows as long as the promo is live.
+export function getEffectivePackagePrice(
+  pkg: BirthdayPackage,
+  partyDateISO: string | null,
+  todayISO: string
+): { price: number; originalPrice: number; isLaunchPrice: boolean } {
+  const dateForCheck = partyDateISO ?? todayISO;
+  const eligible = LAUNCH_ELIGIBLE_IDS.includes(pkg.id);
+  if (isLaunchWindow(dateForCheck) && eligible) {
+    return {
+      price: Math.round((pkg.price * (100 - LAUNCH_DISCOUNT_PERCENT)) / 100),
+      originalPrice: pkg.price,
+      isLaunchPrice: true,
+    };
+  }
+  return { price: pkg.price, originalPrice: pkg.price, isLaunchPrice: false };
+}
+
 // Re-exported for backward compatibility with older imports. New code
 // should import WHATSAPP_NUMBER from lib/contact.ts directly.
 export { WHATSAPP_NUMBER } from "@/lib/contact";
@@ -135,9 +178,7 @@ import { WHATSAPP_NUMBER as _WA } from "@/lib/contact";
 export function whatsappBirthdayLink(pkg?: BirthdayPackage): string {
   const base = `https://wa.me/${_WA}`;
   const msg = pkg
-    ? `Hi! I'd like to book the ${pkg.name} birthday package (₹${pkg.price.toLocaleString(
-        "en-IN"
-      )}) at Tesseract Arena. Can you help me with dates?`
+    ? `Hi! I'd like to book the ${pkg.name} birthday package at Tesseract Arena. Can you help me with dates?`
     : `Hi! I'd like to plan a birthday party at Tesseract Arena. Can you share options?`;
   return `${base}?text=${encodeURIComponent(msg)}`;
 }

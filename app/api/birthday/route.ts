@@ -13,12 +13,14 @@ import {
   isDateBookable,
   getSlotsForDate,
   formatTimeDisplay,
+  getTodayISTString,
 } from "@/lib/booking-config";
 import type { BookingRow } from "@/lib/booking-types";
 import {
   BIRTHDAY_PACKAGES,
   BIRTHDAY_ADDONS,
   birthdayAdvance,
+  getEffectivePackagePrice,
 } from "@/data/birthday";
 
 // POST body — the birthday wizard sends this shape. Guest count is
@@ -145,7 +147,15 @@ export async function POST(request: NextRequest) {
         addonNotes.push(`${def.label} x${qty} = ₹${cost}`);
       }
     }
-    const amount = pkg.price + addonTotal;
+    // Server-recomputed effective package price so a tampered client can't
+    // beat the launch-window rules. Launch pricing is party-date-driven:
+    // parties whose date falls in the window get 15% off Essentials/Plus.
+    const { price: effectivePkgPrice } = getEffectivePackagePrice(
+      pkg,
+      data.date,
+      getTodayISTString()
+    );
+    const amount = effectivePkgPrice + addonTotal;
 
     const bookingId = `TA-${nanoid(6).toUpperCase()}`;
     const nowIST = toZonedTime(new Date(), "Asia/Kolkata");

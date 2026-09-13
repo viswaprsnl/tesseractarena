@@ -10,11 +10,22 @@ import {
   BIRTHDAY_PACKAGES,
   BIRTHDAY_ADDONS,
   BIRTHDAY_ADVANCE_PERCENT,
+  LAUNCH_PRICING_END,
   birthdayAdvance,
+  getEffectivePackagePrice,
   whatsappBirthdayLink,
   type BirthdayPackage,
 } from "@/data/birthday";
+import { getTodayISTString } from "@/lib/booking-config";
 import { fadeInUp, staggerContainer } from "@/lib/animations";
+
+// Human-readable "Nov 11" style for the launch-window end date, used in the
+// "Founding families rate" banner. Derived from the constant so it stays in
+// sync if the window shifts.
+function formatLaunchEnd(iso: string): string {
+  const d = new Date(iso + "T00:00:00");
+  return d.toLocaleDateString("en-IN", { month: "short", day: "numeric" });
+}
 
 // Serialise the parent-picked add-on quantities into a URL param the
 // birthday wizard understands. Empty selections drop out so a clean
@@ -107,6 +118,20 @@ export default function BirthdayPage() {
                 WhatsApp us instead
               </Button>
             </a>
+          </motion.div>
+
+          {/* Launch banner — only appears while the promotion is active,
+              driven by the same LAUNCH_PRICING_END constant that gates the
+              discount itself. */}
+          <motion.div
+            variants={fadeInUp}
+            className="inline-flex items-center gap-2 mt-8 px-4 py-2 rounded-full bg-green-500/10 border border-green-500/30"
+          >
+            <Sparkles size={14} className="text-green-400" />
+            <span className="text-xs sm:text-sm text-green-400 font-medium">
+              Founding families rate — 15% off Essentials &amp; Plus for parties
+              booked before {formatLaunchEnd(LAUNCH_PRICING_END)}
+            </span>
           </motion.div>
         </motion.section>
 
@@ -351,7 +376,14 @@ function PackageCard({
   bookHref: string;
   addonsSubtotal: number;
 }) {
-  const total = pkg.price + addonsSubtotal;
+  // Launch-price treatment shows the discounted package cost with the
+  // original struck through and a "Founding families rate" badge. Ultimate
+  // is not on the eligible list, so it renders unchanged.
+  const today = getTodayISTString();
+  const { price: effectivePkgPrice, originalPrice, isLaunchPrice } =
+    getEffectivePackagePrice(pkg, null, today);
+  const total = effectivePkgPrice + addonsSubtotal;
+  const originalTotal = originalPrice + addonsSubtotal;
   const advance = birthdayAdvance(total);
   return (
     <motion.div
@@ -365,6 +397,11 @@ function PackageCard({
           Most booked
         </Badge>
       )}
+      {isLaunchPrice && (
+        <Badge className="absolute -top-3 right-4 bg-green-500/90 text-white text-[10px] whitespace-nowrap">
+          Founding families rate
+        </Badge>
+      )}
 
       <div className="text-center mb-5">
         <h3 className="font-heading text-xl font-bold mb-1">{pkg.name}</h3>
@@ -372,7 +409,12 @@ function PackageCard({
       </div>
 
       <div className="text-center mb-5">
-        <p className="text-4xl font-bold">
+        {isLaunchPrice && (
+          <p className="text-sm text-muted-foreground line-through leading-none mb-1">
+            ₹{originalTotal.toLocaleString("en-IN")}
+          </p>
+        )}
+        <p className={`text-4xl font-bold ${isLaunchPrice ? "text-green-400" : ""}`}>
           ₹{total.toLocaleString("en-IN")}
           <span className="text-xs text-muted-foreground font-normal ml-1">
             {addonsSubtotal > 0 ? "with add-ons" : "flat"}
@@ -380,8 +422,13 @@ function PackageCard({
         </p>
         {addonsSubtotal > 0 && (
           <p className="text-[10px] text-muted-foreground mt-1">
-            ₹{pkg.price.toLocaleString("en-IN")} package + ₹
+            ₹{effectivePkgPrice.toLocaleString("en-IN")} package + ₹
             {addonsSubtotal.toLocaleString("en-IN")} add-ons
+          </p>
+        )}
+        {isLaunchPrice && (
+          <p className="text-[10px] text-green-400/90 mt-1">
+            15% off for parties booked before {formatLaunchEnd(LAUNCH_PRICING_END)}
           </p>
         )}
         <p className="text-[11px] text-muted-foreground mt-1">
