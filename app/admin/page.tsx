@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { format, addDays } from "date-fns";
 import {
@@ -323,6 +323,10 @@ export default function AdminPage() {
   };
   const [authenticated, setAuthenticated] = useState(false);
   const [selectedDate, setSelectedDate] = useState(getTodayISTString());
+  // The native date input is hidden but stays functional — clicking the
+  // pretty date label calls showPicker() on this ref to open the browser's
+  // calendar popup on top of the label.
+  const datePickerRef = useRef<HTMLInputElement>(null);
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(false);
@@ -1557,28 +1561,57 @@ export default function AdminPage() {
           <WalkinLogger pin={pin} />
         </div>
 
-        {/* Date navigation */}
+        {/* Date navigation — chevrons step ±1 day, the pretty label opens
+            the browser's native calendar picker via showPicker() so the
+            admin can jump straight to any date. */}
         <div className="flex items-center justify-center gap-4 mb-6">
           <button
             onClick={() => handleDateChange(-1)}
             className="p-2 rounded-lg hover:bg-secondary transition-colors"
+            aria-label="Previous day"
           >
             <ChevronLeft size={20} />
           </button>
-          <div className="text-center">
+          <button
+            type="button"
+            onClick={() => {
+              const el = datePickerRef.current;
+              if (!el) return;
+              // showPicker throws on browsers that don't support it — fall
+              // back to focus() so the user can still tab into the input.
+              try {
+                el.showPicker();
+              } catch {
+                el.focus();
+              }
+            }}
+            className="relative flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-secondary transition-colors cursor-pointer"
+            aria-label="Open calendar"
+          >
+            <Calendar size={16} className="text-primary" />
+            <span className="font-heading text-lg tracking-wider">
+              {format(new Date(selectedDate + "T00:00:00"), "EEE, d MMM yyyy")}
+            </span>
+            {/* The real input sits over the label at zero opacity so the
+                browser's calendar popup anchors to the same spot. */}
             <input
+              ref={datePickerRef}
               type="date"
               value={selectedDate}
               onChange={(e) => {
+                if (!e.target.value) return;
                 setSelectedDate(e.target.value);
                 fetchBookings(e.target.value, pin);
               }}
-              className="bg-transparent border-none text-center font-heading text-lg tracking-wider cursor-pointer"
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              tabIndex={-1}
+              aria-hidden="true"
             />
-          </div>
+          </button>
           <button
             onClick={() => handleDateChange(1)}
             className="p-2 rounded-lg hover:bg-secondary transition-colors"
+            aria-label="Next day"
           >
             <ChevronRight size={20} />
           </button>
