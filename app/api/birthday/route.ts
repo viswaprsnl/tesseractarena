@@ -14,6 +14,7 @@ import {
   getSlotsForDate,
   formatTimeDisplay,
   getTodayISTString,
+  gstOn,
 } from "@/lib/booking-config";
 import type { BookingRow } from "@/lib/booking-types";
 import {
@@ -150,12 +151,20 @@ export async function POST(request: NextRequest) {
     // Server-recomputed effective package price so a tampered client can't
     // beat the launch-window rules. Launch pricing is party-date-driven:
     // parties whose date falls in the window get 15% off Essentials/Plus.
-    const { price: effectivePkgPrice } = getEffectivePackagePrice(
-      pkg,
-      data.date,
-      getTodayISTString()
-    );
+    const {
+      price: effectivePkgPrice,
+      originalPrice: pkgOriginalPrice,
+      isLaunchPrice,
+    } = getEffectivePackagePrice(pkg, data.date, getTodayISTString());
     const amount = effectivePkgPrice + addonTotal;
+    // Rupees the customer saved from the launch discount (add-ons don't
+    // discount). Zero when the party date is outside the launch window
+    // or the tier is Ultimate (excluded from launch pricing).
+    const discountAmount = isLaunchPrice
+      ? Math.max(0, pkgOriginalPrice - effectivePkgPrice)
+      : 0;
+    // 18% GST on the post-discount amount, remitted to govt.
+    const gstAmount = gstOn(amount);
 
     const bookingId = `TA-${nanoid(6).toUpperCase()}`;
     const nowIST = toZonedTime(new Date(), "Asia/Kolkata");
@@ -193,6 +202,8 @@ export async function POST(request: NextRequest) {
       status: "confirmed",
       amountPaid: 0,
       balanceDue: amount,
+      gstAmount,
+      discountAmount,
     };
 
     await appendBooking(booking);

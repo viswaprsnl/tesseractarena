@@ -17,6 +17,7 @@ import {
   isDateBookable,
   getSlotsForDate,
   formatTimeDisplay,
+  gstOn,
 } from "@/lib/booking-config";
 import type { BookingRow, PerPersonPackageType } from "@/lib/booking-types";
 import { allGames, getGamePlayerRange } from "@/data/games";
@@ -162,6 +163,12 @@ export async function POST(request: NextRequest) {
       // Discount lookup failure should not block a booking — fall back to base.
       console.error("Discount lookup failed:", err);
     }
+    // Rupees the customer saved vs the un-discounted base price. Zero when
+    // no discount applied. Logged separately in the sheet for promo tracking.
+    const discountAmount = Math.max(0, basePrice - amount);
+    // GST is a fixed 18% of the (post-discount) ex-GST amount. Collected
+    // from the customer and remitted to govt — never part of our revenue.
+    const gstAmount = gstOn(amount);
     const nowIST = toZonedTime(new Date(), "Asia/Kolkata");
     const createdAt = format(nowIST, "yyyy-MM-dd'T'HH:mm:ssxxx");
 
@@ -191,6 +198,8 @@ export async function POST(request: NextRequest) {
       // flip amountPaid to the advance once Razorpay confirms the charge.
       amountPaid: 0,
       balanceDue: amount,
+      gstAmount,
+      discountAmount,
     };
 
     // Save to Google Sheets

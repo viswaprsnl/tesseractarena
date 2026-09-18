@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: "Sheet1!A2:T",
+      range: "Sheet1!A2:V",
     });
 
     const rows = (res.data.values || []) as string[][];
@@ -57,6 +57,16 @@ export async function GET(request: NextRequest) {
         rawBalance !== undefined && rawBalance !== ""
           ? parseInt(rawBalance)
           : Math.max(0, amount - amountPaid);
+      // gstAmount + discountAmount are new columns (U/V). Legacy rows fall
+      // back to 0 — they pre-date GST collection and launch pricing.
+      const rawGST = row[20];
+      const gstAmount =
+        rawGST !== undefined && rawGST !== "" ? parseInt(rawGST) : 0;
+      const rawDiscount = row[21];
+      const discountAmount =
+        rawDiscount !== undefined && rawDiscount !== ""
+          ? parseInt(rawDiscount)
+          : 0;
       return {
         bookingId: row[0] || "",
         arenaId: row[1] || "arena-1",
@@ -78,6 +88,8 @@ export async function GET(request: NextRequest) {
         status: (row[17] || "confirmed") as BookingRow["status"],
         amountPaid,
         balanceDue,
+        gstAmount,
+        discountAmount,
       };
     });
 

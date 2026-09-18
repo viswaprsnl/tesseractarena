@@ -81,10 +81,19 @@ export interface BookingRow {
   paymentMethod: PaymentMethod;
   razorpayOrderId: string;
   razorpayPaymentId: string;
-  amount: number;         // Total session cost.
+  // Ex-GST session cost. GST + discounts are tracked separately below so
+  // this stays the clean revenue basis for Anvio-royalty math and reports.
+  amount: number;
   specialRequests: string;
   createdAt: string;
   status: BookingStatus;
   amountPaid: number;     // Cumulative paid so far (advance online + counter).
   balanceDue: number;     // Remaining amount to collect at the counter.
+  // GST portion of the amount charged (18% of the ex-GST amount). Collected
+  // from the customer and remitted to the government — not our revenue.
+  gstAmount: number;
+  // Rupees the customer saved via a discount code / launch promo / tier
+  // discount. Zero when no discount applied. Useful for measuring promo
+  // effectiveness in the admin dashboard.
+  discountAmount: number;
 }

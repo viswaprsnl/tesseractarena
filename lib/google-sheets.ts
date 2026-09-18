@@ -45,7 +45,7 @@ export async function getBookingsForDate(
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A2:T`,
+    range: `${SHEET_NAME}!A2:V`,
   });
 
   const rows = res.data.values || [];
@@ -92,7 +92,7 @@ export async function getActiveBookingsByContact(
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A2:T`,
+    range: `${SHEET_NAME}!A2:V`,
   });
 
   const rows = res.data.values || [];
@@ -112,7 +112,7 @@ export async function appendBooking(booking: BookingRow): Promise<void> {
   const sheets = getSheets();
   await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A:T`,
+    range: `${SHEET_NAME}!A:V`,
     valueInputOption: "RAW",
     requestBody: {
       values: [bookingToRow(booking)],
@@ -126,7 +126,7 @@ export async function findBookingById(
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A2:T`,
+    range: `${SHEET_NAME}!A2:V`,
   });
 
   const rows = res.data.values || [];
@@ -145,7 +145,7 @@ export async function findBookingByOrderId(
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A2:T`,
+    range: `${SHEET_NAME}!A2:V`,
   });
 
   const rows = res.data.values || [];
@@ -167,6 +167,8 @@ export async function updateBookingCells(
     status: "R",
     amountPaid: "S",
     balanceDue: "T",
+    gstAmount: "U",
+    discountAmount: "V",
   };
 
   const requests = Object.entries(updates).map(([field, value]) => ({
@@ -187,7 +189,7 @@ export async function getExpiredPayAtCenterBookings(): Promise<{ booking: Bookin
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A2:T`,
+    range: `${SHEET_NAME}!A2:V`,
   });
 
   const rows = res.data.values || [];
@@ -220,26 +222,28 @@ export async function getExpiredPayAtCenterBookings(): Promise<{ booking: Bookin
 
 function bookingToRow(b: BookingRow): string[] {
   return [
-    b.bookingId,
-    b.arenaId,
-    b.name,
-    b.email,
-    b.phone,
-    b.date,
-    b.timeSlot,
-    String(b.partySize),
-    b.package,
-    b.gamePreference,
-    b.paymentStatus,
-    b.paymentMethod,
-    b.razorpayOrderId,
-    b.razorpayPaymentId,
-    String(b.amount),
-    b.specialRequests,
-    b.createdAt,
-    b.status,
-    String(b.amountPaid),
-    String(b.balanceDue),
+    b.bookingId,          // A
+    b.arenaId,            // B
+    b.name,               // C
+    b.email,              // D
+    b.phone,              // E
+    b.date,               // F
+    b.timeSlot,           // G
+    String(b.partySize),  // H
+    b.package,            // I
+    b.gamePreference,     // J
+    b.paymentStatus,      // K
+    b.paymentMethod,      // L
+    b.razorpayOrderId,    // M
+    b.razorpayPaymentId,  // N
+    String(b.amount),     // O — ex-GST session cost
+    b.specialRequests,    // P
+    b.createdAt,          // Q
+    b.status,             // R
+    String(b.amountPaid), // S
+    String(b.balanceDue), // T
+    String(b.gstAmount),      // U — 18% of amount, remitted to govt
+    String(b.discountAmount), // V — rupees off via discount / promo
   ];
 }
 
@@ -274,6 +278,16 @@ function rowToBooking(row: string[]): BookingRow {
       ? parseInt(rawBalance)
       : Math.max(0, amount - amountPaid);
 
+  // gstAmount + discountAmount are new columns (U/V). Legacy rows written
+  // before they existed fall back to 0 — those bookings pre-date GST
+  // collection and (mostly) pre-date launch pricing.
+  const rawGST = row[20];
+  const gstAmount =
+    rawGST !== undefined && rawGST !== "" ? parseInt(rawGST) : 0;
+  const rawDiscount = row[21];
+  const discountAmount =
+    rawDiscount !== undefined && rawDiscount !== "" ? parseInt(rawDiscount) : 0;
+
   return {
     bookingId: row[0] || "",
     arenaId: row[1] || "arena-1",
@@ -295,5 +309,7 @@ function rowToBooking(row: string[]): BookingRow {
     status: (row[17] || "confirmed") as BookingRow["status"],
     amountPaid,
     balanceDue,
+    gstAmount,
+    discountAmount,
   };
 }
