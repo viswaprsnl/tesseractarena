@@ -11,6 +11,9 @@ import {
   calculateAdvance,
   getRefundCutoffHours,
   isWeekend,
+  withGST,
+  gstOn,
+  GST_PERCENT,
 } from "@/lib/booking-config";
 
 declare global {
@@ -31,8 +34,14 @@ export function PaymentStep({
 }: PaymentStepProps) {
   const [processing, setProcessing] = useState(false);
 
+  // All the internal amounts are ex-GST. The customer actually pays these
+  // × 1.18 — advance now via Razorpay, balance at the counter.
   const advance = calculateAdvance(state.partySize, state.amount);
   const atCenter = state.amount - advance;
+  const gstAmount = gstOn(state.amount);
+  const totalWithGST = withGST(state.amount);
+  const advanceWithGST = withGST(advance);
+  const atCenterWithGST = withGST(atCenter);
 
   const sessionDate = state.selectedDate || "";
   const cutoffHours = sessionDate ? getRefundCutoffHours(sessionDate) : 6;
@@ -62,7 +71,7 @@ export function PaymentStep({
         Reserve Your Slot
       </h3>
       <p className="text-sm text-muted-foreground text-center mb-6">
-        Pay just <span className="text-primary font-bold">₹{advance.toLocaleString("en-IN")}</span> advance to confirm
+        Pay <span className="text-primary font-bold">₹{advanceWithGST.toLocaleString("en-IN")}</span> advance (incl. GST) to confirm
       </p>
 
       {/* Booking summary */}
@@ -89,19 +98,29 @@ export function PaymentStep({
         </div>
       </div>
 
-      {/* Payment breakdown */}
+      {/* Payment breakdown — ex-GST subtotal + GST line + inc-GST total, then
+          advance and balance both as inc-GST (that's what customer actually
+          pays). Matches Enter Totem's checkout pattern. */}
       <div className="glass-card p-4 mb-6 text-sm space-y-2 border-primary/20">
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Total session cost</span>
+          <span className="text-muted-foreground">Session subtotal</span>
           <span>₹{state.amount.toLocaleString("en-IN")}</span>
         </div>
-        <div className="flex justify-between font-bold text-primary">
+        <div className="flex justify-between text-xs text-muted-foreground">
+          <span>GST @ {GST_PERCENT}%</span>
+          <span>+ ₹{gstAmount.toLocaleString("en-IN")}</span>
+        </div>
+        <div className="flex justify-between pt-2 border-t border-white/10">
+          <span className="text-muted-foreground">Total (incl. GST)</span>
+          <span className="font-semibold">₹{totalWithGST.toLocaleString("en-IN")}</span>
+        </div>
+        <div className="flex justify-between font-bold text-primary pt-2 border-t border-white/10">
           <span>Advance now</span>
-          <span>₹{advance.toLocaleString("en-IN")}</span>
+          <span>₹{advanceWithGST.toLocaleString("en-IN")}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Balance at center</span>
-          <span>₹{atCenter.toLocaleString("en-IN")}</span>
+          <span>₹{atCenterWithGST.toLocaleString("en-IN")}</span>
         </div>
       </div>
 
@@ -117,8 +136,8 @@ export function PaymentStep({
           <CreditCard className="mr-2" size={18} />
         )}
         <div className="text-left">
-          <div className="font-semibold">Pay ₹{advance.toLocaleString("en-IN")} Advance Online</div>
-          <div className="text-xs opacity-80">UPI, Cards, Net Banking · Balance at center</div>
+          <div className="font-semibold">Pay ₹{advanceWithGST.toLocaleString("en-IN")} Advance Online</div>
+          <div className="text-xs opacity-80">Incl. GST · UPI, Cards, Net Banking · Balance at center</div>
         </div>
       </Button>
 

@@ -47,9 +47,12 @@ export function Pricing() {
           </p>
           <div className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
             <span className="text-sm font-medium text-primary">
-              Reserve with just ₹500/person — pay the rest at the center
+              Reserve with just ₹500/person (+ GST) — pay the rest at the center
             </span>
           </div>
+          <p className="text-[11px] text-muted-foreground/70 mt-2">
+            All prices shown exclude GST. 18% GST added at checkout.
+          </p>
         </motion.div>
 
         <motion.div
@@ -96,6 +99,9 @@ export function Pricing() {
                       <span className="text-sm text-muted-foreground ml-2">
                         per person
                       </span>
+                      <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+                        excl. GST
+                      </p>
                       <p className="text-[11px] text-muted-foreground mt-1">
                         {tier.discountLabel} · up to ₹{max.toLocaleString("en-IN")} for full 30-min titles
                       </p>

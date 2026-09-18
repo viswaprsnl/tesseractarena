@@ -5,6 +5,9 @@ import { format } from "date-fns";
 import {
   calculatePrice,
   calculateSessionPrice,
+  withGST,
+  gstOn,
+  GST_PERCENT,
 } from "@/lib/booking-config";
 import type { PerPersonPackageType } from "@/lib/booking-types";
 import type { BookingState } from "@/hooks/use-booking";
@@ -69,38 +72,49 @@ export function BookingSummary({ state }: { state: BookingState }) {
       )}
 
       <div className="pt-2 border-t border-white/10 space-y-1">
-        {state.discount && state.discount.amountOff > 0 ? (
-          <>
-            <div className="flex justify-between items-center text-xs text-muted-foreground">
-              <span>Subtotal</span>
-              <span>₹{subtotal.toLocaleString("en-IN")}</span>
-            </div>
-            <div className="flex justify-between items-center text-xs text-green-400">
-              <span className="truncate mr-2" title={state.discount.label}>
-                {state.discount.label} ({state.discount.badge})
-              </span>
-              <span>− ₹{state.discount.amountOff.toLocaleString("en-IN")}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Total</span>
-              <span className="font-bold text-lg text-green-400">
-                ₹{Math.max(0, subtotal - state.discount.amountOff).toLocaleString("en-IN")}
-              </span>
-            </div>
-          </>
-        ) : (
+        {pending ? (
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground">Total</span>
-            {pending ? (
-              <span className="text-sm text-muted-foreground">
-                Pick a game →
-              </span>
-            ) : (
-              <span className="font-bold text-lg">
-                ₹{subtotal.toLocaleString("en-IN")}
-              </span>
-            )}
+            <span className="text-sm text-muted-foreground">
+              Pick a game →
+            </span>
           </div>
+        ) : (
+          (() => {
+            const afterDiscount = state.discount
+              ? Math.max(0, subtotal - state.discount.amountOff)
+              : subtotal;
+            const gstLine = gstOn(afterDiscount);
+            const totalIncGST = withGST(afterDiscount);
+            return (
+              <>
+                <div className="flex justify-between items-center text-xs text-muted-foreground">
+                  <span>Subtotal (excl. GST)</span>
+                  <span>₹{subtotal.toLocaleString("en-IN")}</span>
+                </div>
+                {state.discount && state.discount.amountOff > 0 && (
+                  <div className="flex justify-between items-center text-xs text-green-400">
+                    <span className="truncate mr-2" title={state.discount.label}>
+                      {state.discount.label} ({state.discount.badge})
+                    </span>
+                    <span>− ₹{state.discount.amountOff.toLocaleString("en-IN")}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center text-xs text-muted-foreground">
+                  <span>GST @ {GST_PERCENT}%</span>
+                  <span>+ ₹{gstLine.toLocaleString("en-IN")}</span>
+                </div>
+                <div className="flex justify-between items-center pt-1 border-t border-white/10">
+                  <span className="text-muted-foreground">Total</span>
+                  <span
+                    className={`font-bold text-lg ${state.discount ? "text-green-400" : ""}`}
+                  >
+                    ₹{totalIncGST.toLocaleString("en-IN")}
+                  </span>
+                </div>
+              </>
+            );
+          })()
         )}
       </div>
     </div>

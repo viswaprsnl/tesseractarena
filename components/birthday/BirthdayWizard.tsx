@@ -29,7 +29,7 @@ import {
   type BirthdayPackage,
   type BirthdayPackageId,
 } from "@/data/birthday";
-import { getTodayISTString } from "@/lib/booking-config";
+import { getTodayISTString, withGST, gstOn, GST_PERCENT } from "@/lib/booking-config";
 import type { TimeSlot } from "@/lib/booking-types";
 import { formatTimeDisplay } from "@/lib/booking-config";
 
@@ -752,23 +752,33 @@ function BirthdaySummary({
           <span>₹{addonTotal.toLocaleString("en-IN")}</span>
         </div>
       )}
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-muted-foreground">Subtotal (excl. GST)</span>
+        <span>₹{total.toLocaleString("en-IN")}</span>
+      </div>
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-muted-foreground">GST @ {GST_PERCENT}%</span>
+        <span className="text-muted-foreground">
+          + ₹{gstOn(total).toLocaleString("en-IN")}
+        </span>
+      </div>
       <div className="flex items-center justify-between">
-        <span className="text-muted-foreground">Total</span>
+        <span className="text-muted-foreground">Total (incl. GST)</span>
         <span className="font-bold text-lg">
-          ₹{total.toLocaleString("en-IN")}
+          ₹{withGST(total).toLocaleString("en-IN")}
         </span>
       </div>
       <hr className="border-white/10" />
       <div className="flex items-center justify-between">
         <span className="text-primary">Pay online now ({BIRTHDAY_ADVANCE_PERCENT}% advance)</span>
         <span className="font-bold text-primary">
-          ₹{advance.toLocaleString("en-IN")}
+          ₹{withGST(advance).toLocaleString("en-IN")}
         </span>
       </div>
       <div className="flex items-center justify-between text-xs">
         <span className="text-muted-foreground">Balance at the arena</span>
         <span className="text-muted-foreground">
-          ₹{(total - advance).toLocaleString("en-IN")}
+          ₹{withGST(total - advance).toLocaleString("en-IN")}
         </span>
       </div>
     </div>

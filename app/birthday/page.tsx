@@ -16,7 +16,7 @@ import {
   whatsappBirthdayLink,
   type BirthdayPackage,
 } from "@/data/birthday";
-import { getTodayISTString } from "@/lib/booking-config";
+import { getTodayISTString, withGST } from "@/lib/booking-config";
 import { fadeInUp, staggerContainer } from "@/lib/animations";
 
 // Human-readable "Nov 11" style for the launch-window end date, used in the
@@ -98,8 +98,8 @@ export default function BirthdayPage() {
             className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-8"
           >
             Free-roam VR, a dedicated host, decorations, and a private lounge —
-            packaged so parents can book in under a minute. Pay 25% online to hold your
-            slot; settle the rest at the arena on the day.
+            packaged so parents can book in under a minute. Pay 25% online (+ GST)
+            to hold your slot; settle the rest at the arena on the day.
           </motion.p>
           <motion.div variants={fadeInUp} className="flex flex-wrap justify-center gap-3">
             <a href="#packages">
@@ -420,6 +420,9 @@ function PackageCard({
             {addonsSubtotal > 0 ? "with add-ons" : "flat"}
           </span>
         </p>
+        <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+          excl. GST · ₹{withGST(total).toLocaleString("en-IN")} incl. GST
+        </p>
         {addonsSubtotal > 0 && (
           <p className="text-[10px] text-muted-foreground mt-1">
             ₹{effectivePkgPrice.toLocaleString("en-IN")} package + ₹
@@ -432,8 +435,8 @@ function PackageCard({
           </p>
         )}
         <p className="text-[11px] text-muted-foreground mt-1">
-          Pay ₹{advance.toLocaleString("en-IN")} online ·
-          ₹{(total - advance).toLocaleString("en-IN")} at the arena
+          Pay ₹{withGST(advance).toLocaleString("en-IN")} online ·
+          ₹{withGST(total - advance).toLocaleString("en-IN")} at the arena
         </p>
       </div>
 

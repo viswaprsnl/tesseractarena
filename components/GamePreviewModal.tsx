@@ -196,6 +196,7 @@ export function GamePreviewModal({
                 {game.pricePerPerson > 0 && (
                   <span className="flex items-center gap-1.5 text-primary font-medium">
                     ₹{game.pricePerPerson.toLocaleString("en-IN")}/person
+                    <span className="text-muted-foreground font-normal">+ GST</span>
                   </span>
                 )}
               </div>

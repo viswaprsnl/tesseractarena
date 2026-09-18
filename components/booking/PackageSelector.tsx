@@ -9,6 +9,9 @@ import {
   getPackageForSize,
   calculateAdvance,
   perHeadAtTier,
+  withGST,
+  gstOn,
+  GST_PERCENT,
   MAX_PLAYERS,
 } from "@/lib/booking-config";
 import type { PackageType, PerPersonPackageType } from "@/lib/booking-types";
@@ -395,6 +398,11 @@ export function PackageSelector({
                 </p>
               )}
               <p className="text-xs text-muted-foreground">{pkg.range}</p>
+              {perHeadBase > 0 && (
+                <p className="text-[9px] text-muted-foreground/70 mt-0.5">
+                  excl. GST
+                </p>
+              )}
               {pkg.type !== "solo" && perHeadBase > 0 && (
                 <p className="text-[10px] text-primary/70 mt-1">
                   {pkg.type === "squad" ? "10% off/head" : "15% off/head"}
@@ -410,10 +418,12 @@ export function PackageSelector({
         })}
       </div>
 
-      {/* Total + advance breakdown */}
+      {/* Total + advance breakdown — session cost shown ex-GST (revenue
+          basis) with a GST line added so the customer sees the actual
+          amount Razorpay will charge. Enter Totem's checkout pattern. */}
       <div className="glass-card p-5">
         <div className="text-center mb-4">
-          <p className="text-sm text-muted-foreground mb-1">Total Session Cost</p>
+          <p className="text-sm text-muted-foreground mb-1">Session cost (excl. GST)</p>
           {activeDiscount && savings > 0 ? (
             <>
               <p className="text-lg text-muted-foreground line-through leading-none">
@@ -438,25 +448,42 @@ export function PackageSelector({
           </p>
         </div>
 
+        {amount > 0 && (
+          <div className="border-t border-border pt-3 pb-3 space-y-1">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-muted-foreground">GST @ {GST_PERCENT}%</span>
+              <span className="text-muted-foreground">
+                + ₹{gstOn(amount).toLocaleString("en-IN")}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="font-medium">Total (incl. GST)</span>
+              <span className="font-bold">
+                ₹{withGST(amount).toLocaleString("en-IN")}
+              </span>
+            </div>
+          </div>
+        )}
+
         <div className="border-t border-border pt-4 space-y-2">
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">
-              Pay now (advance)
+              Pay now (advance, incl. GST)
             </span>
             <span className="text-sm font-bold text-primary">
-              ₹{calculateAdvance(partySize, amount).toLocaleString("en-IN")}
+              ₹{withGST(calculateAdvance(partySize, amount)).toLocaleString("en-IN")}
             </span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">
-              Pay at center
+              Pay at center (incl. GST)
             </span>
             <span className="text-sm font-medium">
-              ₹{(amount - calculateAdvance(partySize, amount)).toLocaleString("en-IN")}
+              ₹{withGST(amount - calculateAdvance(partySize, amount)).toLocaleString("en-IN")}
             </span>
           </div>
           <p className="text-[11px] text-muted-foreground/70 pt-1">
-            Just ₹500 per person reserves your slot. Pay the rest when you arrive.
+            Just ₹500 per person (+ GST) reserves your slot. Pay the rest when you arrive.
           </p>
         </div>
       </div>

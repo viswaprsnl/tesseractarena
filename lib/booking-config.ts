@@ -11,6 +11,32 @@ export const MAX_PLAYERS = 8;
 // Flat advance per person paid at booking. Remaining is paid at the center.
 export const ADVANCE_PER_PERSON = 500;
 
+// ---------------------------------------------------------------------------
+// GST — Enter Totem-style display
+// ---------------------------------------------------------------------------
+// All ticket amounts stored in the database and returned by the pricing
+// helpers are EXCLUSIVE of GST. The customer pays exGST × (1 + GST_PERCENT/100)
+// at checkout. Anvio royalty is 10% of the ex-GST amount; HeroZone credits
+// are a fixed cost per player unrelated to GST — so the ex-GST base is the
+// clean revenue basis for all internal accounting.
+//
+// UI convention: display the ex-GST price with "excl. GST" microcopy on
+// game/package cards. At the payment step, show a full breakdown
+// (subtotal + GST + total) and the advance in both ex-GST and inc-GST
+// forms so the customer sees the exact amount Razorpay will charge.
+
+export const GST_PERCENT = 18;
+
+// Add GST to an ex-GST amount. Rupees-only, rounded.
+export function withGST(exGSTAmount: number): number {
+  return Math.round((exGSTAmount * (100 + GST_PERCENT)) / 100);
+}
+
+// The GST portion of an ex-GST amount (i.e. the amount remitted to govt).
+export function gstOn(exGSTAmount: number): number {
+  return Math.round((exGSTAmount * GST_PERCENT) / 100);
+}
+
 // Legacy per-package pricing — kept as a fallback for admin walk-in logging
 // (RevenueTab / WalkinLogger). Customer-facing session pricing is now
 // per-GAME (see Game.pricePerPerson in data/games.ts) and scales by tier

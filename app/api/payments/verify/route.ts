@@ -54,6 +54,12 @@ export async function POST(request: NextRequest) {
     // Advance = ₹500 per player for regular sessions, capped at total;
     // BIRTHDAY_ADVANCE_PERCENT of the flat package total for birthdays.
     // Balance = total − advance.
+    //
+    // All amounts written back to the sheet here are EX-GST — this is the
+    // clean revenue basis for Anvio royalty (10% of ex-GST) and internal
+    // reporting. Razorpay charged the customer ex-GST × 1.18; the extra
+    // 18% is remitted to the government and never sits in our revenue
+    // accounting. See lib/booking-config.ts (GST_PERCENT) for the rule.
     const advance = isBirthdayPackage(result.booking.package)
       ? birthdayAdvance(result.booking.amount)
       : calculateAdvance(result.booking.partySize, result.booking.amount);

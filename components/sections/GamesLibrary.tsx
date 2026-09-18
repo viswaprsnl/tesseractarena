@@ -62,6 +62,7 @@ function GameCard({ game, status, onClick }: { game: Game; status?: GameStatusIn
         {!isUnavailable && game.pricePerPerson > 0 && (
           <Badge className="absolute top-3 right-3 z-10 bg-black/70 text-white text-[10px] backdrop-blur-sm">
             ₹{game.pricePerPerson.toLocaleString("en-IN")}/person
+            <span className="text-white/60 ml-1">+ GST</span>
           </Badge>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />

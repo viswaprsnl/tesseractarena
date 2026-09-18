@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import { withGST, gstOn, GST_PERCENT } from "@/lib/booking-config";
 
 function ConfirmationContent() {
   const params = useSearchParams();
@@ -94,25 +95,43 @@ function ConfirmationContent() {
           <div className="flex items-center gap-3">
             <CreditCard size={16} className="text-primary shrink-0" />
             <span>
-              ₹{total.toLocaleString("en-IN")} total
+              ₹{withGST(total).toLocaleString("en-IN")} total (incl. GST)
             </span>
           </div>
         </div>
 
-        {/* Payment breakdown */}
+        {/* Payment breakdown — the URL params carry ex-GST values (that's
+            the revenue basis we book in the sheet); we add GST here for
+            display so the numbers match what Razorpay actually charged. */}
         <div className="rounded-lg bg-secondary/30 border border-border p-4 mb-6 text-left text-sm space-y-2">
-          <div className="flex justify-between">
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">Session subtotal</span>
+            <span>₹{total.toLocaleString("en-IN")}</span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">GST @ {GST_PERCENT}%</span>
+            <span>+ ₹{gstOn(total).toLocaleString("en-IN")}</span>
+          </div>
+          <div className="flex justify-between pt-1 border-t border-white/10">
+            <span className="text-muted-foreground">Total (incl. GST)</span>
+            <span className="font-semibold">
+              ₹{withGST(total).toLocaleString("en-IN")}
+            </span>
+          </div>
+          <div className="flex justify-between pt-2 border-t border-white/10">
             <span className="text-muted-foreground">
               {isPaid ? "Advance paid" : "Advance"}
             </span>
             <span className={isPaid ? "text-primary font-medium" : "font-medium"}>
-              ₹{advance.toLocaleString("en-IN")}
+              ₹{withGST(advance).toLocaleString("en-IN")}
               {isPaid ? " ✓" : ""}
             </span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Balance at center</span>
-            <span className="font-medium">₹{balance.toLocaleString("en-IN")}</span>
+            <span className="font-medium">
+              ₹{withGST(balance).toLocaleString("en-IN")}
+            </span>
           </div>
         </div>
 

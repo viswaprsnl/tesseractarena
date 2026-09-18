@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createOrder } from "@/lib/razorpay";
 import { findBookingById, updateBookingCells } from "@/lib/google-sheets";
-import { calculateAdvance } from "@/lib/booking-config";
+import { calculateAdvance, withGST } from "@/lib/booking-config";
 import { isBirthdayPackage } from "@/lib/booking-types";
 import { birthdayAdvance } from "@/data/birthday";
 
@@ -48,12 +48,17 @@ export async function POST(request: NextRequest) {
     // Charge only the advance. Regular sessions collect ₹500/person (capped
     // at total); birthday packages collect BIRTHDAY_ADVANCE_PERCENT of the
     // package total. Rest is settled at the arena counter.
+    //
+    // `advance` is the ex-GST base — that's what the sheet records so the
+    // Anvio royalty and revenue reports stay clean. The customer pays 18%
+    // GST on top, which is what Razorpay actually charges via the order.
     const advance = isBirthdayPackage(result.booking.package)
       ? birthdayAdvance(result.booking.amount)
       : calculateAdvance(result.booking.partySize, result.booking.amount);
+    const advanceWithGST = withGST(advance);
 
-    // Create Razorpay order for the advance amount
-    const order = await createOrder(advance, bookingId);
+    // Create Razorpay order for the advance amount (customer-facing gross).
+    const order = await createOrder(advanceWithGST, bookingId);
 
     // Update booking with order ID
     await updateBookingCells(result.rowIndex, {
