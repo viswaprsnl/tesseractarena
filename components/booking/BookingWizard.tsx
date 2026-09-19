@@ -9,7 +9,8 @@ import {
   calculateSessionPrice,
 } from "@/lib/booking-config";
 import type { PerPersonPackageType } from "@/lib/booking-types";
-import { allGames } from "@/data/games";
+import { allGames, availableGames } from "@/data/games";
+import { DECIDE_AT_VENUE_ID } from "./PackageSelector";
 import { StepIndicator } from "./StepIndicator";
 import { DatePicker } from "./DatePicker";
 import { TimeSlotGrid } from "./TimeSlotGrid";
@@ -59,10 +60,17 @@ export function BookingWizard({ preselectedGame }: { preselectedGame?: string })
     // Price is derived from the chosen game — perHead × tier × partySize.
     // Falls back to the legacy per-package pricing if no game is set (only
     // possible on stale state; UI blocks Continue without a game).
+    // "Decide at venue" uses the highest ex-GST game price as the ceiling —
+    // customer sees the upper-bound; staff adjusts at the counter based on
+    // the title they actually play.
+    const isDecideAtVenue = state.selectedGame === DECIDE_AT_VENUE_ID;
     const game = allGames.find((g) => g.id === state.selectedGame);
     const perPersonPkg = state.packageType as PerPersonPackageType;
-    const base = game?.pricePerPerson
-      ? calculateSessionPrice(game.pricePerPerson, perPersonPkg, state.partySize)
+    const priceBasis = isDecideAtVenue
+      ? Math.max(...availableGames.map((g) => g.pricePerPerson))
+      : game?.pricePerPerson;
+    const base = priceBasis
+      ? calculateSessionPrice(priceBasis, perPersonPkg, state.partySize)
       : calculatePrice(state.packageType, state.partySize);
     const amount = state.discount ? base - state.discount.amountOff : base;
     dispatch({ type: "SET_AMOUNT", amount });
@@ -86,13 +94,16 @@ export function BookingWizard({ preselectedGame }: { preselectedGame?: string })
         specialRequests: details.specialRequests || "",
       },
     });
-    // Price is derived from the chosen game — perHead × tier × partySize.
-    // Falls back to the legacy per-package pricing if no game is set (only
-    // possible on stale state; UI blocks Continue without a game).
+    // Same calc as handlePackageConfirm — "Decide at venue" uses the
+    // max-priced Available game as the ceiling.
+    const isDecideAtVenueDetail = state.selectedGame === DECIDE_AT_VENUE_ID;
     const game = allGames.find((g) => g.id === state.selectedGame);
     const perPersonPkg = state.packageType as PerPersonPackageType;
-    const base = game?.pricePerPerson
-      ? calculateSessionPrice(game.pricePerPerson, perPersonPkg, state.partySize)
+    const priceBasis = isDecideAtVenueDetail
+      ? Math.max(...availableGames.map((g) => g.pricePerPerson))
+      : game?.pricePerPerson;
+    const base = priceBasis
+      ? calculateSessionPrice(priceBasis, perPersonPkg, state.partySize)
       : calculatePrice(state.packageType, state.partySize);
     const amount = state.discount ? base - state.discount.amountOff : base;
     dispatch({ type: "SET_AMOUNT", amount });

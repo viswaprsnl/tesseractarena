@@ -20,7 +20,14 @@ import {
   gstOn,
 } from "@/lib/booking-config";
 import type { BookingRow, PerPersonPackageType } from "@/lib/booking-types";
-import { allGames, getGamePlayerRange } from "@/data/games";
+import { allGames, availableGames, getGamePlayerRange } from "@/data/games";
+
+// Sentinel game id used by the /book wizard when the customer opts to
+// pick their title at the counter instead of committing up front. When
+// this comes in we skip the game-cap validation and use the highest
+// Available game price as the ceiling — actual price is settled at the
+// arena based on which title they play.
+const DECIDE_AT_VENUE_ID = "decide-at-venue";
 
 const bookingSchema = z
   .object({
@@ -82,8 +89,12 @@ export async function POST(request: NextRequest) {
     // Verify partySize fits the chosen game's supported range. Anvio 30-min
     // titles cap at 6; Revolta (PvP) allows 8; Versus starts at 2. Custom
     // admin-created games have no `players` field on our known list so this
-    // check is skipped for them (they use the legacy fallback).
-    const gameForCheck = allGames.find((g) => g.id === data.gamePreference);
+    // check is skipped for them (they use the legacy fallback). "Decide at
+    // venue" also skips the check — no specific game to constrain to yet.
+    const isDecideAtVenue = data.gamePreference === DECIDE_AT_VENUE_ID;
+    const gameForCheck = isDecideAtVenue
+      ? null
+      : allGames.find((g) => g.id === data.gamePreference);
     if (gameForCheck) {
       const [gMin, gMax] = getGamePlayerRange(gameForCheck.players);
       if (data.partySize < gMin || data.partySize > gMax) {
@@ -147,12 +158,14 @@ export async function POST(request: NextRequest) {
     const bookingId = `TA-${nanoid(6).toUpperCase()}`;
     const game = allGames.find((g) => g.id === data.gamePreference);
     const perPersonPkg = data.package as PerPersonPackageType;
-    const basePrice = game?.pricePerPerson
-      ? calculateSessionPrice(
-          game.pricePerPerson,
-          perPersonPkg,
-          data.partySize
-        )
+    // "Decide at venue" uses the highest Available ex-GST price as the
+    // stored ceiling — the customer pays their ₹500/head advance now and
+    // the balance is trued up at the counter when they pick a title.
+    const priceBasis = isDecideAtVenue
+      ? Math.max(...availableGames.map((g) => g.pricePerPerson))
+      : game?.pricePerPerson;
+    const basePrice = priceBasis
+      ? calculateSessionPrice(priceBasis, perPersonPkg, data.partySize)
       : calculatePrice(data.package, data.partySize);
     let amount = basePrice;
     try {

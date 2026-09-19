@@ -25,6 +25,13 @@ import type { ActiveDiscount } from "@/hooks/use-booking";
 import { availableGames, getGamePlayerRange } from "@/data/games";
 import { whatsappCorporateLink } from "@/lib/contact";
 
+// Sentinel game id for "I'll decide when I arrive". Not a real game in
+// data/games.ts; treated specially throughout the booking flow so the
+// customer can hold the slot without picking a specific title. Server
+// treats this as "use the max-priced game as the ceiling" — actual
+// price is adjusted at the counter based on what they finally play.
+export const DECIDE_AT_VENUE_ID = "decide-at-venue";
+
 interface PackageSelectorProps {
   partySize: number;
   packageType: PackageType;
@@ -92,18 +99,44 @@ export function PackageSelector({
       .catch(() => {});
   }, []);
 
+  const isDecideAtVenue = selectedGame === DECIDE_AT_VENUE_ID;
   const game = bookableGames.find((g) => g.id === selectedGame) ?? null;
-  const perHeadBase = game?.pricePerPerson ?? 0;
+
+  // Highest ex-GST per-head price across the Available library. Used as
+  // the ceiling when the customer picks "Decide at venue" — the visible
+  // total shows the upper-bound and gets adjusted downward at the counter
+  // if they end up choosing a cheaper HeroZone title.
+  const maxAvailablePrice = useMemo(
+    () =>
+      bookableGames.length
+        ? Math.max(...bookableGames.map((g) => g.pricePerPerson))
+        : 0,
+    [bookableGames]
+  );
+  const minAvailablePrice = useMemo(
+    () =>
+      bookableGames.length
+        ? Math.min(...bookableGames.map((g) => g.pricePerPerson))
+        : 0,
+    [bookableGames]
+  );
+
+  const perHeadBase = isDecideAtVenue
+    ? maxAvailablePrice
+    : game?.pricePerPerson ?? 0;
 
   // Per-game player range — Anvio 30-min titles cap at 6; Revolta at 8;
-  // Versus starts at 2. When no game is picked the tier UI shows the full
-  // 1..MAX_PLAYERS range; once a game is picked the stepper and Party card
+  // Versus starts at 2. When no game is picked (or "Decide at venue" is
+  // picked) the full 1..MAX_PLAYERS range is allowed and every tier is
+  // available; once a specific game is picked the stepper and Party card
   // clamp to what that specific game supports.
   const [gameMinPlayers, gameMaxPlayers] = game
     ? getGamePlayerRange(game.players)
     : [1, MAX_PLAYERS];
-  const effectiveMax = Math.min(MAX_PLAYERS, gameMaxPlayers);
-  const effectiveMin = Math.max(1, gameMinPlayers);
+  const effectiveMax = isDecideAtVenue
+    ? MAX_PLAYERS
+    : Math.min(MAX_PLAYERS, gameMaxPlayers);
+  const effectiveMin = isDecideAtVenue ? 1 : Math.max(1, gameMinPlayers);
   const partySupported = effectiveMax >= 6;
   const soloSupported = effectiveMin <= 1;
 
@@ -171,9 +204,12 @@ export function PackageSelector({
 
   // When switching games, clamp the current party size down (or up) to
   // whatever the newly-picked game supports, and rebalance the tier.
+  // "Decide at venue" opens up the full 1..MAX_PLAYERS range since we
+  // don't know which title's cap will apply yet.
   const handleGameSelect = (gameId: string) => {
-    const picked = bookableGames.find((g) => g.id === gameId);
     onGameChange(gameId);
+    if (gameId === DECIDE_AT_VENUE_ID) return;
+    const picked = bookableGames.find((g) => g.id === gameId);
     if (!picked) return;
     const [gMin, gMax] = getGamePlayerRange(picked.players);
     const upper = Math.min(MAX_PLAYERS, gMax);
@@ -214,6 +250,43 @@ export function PackageSelector({
         <div
           className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[360px] overflow-y-auto pr-1 -mr-1"
         >
+          {/* "Decide at venue" tile — mirrors Enter Totem's flow. Spans the
+              full row width, distinct primary-tinted style, sits above the
+              real games so it reads as the "pick nothing specific yet" out. */}
+          {(() => {
+            const isSelected = selectedGame === DECIDE_AT_VENUE_ID;
+            return (
+              <button
+                onClick={() => handleGameSelect(DECIDE_AT_VENUE_ID)}
+                className={`col-span-2 sm:col-span-3 glass-card p-4 text-left relative transition-all flex items-center gap-3 ${
+                  isSelected
+                    ? "border-primary/60 glow-violet ring-1 ring-primary/30"
+                    : "hover:border-primary/30 border-primary/20"
+                }`}
+              >
+                <div className="w-10 h-10 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0">
+                  <Gamepad2 size={18} className="text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold">Decide at venue</p>
+                  <p className="text-[11px] text-muted-foreground leading-snug">
+                    Choose or change your game at the arena on the day.{" "}
+                    {minAvailablePrice > 0 && maxAvailablePrice > minAvailablePrice && (
+                      <span className="text-primary/80">
+                        ₹{minAvailablePrice.toLocaleString("en-IN")}–₹
+                        {maxAvailablePrice.toLocaleString("en-IN")}/head
+                      </span>
+                    )}
+                  </p>
+                </div>
+                {isSelected && (
+                  <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shrink-0">
+                    <Check size={12} className="text-primary-foreground" />
+                  </div>
+                )}
+              </button>
+            );
+          })()}
           {bookableGames.map((g) => {
             const isSelected = selectedGame === g.id;
             return (
@@ -276,6 +349,15 @@ export function PackageSelector({
             <p className="text-[11px] text-muted-foreground">
               <span className="text-primary font-medium">{game.title}</span> —{" "}
               {game.description}
+            </p>
+          </div>
+        )}
+        {isDecideAtVenue && (
+          <div className="glass-card p-3 mt-3 border-primary/20">
+            <p className="text-[11px] text-muted-foreground">
+              <span className="text-primary font-medium">Decide at venue</span> —{" "}
+              you pay just the ₹500/head advance now; final price is locked
+              at the counter based on the title you pick.
             </p>
           </div>
         )}
@@ -444,6 +526,8 @@ export function PackageSelector({
           <p className="text-xs text-muted-foreground mt-1">
             {game
               ? `${partySize} × ₹${perHeadAtTier(perHeadBase, perPersonPkg).toLocaleString("en-IN")} (${packageType}${packageType === "solo" ? "" : packageType === "squad" ? " · 10% off" : " · 15% off"}) — ${game.title}`
+              : isDecideAtVenue
+              ? `Up to ${partySize} × ₹${perHeadAtTier(perHeadBase, perPersonPkg).toLocaleString("en-IN")} — final price locked at venue`
               : "Pick a game above to see the total"}
           </p>
         </div>

@@ -11,7 +11,8 @@ import {
 } from "@/lib/booking-config";
 import type { PerPersonPackageType } from "@/lib/booking-types";
 import type { BookingState } from "@/hooks/use-booking";
-import { allGames } from "@/data/games";
+import { allGames, availableGames } from "@/data/games";
+import { DECIDE_AT_VENUE_ID } from "./PackageSelector";
 
 export function BookingSummary({ state }: { state: BookingState }) {
   if (state.step < 3) return null;
@@ -25,14 +26,22 @@ export function BookingSummary({ state }: { state: BookingState }) {
   // package price only if the flow is somehow past the picker without a
   // game set (should be impossible in normal use since Continue is
   // disabled).
+  const isDecideAtVenue = state.selectedGame === DECIDE_AT_VENUE_ID;
   const game = allGames.find((g) => g.id === state.selectedGame);
   const perPersonPkg = state.packageType as PerPersonPackageType;
-  const subtotal = game?.pricePerPerson
-    ? calculateSessionPrice(game.pricePerPerson, perPersonPkg, state.partySize)
+  // "Decide at venue" uses the highest-priced Available game as the
+  // ceiling — same rule as the wizard and the server-side price recompute.
+  const priceBasis = isDecideAtVenue
+    ? Math.max(...availableGames.map((g) => g.pricePerPerson))
+    : game?.pricePerPerson;
+  const subtotal = priceBasis
+    ? calculateSessionPrice(priceBasis, perPersonPkg, state.partySize)
     : state.personalDetails
     ? calculatePrice(state.packageType, state.partySize)
     : 0;
-  const gameTitle = game?.title || state.personalDetails?.gamePreference;
+  const gameTitle = isDecideAtVenue
+    ? "Decide at venue"
+    : game?.title || state.personalDetails?.gamePreference;
   // True while the user is still on step 3 and hasn't tapped a game yet.
   const pending = subtotal === 0;
 
