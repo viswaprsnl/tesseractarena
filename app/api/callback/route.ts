@@ -40,10 +40,10 @@ async function ensureSheet(sheets: ReturnType<typeof google.sheets>) {
       });
       await sheets.spreadsheets.values.update({
         spreadsheetId: SPREADSHEET_ID,
-        range: `${SHEET_NAME}!A1:D1`,
+        range: `${SHEET_NAME}!A1:E1`,
         valueInputOption: "RAW",
         requestBody: {
-          values: [["name", "phone", "requested_at", "status"]],
+          values: [["name", "phone", "requested_at", "status", "addressed_at"]],
         },
       });
     } catch {
@@ -71,12 +71,14 @@ export async function POST(request: NextRequest) {
     const sheets = google.sheets({ version: "v4", auth: getAuth() });
     await ensureSheet(sheets);
 
+    // Column E (addressed_at) intentionally left empty on create — the
+    // admin dashboard writes it when marking the callback addressed.
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAME}!A:D`,
+      range: `${SHEET_NAME}!A:E`,
       valueInputOption: "RAW",
       requestBody: {
-        values: [[name || "", phone, requestedAt, "pending"]],
+        values: [[name || "", phone, requestedAt, "pending", ""]],
       },
     });
 

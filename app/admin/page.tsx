@@ -26,6 +26,7 @@ import {
   Tag,
   TrendingUp,
   Lock,
+  PhoneCall,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +37,7 @@ import { allGames, availableGames, comingSoonGames, type Game, type GameCategory
 import { formatDiscountBadge, type Discount, type DiscountScope, type DiscountType } from "@/lib/discount-config";
 import { RevenueTab } from "@/components/admin/RevenueTab";
 import { WalkinLogger } from "@/components/admin/WalkinLogger";
+import { CallbacksTab } from "@/components/admin/CallbacksTab";
 
 type GameStatus = "available" | "unavailable" | "coming_soon" | "maintenance";
 
@@ -334,7 +336,7 @@ export default function AdminPage() {
   const [markingPaid, setMarkingPaid] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [waiverCheck, setWaiverCheck] = useState<Record<string, boolean | null>>({});
-  const [activeTab, setActiveTab] = useState<"bookings" | "games" | "services" | "schedule" | "discounts" | "revenue">("bookings");
+  const [activeTab, setActiveTab] = useState<"bookings" | "games" | "services" | "schedule" | "discounts" | "revenue" | "callbacks">("bookings");
   const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [discountBusy, setDiscountBusy] = useState<string | null>(null);
   const [showDiscountForm, setShowDiscountForm] = useState(false);
@@ -708,6 +710,17 @@ export default function AdminPage() {
             Bookings
           </button>
           <button
+            onClick={() => setActiveTab("callbacks")}
+            className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+              activeTab === "callbacks"
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <PhoneCall size={16} />
+            Callbacks
+          </button>
+          <button
             onClick={() => { setActiveTab("games"); fetchGameStatuses(pin); }}
             className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
               activeTab === "games"
@@ -779,6 +792,8 @@ export default function AdminPage() {
             />
           )
         )}
+
+        {activeTab === "callbacks" && <CallbacksTab pin={pin} />}
 
         {activeTab === "services" && !ownerAuthed && (
           <OwnerGate
