@@ -26,14 +26,34 @@ function getAuth() {
 const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_SPREADSHEET_ID!;
 const SHEET_NAME = "Callbacks";
 
+// Resolution outcomes we surface on the admin dashboard. "addressed" is
+// the legacy value written by earlier versions of this route — kept as a
+// bucket so old rows still render.
+export type CallbackOutcome =
+  | "pending"
+  | "booked"      // Customer actually booked a session/party after the call
+  | "enquiry"     // Answered their questions; no immediate booking
+  | "no_answer"   // Couldn't reach the customer
+  | "not_now"     // Customer declined or deferred
+  | "addressed";  // Legacy — before outcome buckets existed
+
 export interface CallbackRow {
   rowIndex: number;    // Real 1-indexed row in the sheet (headers = row 1)
   name: string;
   phone: string;
   requestedAt: string; // ISO
-  status: "pending" | "addressed";
+  status: CallbackOutcome;
   addressedAt: string; // ISO or empty
 }
+
+const OUTCOME_VALUES: CallbackOutcome[] = [
+  "pending",
+  "booked",
+  "enquiry",
+  "no_answer",
+  "not_now",
+  "addressed",
+];
 
 export async function GET(request: NextRequest) {
   try {
@@ -60,9 +80,12 @@ export async function GET(request: NextRequest) {
     }
 
     const callbacks: CallbackRow[] = rows.map((row, i) => {
-      const rawStatus = (row[3] || "pending").toLowerCase();
-      const status: CallbackRow["status"] =
-        rawStatus === "addressed" ? "addressed" : "pending";
+      const rawStatus = (row[3] || "pending").toLowerCase().trim();
+      const status: CallbackOutcome = OUTCOME_VALUES.includes(
+        rawStatus as CallbackOutcome
+      )
+        ? (rawStatus as CallbackOutcome)
+        : "pending";
       return {
         rowIndex: i + 2,
         name: row[0] || "",
@@ -97,10 +120,14 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Resolve → sets column D to the picked outcome (booked / enquiry /
+// no_answer / not_now) and column E to the current IST timestamp.
+// Reopen → sets column D back to "pending" and clears column E.
 const actionSchema = z.object({
   pin: z.string().min(1),
-  action: z.enum(["mark_addressed", "mark_pending"]),
+  action: z.enum(["resolve", "reopen"]),
   rowIndex: z.number().int().min(2),
+  outcome: z.enum(["booked", "enquiry", "no_answer", "not_now"]).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -118,13 +145,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { action, rowIndex } = parsed.data;
+    const { action, rowIndex, outcome } = parsed.data;
     const sheets = google.sheets({ version: "v4", auth: getAuth() });
 
     const nowIST = toZonedTime(new Date(), "Asia/Kolkata");
     const addressedAt = format(nowIST, "yyyy-MM-dd'T'HH:mm:ssxxx");
 
-    if (action === "mark_addressed") {
+    if (action === "resolve") {
+      if (!outcome) {
+        return NextResponse.json(
+          { error: "Resolution outcome is required" },
+          { status: 400 }
+        );
+      }
       await sheets.spreadsheets.values.batchUpdate({
         spreadsheetId: SPREADSHEET_ID,
         requestBody: {
@@ -132,7 +165,7 @@ export async function POST(request: NextRequest) {
           data: [
             {
               range: `${SHEET_NAME}!D${rowIndex}`,
-              values: [["addressed"]],
+              values: [[outcome]],
             },
             {
               range: `${SHEET_NAME}!E${rowIndex}`,
@@ -142,7 +175,7 @@ export async function POST(request: NextRequest) {
         },
       });
     } else {
-      // Reopen — clear the addressed_at so the audit trail says the
+      // Reopen — clear addressed_at so the audit trail reflects that the
       // request came back into the pending queue.
       await sheets.spreadsheets.values.batchUpdate({
         spreadsheetId: SPREADSHEET_ID,
