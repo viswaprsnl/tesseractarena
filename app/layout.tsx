@@ -55,6 +55,14 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
+  // NOTE on OG images: images are NOT set here explicitly. Next.js's file
+  // convention picks up app/opengraph-image.tsx and app/twitter-image.tsx
+  // and auto-injects the correct <meta og:image> and <meta twitter:image>
+  // tags. Setting `images` here would silently override the file
+  // convention and break WhatsApp/FB previews again. The generator emits
+  // a 1200×630 PNG — raster, so WhatsApp / Instagram / Facebook / LinkedIn
+  // all render it. Replace with a real arena photo later per the note at
+  // the bottom of app/opengraph-image.tsx.
   openGraph: {
     type: "website",
     locale: "en_IN",
@@ -63,21 +71,12 @@ export const metadata: Metadata = {
     title: "Tesseract Arena | Premium VR Arena in Hyderabad",
     description:
       "Premium free-roam VR gaming arena in Gachibowli, Hyderabad. Groups of up to 8 players. Book online.",
-    images: [
-      {
-        url: "/logos/logo-horizontal.svg",
-        width: 1200,
-        height: 630,
-        alt: "Tesseract Arena — premium VR in Hyderabad",
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Tesseract Arena | Premium VR Arena in Hyderabad",
     description:
       "Premium free-roam VR gaming arena in Gachibowli, Hyderabad. Book your session online.",
-    images: ["/logos/logo-horizontal.svg"],
   },
   icons: {
     icon: "/logos/favicon.svg",
@@ -100,7 +99,7 @@ const businessJsonLd = {
   telephone: "+91-99081-16444",
   email: "admin@tesseractarena.com",
   priceRange: "₹₹",
-  image: `${SITE_URL}/logos/logo-horizontal.svg`,
+  image: `${SITE_URL}/opengraph-image`,
   address: {
     "@type": "PostalAddress",
     streetAddress:
