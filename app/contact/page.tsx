@@ -5,8 +5,9 @@ import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { MapPin, Phone, Mail, Clock, CheckCircle2, MessageCircle } from "lucide-react";
+import { MapPin, Phone, Mail, Clock, CheckCircle2 } from "lucide-react";
 import { InstagramIcon } from "@/components/icons/InstagramIcon";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { Button } from "@/components/ui/button";
 import {
   PHONE_DISPLAY,
@@ -35,11 +36,22 @@ const contactInfo: {
   label: string;
   value: string;
   href?: string;
+  // Optional per-row branding — used for Instagram so the icon container
+  // renders the actual gradient badge instead of the default primary/violet.
+  iconBg?: string;
+  iconColor?: string;
 }[] = [
   { icon: MapPin, label: "Address", value: "Preston Prime Mall, Lumbini Avenue, Gachibowli, Hyderabad 500032" },
   { icon: Phone, label: "Phone", value: PHONE_DISPLAY, href: `tel:+${WHATSAPP_NUMBER}` },
   { icon: Mail, label: "Email", value: CONTACT_EMAIL, href: `mailto:${CONTACT_EMAIL}` },
-  { icon: InstagramIcon, label: "Instagram", value: INSTAGRAM_HANDLE, href: INSTAGRAM_URL },
+  {
+    icon: InstagramIcon,
+    label: "Instagram",
+    value: INSTAGRAM_HANDLE,
+    href: INSTAGRAM_URL,
+    iconBg: "bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600",
+    iconColor: "text-white",
+  },
   { icon: Clock, label: "Hours", value: "Mon-Fri: 11AM - 10PM · Sat-Sun: 10AM - 10PM" },
 ];
 
@@ -204,8 +216,10 @@ export default function ContactPage() {
               <h3 className="font-heading text-xl font-bold">Get In Touch</h3>
               {contactInfo.map((item) => (
                 <div key={item.label} className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <item.icon size={18} className="text-primary" />
+                  <div
+                    className={`w-10 h-10 rounded-lg ${item.iconBg || "bg-primary/10"} flex items-center justify-center shrink-0`}
+                  >
+                    <item.icon size={18} className={item.iconColor || "text-primary"} />
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
@@ -231,9 +245,9 @@ export default function ContactPage() {
                 href={whatsappCorporateLink()}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-2 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary/10 border border-primary/30 text-sm text-primary hover:bg-primary/20 transition-colors"
+                className="mt-2 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#25D366] hover:bg-[#1EBE5A] text-white text-sm font-medium transition-colors"
               >
-                <MessageCircle size={16} />
+                <WhatsAppIcon size={16} />
                 Chat on WhatsApp
               </a>
             </div>

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Check, Building2, MessageCircle, Phone } from "lucide-react";
+import { Check, Building2, Phone } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -178,10 +179,10 @@ export function Pricing() {
                 rel="noopener noreferrer"
                 className={cn(
                   buttonVariants(),
-                  "justify-center bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
+                  "justify-center bg-[#25D366] hover:bg-[#1EBE5A] text-white gap-2"
                 )}
               >
-                <MessageCircle size={16} />
+                <WhatsAppIcon size={16} />
                 WhatsApp us
               </Link>
               <Link

@@ -9,10 +9,10 @@ import {
   Users,
   Clock,
   Check,
-  MessageCircle,
   Loader2,
   CreditCard,
 } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -668,9 +668,9 @@ export function BirthdayWizard() {
                 <Button
                   variant="outline"
                   size="lg"
-                  className="w-full border-green-500/40 text-green-400 hover:bg-green-500/10"
+                  className="w-full border-[#25D366]/50 text-[#25D366] hover:bg-[#25D366]/10 hover:text-[#25D366]"
                 >
-                  <MessageCircle size={14} className="mr-2" />
+                  <WhatsAppIcon size={14} className="mr-2" />
                   Prefer WhatsApp? Chat with us instead
                 </Button>
               </a>

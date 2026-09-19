@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Cake, Users, Clock, Check, MessageCircle, Sparkles, ChevronRight, Minus, Plus } from "lucide-react";
+import { Cake, Users, Clock, Check, Sparkles, ChevronRight, Minus, Plus } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -111,10 +112,9 @@ export default function BirthdayPage() {
             <a href={whatsappBirthdayLink()} target="_blank" rel="noopener noreferrer">
               <Button
                 size="lg"
-                variant="outline"
-                className="border-green-500/40 text-green-400 hover:bg-green-500/10"
+                className="bg-[#25D366] hover:bg-[#1EBE5A] text-white"
               >
-                <MessageCircle size={16} className="mr-2" />
+                <WhatsAppIcon size={16} className="mr-2" />
                 WhatsApp us instead
               </Button>
             </a>
@@ -355,9 +355,9 @@ export default function BirthdayPage() {
           <a href={whatsappBirthdayLink()} target="_blank" rel="noopener noreferrer">
             <Button
               size="lg"
-              className="bg-green-500 hover:bg-green-600 text-white"
+              className="bg-[#25D366] hover:bg-[#1EBE5A] text-white"
             >
-              <MessageCircle size={16} className="mr-2" />
+              <WhatsAppIcon size={16} className="mr-2" />
               WhatsApp our party team
             </Button>
           </a>
@@ -476,9 +476,9 @@ function PackageCard({
         >
           <Button
             variant="outline"
-            className="w-full border-green-500/40 text-green-400 hover:bg-green-500/10"
+            className="w-full border-[#25D366]/50 text-[#25D366] hover:bg-[#25D366]/10 hover:text-[#25D366]"
           >
-            <MessageCircle size={14} className="mr-2" />
+            <WhatsAppIcon size={14} className="mr-2" />
             WhatsApp about this package
           </Button>
         </a>

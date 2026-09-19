@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { MapPin, Phone, Mail, Clock, MessageCircle } from "lucide-react";
+import { MapPin, Phone, Mail, Clock } from "lucide-react";
 import { InstagramIcon } from "@/components/icons/InstagramIcon";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import {
   PHONE_DISPLAY,
   WHATSAPP_NUMBER,
@@ -48,9 +49,9 @@ export function Footer() {
                 href={whatsappCorporateLink()}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/30 text-sm text-primary hover:bg-primary/20 transition-colors"
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#25D366] hover:bg-[#1EBE5A] text-white text-sm font-medium transition-colors"
               >
-                <MessageCircle size={16} />
+                <WhatsAppIcon size={16} />
                 WhatsApp
               </a>
               <a
@@ -58,7 +59,7 @@ export function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`Instagram ${INSTAGRAM_HANDLE}`}
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary/50 border border-white/10 text-sm text-muted-foreground hover:text-primary hover:border-primary/30 transition-colors"
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 hover:opacity-90 text-white text-sm font-medium transition-opacity"
               >
                 <InstagramIcon size={16} />
                 Instagram
