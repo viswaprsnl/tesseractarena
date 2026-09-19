@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Phone, X, CheckCircle2, Loader2 } from "lucide-react";
+import { Phone, X, CheckCircle2, Loader2, Gamepad2 } from "lucide-react";
 
 export function CallbackButton() {
   const [open, setOpen] = useState(false);
@@ -94,15 +95,29 @@ export function CallbackButton() {
                 <div className="text-center py-6">
                   <CheckCircle2 size={56} className="mx-auto mb-4 text-primary" />
                   <h3 className="text-xl font-bold mb-2">Got it!</h3>
-                  <p className="text-sm text-muted-foreground mb-6">
+                  <p className="text-sm text-muted-foreground mb-2">
                     Our manager will call you back shortly. Thanks for reaching out!
                   </p>
-                  <button
-                    onClick={reset}
-                    className="px-6 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium transition-colors"
-                  >
-                    Done
-                  </button>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    While you wait, take a look at our games &mdash; there&apos;s
+                    something for every group.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                    <Link
+                      href="/games"
+                      onClick={reset}
+                      className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium transition-colors glow-violet"
+                    >
+                      <Gamepad2 size={16} />
+                      Take a look at our games
+                    </Link>
+                    <button
+                      onClick={reset}
+                      className="px-5 py-2.5 rounded-lg border border-white/10 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+                    >
+                      Done
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <>
