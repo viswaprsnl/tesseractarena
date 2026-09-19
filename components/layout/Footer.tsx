@@ -1,6 +1,14 @@
 import Link from "next/link";
 import { MapPin, Phone, Mail, Clock, MessageCircle } from "lucide-react";
-import { PHONE_DISPLAY, WHATSAPP_NUMBER, CONTACT_EMAIL, whatsappCorporateLink } from "@/lib/contact";
+import { InstagramIcon } from "@/components/icons/InstagramIcon";
+import {
+  PHONE_DISPLAY,
+  WHATSAPP_NUMBER,
+  CONTACT_EMAIL,
+  INSTAGRAM_URL,
+  INSTAGRAM_HANDLE,
+  whatsappCorporateLink,
+} from "@/lib/contact";
 
 const quickLinks = [
   { href: "/", label: "Home" },
@@ -35,15 +43,27 @@ export function Footer() {
               India&apos;s first multi-title free-roam VR arena. Premium
               Anvio and HeroZone experiences for groups of up to 8 players.
             </p>
-            <a
-              href={whatsappCorporateLink()}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/30 text-sm text-primary hover:bg-primary/20 transition-colors"
-            >
-              <MessageCircle size={16} />
-              WhatsApp us
-            </a>
+            <div className="flex flex-wrap gap-2">
+              <a
+                href={whatsappCorporateLink()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/30 text-sm text-primary hover:bg-primary/20 transition-colors"
+              >
+                <MessageCircle size={16} />
+                WhatsApp
+              </a>
+              <a
+                href={INSTAGRAM_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Instagram ${INSTAGRAM_HANDLE}`}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary/50 border border-white/10 text-sm text-muted-foreground hover:text-primary hover:border-primary/30 transition-colors"
+              >
+                <InstagramIcon size={16} />
+                Instagram
+              </a>
+            </div>
           </div>
 
           {/* Quick Links */}

@@ -5,6 +5,8 @@
 export const WHATSAPP_NUMBER = "919908116444";
 export const PHONE_DISPLAY = "+91 99081 16444";
 export const CONTACT_EMAIL = "admin@tesseractarena.com";
+export const INSTAGRAM_HANDLE = "@tesseractarena";
+export const INSTAGRAM_URL = "https://instagram.com/tesseractarena";
 
 // Pre-filled WhatsApp link for corporate / large-group enquiries. Same
 // wa.me pattern as the birthday CTA but with a corporate-flavored message

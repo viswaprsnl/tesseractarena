@@ -1,16 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ComponentType } from "react";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { MapPin, Phone, Mail, Clock, CheckCircle2, MessageCircle } from "lucide-react";
+import { InstagramIcon } from "@/components/icons/InstagramIcon";
 import { Button } from "@/components/ui/button";
 import {
   PHONE_DISPLAY,
   WHATSAPP_NUMBER,
   CONTACT_EMAIL,
+  INSTAGRAM_URL,
+  INSTAGRAM_HANDLE,
   whatsappCorporateLink,
 } from "@/lib/contact";
 import { Input } from "@/components/ui/input";
@@ -28,7 +31,7 @@ const contactSchema = z.object({
 type ContactForm = z.infer<typeof contactSchema>;
 
 const contactInfo: {
-  icon: typeof MapPin;
+  icon: ComponentType<{ size?: number; className?: string }>;
   label: string;
   value: string;
   href?: string;
@@ -36,6 +39,7 @@ const contactInfo: {
   { icon: MapPin, label: "Address", value: "Preston Prime Mall, Lumbini Avenue, Gachibowli, Hyderabad 500032" },
   { icon: Phone, label: "Phone", value: PHONE_DISPLAY, href: `tel:+${WHATSAPP_NUMBER}` },
   { icon: Mail, label: "Email", value: CONTACT_EMAIL, href: `mailto:${CONTACT_EMAIL}` },
+  { icon: InstagramIcon, label: "Instagram", value: INSTAGRAM_HANDLE, href: INSTAGRAM_URL },
   { icon: Clock, label: "Hours", value: "Mon-Fri: 11AM - 10PM · Sat-Sun: 10AM - 10PM" },
 ];
 
@@ -210,6 +214,9 @@ export default function ContactPage() {
                     {item.href ? (
                       <a
                         href={item.href}
+                        {...(item.href.startsWith("http")
+                          ? { target: "_blank", rel: "noopener noreferrer" }
+                          : {})}
                         className="text-sm text-primary hover:underline"
                       >
                         {item.value}
