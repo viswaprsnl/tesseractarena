@@ -6,22 +6,17 @@ import { toZonedTime } from "date-fns-tz";
 import {
   Phone,
   CheckCircle2,
-  RotateCcw,
   Loader2,
   RefreshCw,
   Clock,
-  Info,
-  PhoneOff,
-  XCircle,
-  Trophy,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 
-// Resolution outcomes we surface on the admin dashboard. Values MUST
-// match the server's CallbackOutcome union so the round-trip through the
-// sheet stays clean.
+// Callback outcomes we surface on the admin dashboard. Values match the
+// server's CallbackOutcome union so the round-trip through the sheet
+// stays clean. "addressed" is a legacy value (from the previous version
+// of this route) — treated as "Booked" for display so old rows still
+// render meaningfully.
 type Outcome = "pending" | "booked" | "enquiry" | "no_answer" | "not_now" | "addressed";
 type ResolvedOutcome = Exclude<Outcome, "pending">;
 
@@ -34,8 +29,6 @@ interface CallbackRow {
   addressedAt: string;
 }
 
-// Human-readable timestamp anchored to Asia/Kolkata so the admin sees IST
-// regardless of their device clock. Empty input → em-dash.
 function formatIST(iso: string): string {
   if (!iso) return "—";
   try {
@@ -47,67 +40,59 @@ function formatIST(iso: string): string {
   }
 }
 
-// Strip non-digits so the country code the callback form prepends still
-// works with tel:/wa.me. Falls back to the raw string if the digit-only
-// form is too short to be a real phone number.
 function normalizePhone(raw: string): string {
   const digits = raw.replace(/[^\d]/g, "");
   return digits.length >= 10 ? digits : raw;
 }
 
-// Metadata for each resolution outcome — label, badge color, icon.
-// Ordered as the 4 buttons appear in the resolve popover.
-const RESOLVE_OPTIONS: {
-  outcome: ResolvedOutcome;
+// The 5-way dropdown the staff picks from. First entry is the default
+// state a fresh row lands in (raised by /api/callback), the remaining
+// four are the outcome buckets. "addressed" is not in the picker — it
+// only exists to render legacy rows, and picking a real outcome will
+// migrate the row to one of the four modern buckets.
+const STATUS_OPTIONS: {
+  value: Outcome;
   label: string;
-  icon: typeof Trophy;
-  badgeClass: string;
-  buttonClass: string;
+  className: string;
 }[] = [
   {
-    outcome: "booked",
+    value: "pending",
+    label: "Callback",
+    className: "bg-amber-500/20 text-amber-400 border-amber-500/40",
+  },
+  {
+    value: "booked",
     label: "Booked",
-    icon: Trophy,
-    badgeClass: "bg-green-500/20 text-green-400",
-    buttonClass: "bg-green-500/15 text-green-400 hover:bg-green-500/25",
+    className: "bg-green-500/20 text-green-400 border-green-500/40",
   },
   {
-    outcome: "enquiry",
+    value: "enquiry",
     label: "Enquiry",
-    icon: Info,
-    badgeClass: "bg-blue-500/20 text-blue-400",
-    buttonClass: "bg-blue-500/15 text-blue-400 hover:bg-blue-500/25",
+    className: "bg-blue-500/20 text-blue-400 border-blue-500/40",
   },
   {
-    outcome: "no_answer",
+    value: "no_answer",
     label: "No answer",
-    icon: PhoneOff,
-    badgeClass: "bg-amber-500/20 text-amber-400",
-    buttonClass: "bg-amber-500/15 text-amber-400 hover:bg-amber-500/25",
+    className: "bg-orange-500/20 text-orange-400 border-orange-500/40",
   },
   {
-    outcome: "not_now",
+    value: "not_now",
     label: "Not now",
-    icon: XCircle,
-    badgeClass: "bg-muted/30 text-muted-foreground",
-    buttonClass: "bg-secondary/60 text-muted-foreground hover:bg-secondary",
+    className: "bg-muted/40 text-muted-foreground border-white/10",
   },
 ];
 
-// Legacy rows (pre-outcome-buckets) render as a neutral "Addressed" badge
-// so the admin still sees they were handled even without a specific
-// outcome. Same category is chosen when status arrives unrecognized.
-function badgeFor(status: Outcome): { label: string; className: string } {
-  if (status === "pending") {
-    return { label: "Pending", className: "bg-amber-500/20 text-amber-400" };
-  }
+// Pick the tailwind class that colors the status pill matching the
+// current option. Legacy "addressed" is displayed as "Booked" style
+// (green) — same reasoning as the enum comment above.
+function classFor(status: Outcome): string {
   if (status === "addressed") {
-    return { label: "Addressed", className: "bg-green-500/20 text-green-400" };
+    return "bg-green-500/20 text-green-400 border-green-500/40";
   }
-  const match = RESOLVE_OPTIONS.find((o) => o.outcome === status);
-  return match
-    ? { label: match.label, className: match.badgeClass }
-    : { label: status, className: "bg-secondary text-muted-foreground" };
+  return (
+    STATUS_OPTIONS.find((o) => o.value === status)?.className ??
+    "bg-muted/30 text-muted-foreground border-white/10"
+  );
 }
 
 export function CallbacksTab({ pin }: { pin: string }) {
@@ -116,9 +101,6 @@ export function CallbacksTab({ pin }: { pin: string }) {
   const [updating, setUpdating] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showResolved, setShowResolved] = useState(false);
-  // Which row currently has its "resolve" chooser open. Only one at a
-  // time so the layout doesn't shift with multiple expanded pickers.
-  const [resolvingRow, setResolvingRow] = useState<number | null>(null);
 
   const fetchCallbacks = useCallback(async () => {
     setLoading(true);
@@ -141,46 +123,26 @@ export function CallbacksTab({ pin }: { pin: string }) {
     fetchCallbacks();
   }, [fetchCallbacks]);
 
-  const resolveCallback = async (
-    row: CallbackRow,
-    outcome: ResolvedOutcome
-  ) => {
+  // Single mutation entry point — the dropdown handler decides whether
+  // to resolve (writes outcome + timestamp) or reopen (clears them).
+  const changeStatus = async (row: CallbackRow, next: Outcome) => {
+    if (next === row.status) return;
     setUpdating(row.rowIndex);
+    setError(null);
     try {
+      const body =
+        next === "pending"
+          ? { pin, action: "reopen", rowIndex: row.rowIndex }
+          : {
+              pin,
+              action: "resolve",
+              rowIndex: row.rowIndex,
+              outcome: next as ResolvedOutcome,
+            };
       const res = await fetch("/api/admin/callbacks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pin,
-          action: "resolve",
-          rowIndex: row.rowIndex,
-          outcome,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setResolvingRow(null);
-        await fetchCallbacks();
-      } else {
-        setError(data.error || "Failed to update callback");
-      }
-    } catch {
-      setError("Failed to update callback");
-    }
-    setUpdating(null);
-  };
-
-  const reopenCallback = async (row: CallbackRow) => {
-    setUpdating(row.rowIndex);
-    try {
-      const res = await fetch("/api/admin/callbacks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pin,
-          action: "reopen",
-          rowIndex: row.rowIndex,
-        }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (res.ok && data.success) {
@@ -200,11 +162,16 @@ export function CallbacksTab({ pin }: { pin: string }) {
     ? callbacks
     : callbacks.filter((c) => c.status === "pending");
 
-  // Small tally of each outcome for the summary row.
-  const byOutcome = RESOLVE_OPTIONS.map((opt) => ({
-    ...opt,
-    count: callbacks.filter((c) => c.status === opt.outcome).length,
-  }));
+  // Tally by outcome (excluding pending, since that's the primary
+  // "Pending" tile). Shown only once at least one row has been resolved.
+  const byOutcome = STATUS_OPTIONS.filter((o) => o.value !== "pending").map(
+    (opt) => ({
+      ...opt,
+      count: callbacks.filter(
+        (c) => c.status === opt.value || (opt.value === "booked" && c.status === "addressed")
+      ).length,
+    })
+  );
 
   return (
     <div>
@@ -248,15 +215,14 @@ export function CallbacksTab({ pin }: { pin: string }) {
         </div>
       </div>
 
-      {/* Outcome tally — only shown when there are any resolved callbacks */}
+      {/* Outcome tally — only shown when there are any resolved rows */}
       {resolvedCount > 0 && (
         <div className="flex flex-wrap gap-2 mb-6 text-xs">
           {byOutcome.map((o) => (
             <span
-              key={o.outcome}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full ${o.badgeClass}`}
+              key={o.value}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${o.className}`}
             >
-              <o.icon size={11} />
               {o.label}: {o.count}
             </span>
           ))}
@@ -285,13 +251,13 @@ export function CallbacksTab({ pin }: { pin: string }) {
         </div>
       ) : (
         <div className="glass-card overflow-hidden">
-          {/* Table header — desktop only */}
-          <div className="hidden md:grid grid-cols-[1.3fr_1fr_1.3fr_0.7fr_1.9fr] gap-3 px-4 py-3 border-b border-white/10 text-[10px] uppercase tracking-wider text-muted-foreground">
+          {/* Table header — desktop only. No separate Actions column;
+              the phone is tap-to-call inline and Status is a dropdown. */}
+          <div className="hidden md:grid grid-cols-[1.3fr_1fr_1.5fr_1fr] gap-3 px-4 py-3 border-b border-white/10 text-[10px] uppercase tracking-wider text-muted-foreground">
             <div>Requested</div>
             <div>Name</div>
             <div>Phone</div>
             <div>Status</div>
-            <div className="text-right">Actions</div>
           </div>
 
           <div className="divide-y divide-white/5">
@@ -299,12 +265,10 @@ export function CallbacksTab({ pin }: { pin: string }) {
               const isBusy = updating === cb.rowIndex;
               const digits = normalizePhone(cb.phone);
               const isPending = cb.status === "pending";
-              const isResolving = resolvingRow === cb.rowIndex;
-              const badge = badgeFor(cb.status);
               return (
                 <div
                   key={cb.rowIndex}
-                  className={`grid grid-cols-1 md:grid-cols-[1.3fr_1fr_1.3fr_0.7fr_1.9fr] gap-3 px-4 py-3 items-start md:items-center ${
+                  className={`grid grid-cols-1 md:grid-cols-[1.3fr_1fr_1.5fr_1fr] gap-3 px-4 py-3 items-start md:items-center ${
                     isPending ? "" : "opacity-80"
                   }`}
                 >
@@ -338,93 +302,61 @@ export function CallbacksTab({ pin }: { pin: string }) {
                     </p>
                   </div>
 
-                  {/* Phone */}
+                  {/* Phone — tap-to-call anchor with a small WhatsApp icon
+                      link inline. No separate action column. */}
                   <div>
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider md:hidden mb-0.5">
                       Phone
                     </p>
-                    <p className="text-sm font-mono">{cb.phone}</p>
-                  </div>
-
-                  {/* Status */}
-                  <div>
-                    <Badge className={`${badge.className} text-[10px]`}>
-                      {badge.label}
-                    </Badge>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex flex-wrap gap-2 md:justify-end">
-                    <a
-                      href={`tel:+${digits}`}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-xs"
-                    >
-                      <Phone size={12} />
-                      Call
-                    </a>
-                    <a
-                      href={`https://wa.me/${digits}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#25D366]/20 text-[#25D366] hover:bg-[#25D366]/30 transition-colors text-xs"
-                    >
-                      <WhatsAppIcon size={12} />
-                      WhatsApp
-                    </a>
-
-                    {isPending ? (
-                      isResolving ? (
-                        // Inline picker — click an outcome to write it to
-                        // the sheet, or Cancel to fold the picker back.
-                        <div className="flex flex-wrap gap-1.5 items-center">
-                          {RESOLVE_OPTIONS.map((opt) => (
-                            <button
-                              key={opt.outcome}
-                              onClick={() => resolveCallback(cb, opt.outcome)}
-                              disabled={isBusy}
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors text-xs disabled:opacity-50 ${opt.buttonClass}`}
-                            >
-                              <opt.icon size={12} />
-                              {opt.label}
-                            </button>
-                          ))}
-                          <button
-                            onClick={() => setResolvingRow(null)}
-                            disabled={isBusy}
-                            className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-foreground text-xs"
-                          >
-                            {isBusy && (
-                              <Loader2 size={12} className="animate-spin" />
-                            )}
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
-                        <Button
-                          onClick={() => setResolvingRow(cb.rowIndex)}
-                          size="sm"
-                          className="bg-primary/15 text-primary hover:bg-primary/25 h-auto py-1.5 px-2.5 text-xs"
-                        >
-                          <CheckCircle2 size={12} />
-                          Resolve
-                        </Button>
-                      )
-                    ) : (
-                      <Button
-                        onClick={() => reopenCallback(cb)}
-                        disabled={isBusy}
-                        variant="outline"
-                        size="sm"
-                        className="h-auto py-1.5 px-2.5 text-xs border-white/10 text-muted-foreground"
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={`tel:+${digits}`}
+                        className="text-sm font-mono text-primary hover:underline"
                       >
-                        {isBusy ? (
-                          <Loader2 size={12} className="animate-spin" />
-                        ) : (
-                          <RotateCcw size={12} />
-                        )}
-                        Reopen
-                      </Button>
-                    )}
+                        {cb.phone}
+                      </a>
+                      <a
+                        href={`https://wa.me/${digits}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Open WhatsApp chat"
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#25D366]/15 text-[#25D366] hover:bg-[#25D366]/30 transition-colors"
+                      >
+                        <WhatsAppIcon size={12} />
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Status — dropdown that writes to the sheet on change.
+                      Default option ("Callback") means the row is still
+                      pending; picking any other option resolves it. */}
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider md:hidden mb-0.5">
+                      Status
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={cb.status === "addressed" ? "booked" : cb.status}
+                        onChange={(e) =>
+                          changeStatus(cb, e.target.value as Outcome)
+                        }
+                        disabled={isBusy}
+                        className={`text-xs font-medium rounded-lg border px-2.5 py-1.5 outline-none cursor-pointer transition-colors disabled:opacity-50 ${classFor(cb.status)}`}
+                      >
+                        {STATUS_OPTIONS.map((opt) => (
+                          <option
+                            key={opt.value}
+                            value={opt.value}
+                            className="bg-background text-foreground"
+                          >
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                      {isBusy && (
+                        <Loader2 size={12} className="animate-spin text-muted-foreground" />
+                      )}
+                    </div>
                   </div>
                 </div>
               );
