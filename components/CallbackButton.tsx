@@ -95,12 +95,8 @@ export function CallbackButton() {
                 <div className="text-center py-6">
                   <CheckCircle2 size={56} className="mx-auto mb-4 text-primary" />
                   <h3 className="text-xl font-bold mb-2">Got it!</h3>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Our manager will call you back shortly. Thanks for reaching out!
-                  </p>
                   <p className="text-sm text-muted-foreground mb-6">
-                    While you wait, take a look at our games &mdash; there&apos;s
-                    something for every group.
+                    We&apos;ll call you shortly. Meanwhile &mdash;
                   </p>
                   <div className="flex flex-col sm:flex-row gap-2 justify-center">
                     <Link
