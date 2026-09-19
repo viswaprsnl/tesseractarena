@@ -46,13 +46,18 @@ async function ensureSheet() {
   }
 }
 
-// GET — fetch all game statuses
+// GET — fetch all game statuses (admin dashboard view). Requires the
+// staff PIN. The customer-facing pages should fetch /api/games/status
+// instead, which returns a sanitized view of the same data without
+// admin-only fields like updatedAt.
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const pin = searchParams.get("pin");
     const adminPin = process.env.ADMIN_PIN || "1234";
-    const isAdmin = pin === adminPin;
+    if (pin !== adminPin) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     await ensureSheet();
 

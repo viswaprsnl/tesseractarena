@@ -509,7 +509,10 @@ export default function AdminPage() {
     setScheduleLoading(true);
     try {
       const [blockRes, slotsRes] = await Promise.all([
-        fetch(`/api/admin/schedule?date=${date}`),
+        // Schedule route is auth-gated — send the staff PIN so the request
+        // isn't rejected. Public slot data comes from /api/bookings/slots
+        // which does its own filtering against Schedule internally.
+        fetch(`/api/admin/schedule?date=${date}&pin=${encodeURIComponent(pin)}`),
         fetch(`/api/bookings/slots?date=${date}`),
       ]);
       const blockData = await blockRes.json();
@@ -520,7 +523,7 @@ export default function AdminPage() {
       // Silently fail
     }
     setScheduleLoading(false);
-  }, []);
+  }, [pin]);
 
   const scheduleAction = async (action: string, slots?: string[], reason?: string) => {
     setScheduleLoading(true);

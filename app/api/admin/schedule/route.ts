@@ -45,10 +45,20 @@ async function ensureSheet() {
   }
 }
 
-// GET — fetch schedule blocks for a date range
+// GET — fetch schedule blocks for a date range. Requires the staff
+// PIN — the block reasons are internal ("manager offsite", "private
+// event", etc.) and the list of open dates is competitive info. The
+// public bookings/slots endpoint reads schedule data directly and
+// filters at the source, so nothing customer-facing depends on this
+// route being public.
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+    const pin = searchParams.get("pin");
+    const adminPin = process.env.ADMIN_PIN || "1234";
+    if (pin !== adminPin) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const date = searchParams.get("date");
 
     await ensureSheet();

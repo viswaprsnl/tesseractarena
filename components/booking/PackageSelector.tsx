@@ -93,7 +93,7 @@ export function PackageSelector({
 
   // Live-status fetch runs once. Failure falls back to the raw game list.
   useEffect(() => {
-    fetch("/api/admin/games")
+    fetch("/api/games/status")
       .then((r) => r.json())
       .then((d) => { if (d.statuses) setGameStatuses(d.statuses); })
       .catch(() => {});

@@ -116,7 +116,7 @@ export default function GamesPage() {
   const [customGames, setCustomGames] = useState<Game[]>([]);
 
   useEffect(() => {
-    fetch("/api/admin/games")
+    fetch("/api/games/status")
       .then((res) => res.json())
       .then((data) => {
         if (data.statuses) setGameStatuses(data.statuses);
