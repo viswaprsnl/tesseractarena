@@ -108,13 +108,9 @@ export const BIRTHDAY_ADDONS: BirthdayAddon[] = [
     unit: "per-kid",
     description: "Take-home goodie bag for each kid.",
   },
-  {
-    id: "photographer",
-    label: "Professional photographer",
-    price: 3500,
-    unit: "flat",
-    description: "Dedicated photographer for the party window with edited photo highlights delivered within 48 hours.",
-  },
+  // Removed: "Professional photographer" add-on — pulled out until the
+  // photographer partnership is actually lined up so we don't offer
+  // something we can't deliver.
 ];
 
 // Percentage of package price collected as an online advance to hold the
