@@ -225,77 +225,114 @@ export default function KioskPage({
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
-          {/* Roster — left / main */}
-          <div>
-            <div className="mb-4 flex items-center justify-between">
+        {bookings.length === 0 && !loading ? (
+          // HERO empty-state — the whole screen becomes a walk-in
+          // billboard so someone glancing at the mounted tab from two
+          // meters away can still scan. Snaps back to the compact
+          // sidebar layout below the moment any booking exists for today.
+          <div className="max-w-3xl mx-auto pt-4 pb-16">
+            <div className="flex items-center justify-between mb-6">
               <h2 className="font-heading text-2xl font-bold">Check-in</h2>
               <p className="text-xs text-muted-foreground">
-                Tap a booking to open the waiver QR
+                No bookings for today yet
               </p>
             </div>
 
-            {bookings.length === 0 && !loading ? (
-              <div className="glass-card p-8 text-center text-muted-foreground">
-                <p className="text-sm">
-                  No bookings for today yet. Walk-ins can book below.
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {bookings.map((b) => (
-                  <BookingTile key={b.bookingId} booking={b} />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Walk-in CTAs — right / sidebar. QR is the primary path
-              (Sandbox pattern: customers scan and book on their own phone
-              so no keyboard input on the shared tablet screen), tablet
-              tap-through stays as a fallback for anyone whose phone camera
-              can't scan or who'd rather use the tab keyboard. */}
-          <div className="space-y-4">
-            <div className="glass-card p-5 border-primary/30 text-center">
-              <p className="font-heading text-base font-bold mb-1">
+            <div className="glass-card p-8 sm:p-12 border-primary/30 text-center glow-violet">
+              <p className="font-heading text-3xl sm:text-4xl font-bold mb-3">
                 Walk in? Scan to book
               </p>
-              <p className="text-[11px] text-muted-foreground mb-4">
+              <p className="text-sm text-muted-foreground mb-8 max-w-md mx-auto">
                 Point your phone camera at the code and finish the
                 booking on your own device.
               </p>
-              <div className="rounded-xl bg-black p-4 flex items-center justify-center mb-3">
+              <div className="rounded-2xl bg-black p-8 inline-flex items-center justify-center mb-4">
                 <div
-                  className="w-44 h-44"
+                  className="w-72 h-72 sm:w-80 sm:h-80"
                   // Server-rendered SVG string from qrcode; safe to inject
                   // because the value is generated locally with no user input.
                   dangerouslySetInnerHTML={{ __html: walkInQrSvg }}
                 />
               </div>
-              <p className="text-[10px] text-muted-foreground/70 break-all">
+              <p className="text-xs text-muted-foreground/70 mb-6 break-all">
                 {walkInBookingUrl.replace(/^https?:\/\//, "")}
               </p>
+              <Link
+                href="/book?kiosk=1"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-secondary/50 border border-white/10 text-sm text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
+              >
+                <Plus size={14} className="text-primary" />
+                Or book on the tab
+                <ArrowRight size={12} />
+              </Link>
+            </div>
+          </div>
+        ) : (
+          // Roster + compact sidebar — active mode. The QR is still
+          // visible so a walk-in can scan while another group is being
+          // checked in on the left.
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+            {/* Roster — left / main */}
+            <div>
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="font-heading text-2xl font-bold">Check-in</h2>
+                <p className="text-xs text-muted-foreground">
+                  Tap a booking to open the waiver QR
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {bookings.map((b) => (
+                  <BookingTile key={b.bookingId} booking={b} />
+                ))}
+              </div>
             </div>
 
-            <Link
-              href="/book?kiosk=1"
-              className="glass-card p-4 border-white/10 hover:border-primary/40 transition-colors flex items-center gap-3"
-            >
-              <div className="w-10 h-10 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0">
-                <Plus size={18} className="text-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-heading text-sm font-bold">
-                  Or book on the tab
+            {/* Walk-in CTAs — right / sidebar. QR is the primary path
+                (Sandbox pattern: customers scan and book on their own phone
+                so no keyboard input on the shared tablet screen), tablet
+                tap-through stays as a fallback for anyone whose phone camera
+                can't scan or who'd rather use the tab keyboard. */}
+            <div className="space-y-4">
+              <div className="glass-card p-5 border-primary/30 text-center">
+                <p className="font-heading text-base font-bold mb-1">
+                  Walk in? Scan to book
                 </p>
-                <p className="text-[11px] text-muted-foreground">
-                  Fallback if the phone camera won&apos;t scan
+                <p className="text-[11px] text-muted-foreground mb-4">
+                  Point your phone camera at the code and finish the
+                  booking on your own device.
+                </p>
+                <div className="rounded-xl bg-black p-4 flex items-center justify-center mb-3">
+                  <div
+                    className="w-44 h-44"
+                    dangerouslySetInnerHTML={{ __html: walkInQrSvg }}
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground/70 break-all">
+                  {walkInBookingUrl.replace(/^https?:\/\//, "")}
                 </p>
               </div>
-              <ArrowRight size={16} className="text-primary shrink-0" />
-            </Link>
+
+              <Link
+                href="/book?kiosk=1"
+                className="glass-card p-4 border-white/10 hover:border-primary/40 transition-colors flex items-center gap-3"
+              >
+                <div className="w-10 h-10 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0">
+                  <Plus size={18} className="text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-heading text-sm font-bold">
+                    Or book on the tab
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Fallback if the phone camera won&apos;t scan
+                  </p>
+                </div>
+                <ArrowRight size={16} className="text-primary shrink-0" />
+              </Link>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
