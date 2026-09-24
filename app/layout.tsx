@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { Orbitron, Inter } from "next/font/google";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
+import { SiteChrome } from "@/components/layout/SiteChrome";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { CallbackButton } from "@/components/CallbackButton";
 import "./globals.css";
 
 const orbitron = Orbitron({
@@ -162,10 +160,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen flex flex-col">
         <ThemeProvider>
-          <Navbar />
-          <main className="flex-1">{children}</main>
-          <Footer />
-          <CallbackButton />
+          <SiteChrome>{children}</SiteChrome>
         </ThemeProvider>
       </body>
     </html>
