@@ -130,14 +130,24 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST — admin actions on a booking. Currently: mark the counter balance
-// as collected (customer paid the remainder in cash/UPI at the arena).
-// Body: { pin, action: "mark_balance_paid", bookingId }
+// POST — admin actions on a booking. Actions:
+//   { pin, action: "mark_balance_paid", bookingId }
+//   { pin, action: "apply_discount",   bookingId, discountType, discountValue, reason? }
+//   { pin, action: "clear_discount",   bookingId }
+//
+// Auth model:
+//   - Staff PIN allows mark_balance_paid, clear_discount, and
+//     apply_discount up to 20% (percent) OR equivalent flat rupees.
+//   - Owner PIN is required for anything > 20% — protects against a rep
+//     accidentally (or knowingly) giving away half the ticket.
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const adminPin = process.env.ADMIN_PIN || "1234";
-    if (body.pin !== adminPin) {
+    const staffPin = process.env.ADMIN_PIN || "1234";
+    const ownerPin = process.env.OWNER_PIN;
+    const isStaff = body.pin === staffPin;
+    const isOwner = !!ownerPin && body.pin === ownerPin;
+    if (!isStaff && !isOwner) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const { action, bookingId } = body;
@@ -160,6 +170,110 @@ export async function POST(request: NextRequest) {
       await updateBookingCells(hit.rowIndex, {
         amountPaid: String(hit.booking.amount),
         balanceDue: "0",
+      });
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "apply_discount") {
+      if (hit.booking.status === "cancelled") {
+        return NextResponse.json(
+          { error: "Cannot discount a cancelled booking" },
+          { status: 400 }
+        );
+      }
+      const discountType = body.discountType;
+      const discountValue = Number(body.discountValue);
+      const reason = (body.reason || "").toString().slice(0, 200);
+      if (
+        (discountType !== "percent" && discountType !== "flat") ||
+        !Number.isFinite(discountValue) ||
+        discountValue <= 0
+      ) {
+        return NextResponse.json(
+          { error: "discountType (percent|flat) and positive discountValue required" },
+          { status: 400 }
+        );
+      }
+      // Rupees off the CURRENT ex-GST amount. Percent discounts round to
+      // the nearest rupee so the balance is a clean number at the counter.
+      const currentAmount = hit.booking.amount;
+      const repDiscount =
+        discountType === "percent"
+          ? Math.round((currentAmount * discountValue) / 100)
+          : Math.round(discountValue);
+      if (repDiscount >= currentAmount) {
+        return NextResponse.json(
+          { error: "Discount can't exceed the outstanding amount" },
+          { status: 400 }
+        );
+      }
+      // Owner-pin gate: anything >20% (or a flat ₹ that lands >20%) needs
+      // the owner. Staff can't nudge this by picking flat instead of %.
+      const effectivePct = (repDiscount / currentAmount) * 100;
+      if (effectivePct > 20 && !isOwner) {
+        return NextResponse.json(
+          {
+            error: "Owner PIN required for discounts over 20%",
+            requiresOwnerPin: true,
+          },
+          { status: 403 }
+        );
+      }
+
+      const newAmount = currentAmount - repDiscount;
+      // GST recomputes on the new post-discount amount so the customer's
+      // final bill (amount × 1.18) reflects the discount too.
+      const newGstAmount = Math.round((newAmount * 18) / 100);
+      const newDiscountAmount = hit.booking.discountAmount + repDiscount;
+      const newBalanceDue = Math.max(0, newAmount - hit.booking.amountPaid);
+      // Audit line appended to specialRequests so the discount trail is
+      // visible next to the booking without a schema change. Reason (if
+      // given) and effective % are logged.
+      const nowIST = new Date()
+        .toLocaleString("en-CA", { timeZone: "Asia/Kolkata" })
+        .replace(",", "");
+      const note = `[${nowIST} · ${isOwner ? "owner" : "staff"} discount ${effectivePct.toFixed(1)}% / ₹${repDiscount}${reason ? " · " + reason : ""}]`;
+      const nextSpecial = (hit.booking.specialRequests || "")
+        + (hit.booking.specialRequests ? " " : "")
+        + note;
+
+      await updateBookingCells(hit.rowIndex, {
+        amount: String(newAmount),
+        gstAmount: String(newGstAmount),
+        discountAmount: String(newDiscountAmount),
+        balanceDue: String(newBalanceDue),
+        specialRequests: nextSpecial,
+      });
+      return NextResponse.json({
+        success: true,
+        discountApplied: repDiscount,
+        newAmount,
+        newBalanceDue,
+      });
+    }
+
+    if (action === "clear_discount") {
+      // Undo the rep-applied discount by restoring the ORIGINAL pre-any-
+      // discount amount = current amount + discountAmount. Rewrites the
+      // downstream GST + balance. Site-wide promo discounts stored at
+      // booking creation are lost this way — which is the intended
+      // "clear everything" behavior. Caller can re-add if needed.
+      const originalAmount = hit.booking.amount + hit.booking.discountAmount;
+      const originalGst = Math.round((originalAmount * 18) / 100);
+      const newBalance = Math.max(0, originalAmount - hit.booking.amountPaid);
+      const nowIST = new Date()
+        .toLocaleString("en-CA", { timeZone: "Asia/Kolkata" })
+        .replace(",", "");
+      const note = `[${nowIST} · ${isOwner ? "owner" : "staff"} cleared discount]`;
+      const nextSpecial = (hit.booking.specialRequests || "")
+        + (hit.booking.specialRequests ? " " : "")
+        + note;
+      await updateBookingCells(hit.rowIndex, {
+        amount: String(originalAmount),
+        gstAmount: String(originalGst),
+        discountAmount: "0",
+        balanceDue: String(newBalance),
+        specialRequests: nextSpecial,
       });
       return NextResponse.json({ success: true });
     }

@@ -37,6 +37,7 @@ import { allGames, availableGames, comingSoonGames, type Game, type GameCategory
 import { formatDiscountBadge, type Discount, type DiscountScope, type DiscountType } from "@/lib/discount-config";
 import { RevenueTab } from "@/components/admin/RevenueTab";
 import { WalkinLogger } from "@/components/admin/WalkinLogger";
+import { DiscountModal } from "@/components/admin/DiscountModal";
 import { CallbacksTab } from "@/components/admin/CallbacksTab";
 
 type GameStatus = "available" | "unavailable" | "coming_soon" | "maintenance";
@@ -334,6 +335,10 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [markingPaid, setMarkingPaid] = useState<string | null>(null);
+  // Booking currently being discounted — non-null value opens the
+  // discount modal, `null` closes it. Stored as the full row so the
+  // modal can render the before/after preview without a re-fetch.
+  const [discountModal, setDiscountModal] = useState<BookingRow | null>(null);
   const [error, setError] = useState("");
   const [waiverCheck, setWaiverCheck] = useState<Record<string, boolean | null>>({});
   const [activeTab, setActiveTab] = useState<"bookings" | "games" | "services" | "schedule" | "discounts" | "revenue" | "callbacks">("bookings");
@@ -1766,6 +1771,16 @@ export default function AdminPage() {
                       <div className="flex flex-col sm:flex-row gap-2 shrink-0">
                         {booking.balanceDue > 0 && (
                           <Button
+                            onClick={() => setDiscountModal(booking)}
+                            variant="outline"
+                            className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10 text-xs"
+                          >
+                            <Tag size={14} className="mr-1" />
+                            Apply discount
+                          </Button>
+                        )}
+                        {booking.balanceDue > 0 && (
+                          <Button
                             onClick={() => markBalancePaid(booking.bookingId)}
                             disabled={markingPaid === booking.bookingId}
                             variant="outline"
@@ -1830,6 +1845,20 @@ export default function AdminPage() {
         )}
         </>}
       </div>
+
+      {/* Rep-applied discount modal — opened per booking from the
+          bookings tab. Sits at page root so the framer-motion overlay
+          renders above the tab content without any z-index gymnastics. */}
+      {discountModal && (
+        <DiscountModal
+          booking={discountModal}
+          staffPin={pin}
+          ownerAuthed={ownerAuthed}
+          ownerPin={ownerPin}
+          onClose={() => setDiscountModal(null)}
+          onApplied={() => fetchBookings(selectedDate, pin)}
+        />
+      )}
     </div>
   );
 }

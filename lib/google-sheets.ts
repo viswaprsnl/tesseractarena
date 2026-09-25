@@ -164,6 +164,11 @@ export async function updateBookingCells(
     paymentStatus: "K",
     razorpayOrderId: "M",
     razorpayPaymentId: "N",
+    // amount is the ex-GST session cost — needed here so rep-applied
+    // discounts on the admin bookings tab can rewrite it (and gstAmount
+    // right below) without having to rewrite the whole row.
+    amount: "O",
+    specialRequests: "P",
     status: "R",
     amountPaid: "S",
     balanceDue: "T",
