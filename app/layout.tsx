@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Orbitron, Inter } from "next/font/google";
 import { SiteChrome } from "@/components/layout/SiteChrome";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 import "./globals.css";
 
 const orbitron = Orbitron({
@@ -162,6 +163,15 @@ export default function RootLayout({
         <ThemeProvider>
           <SiteChrome>{children}</SiteChrome>
         </ThemeProvider>
+        {/* Google Analytics 4 — only mounts when the measurement ID is
+            set on the environment, so preview/dev builds without it
+            silently skip tracking. Staff routes (/admin, /kiosk) are
+            filtered inside the component. */}
+        {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
+          <GoogleAnalytics
+            measurementId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}
+          />
+        )}
       </body>
     </html>
   );
