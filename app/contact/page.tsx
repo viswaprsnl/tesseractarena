@@ -252,7 +252,12 @@ export default function ContactPage() {
               </a>
             </div>
 
-            {/* Google Map — click-to-load for performance */}
+            {/* Google Map — click-to-load for performance. Placeholder
+                shows a real static map of the venue's neighbourhood
+                (public/images/location-map.png — fetched once from a
+                free static-maps service and committed) so the card
+                reads as "map" from the first paint instead of a blank
+                gradient. Live iframe swaps in on tap. */}
             <div className="glass-card overflow-hidden h-[250px] relative">
               {mapLoaded ? (
                 <iframe
@@ -269,14 +274,35 @@ export default function ContactPage() {
               ) : (
                 <button
                   onClick={() => setMapLoaded(true)}
-                  className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/5 via-card/30 to-accent/5 hover:from-primary/10 hover:to-accent/10 transition-colors group cursor-pointer w-full"
+                  className="absolute inset-0 w-full group cursor-pointer overflow-hidden"
+                  aria-label="Load interactive map"
                 >
-                  <div className="text-center">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center mx-auto mb-2 transition-colors">
-                      <MapPin size={20} className="text-primary" />
+                  {/* Static map image as the base layer */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/images/location-map.png"
+                    alt="Map of Tesseract Arena in Gachibowli, Hyderabad"
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  {/* Dark violet overlay for legibility + theme match. Fades
+                      slightly on hover so the map peeks through more. */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/30 group-hover:from-background/90 group-hover:via-background/50 group-hover:to-background/20 transition-colors" />
+                  {/* Centre content */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
+                    <div className="w-14 h-14 rounded-full bg-primary/90 flex items-center justify-center mb-3 shadow-lg shadow-primary/40 group-hover:scale-110 transition-transform">
+                      <MapPin size={22} className="text-primary-foreground" />
                     </div>
-                    <p className="text-xs font-medium">Click to load map</p>
+                    <p className="font-heading text-base font-bold mb-0.5">
+                      Preston Prime Mall
+                    </p>
+                    <p className="text-[11px] text-muted-foreground max-w-xs">
+                      Lumbini Avenue · Gachibowli · Hyderabad 500032
+                    </p>
                   </div>
+                  {/* Bottom-right CTA pill */}
+                  <span className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-[11px] font-medium shadow-md group-hover:bg-primary/90 transition-colors">
+                    Tap to open interactive map →
+                  </span>
                 </button>
               )}
             </div>
