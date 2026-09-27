@@ -115,7 +115,10 @@ export function Location() {
             </div>
           </motion.div>
 
-          {/* Google Map — click-to-load for performance */}
+          {/* Google Map — click-to-load for performance. Placeholder
+              shows a real static map of the venue's neighbourhood so
+              the card reads as "map" from the first paint. Live iframe
+              swaps in on tap. Mirrors the /contact page treatment. */}
           <motion.div
             variants={fadeInUp}
             className="glass-card overflow-hidden min-h-[400px] relative"
@@ -135,17 +138,30 @@ export function Location() {
             ) : (
               <button
                 onClick={() => setMapLoaded(true)}
-                className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/5 via-card/30 to-accent/5 hover:from-primary/10 hover:to-accent/10 transition-colors group cursor-pointer w-full"
+                className="absolute inset-0 w-full group cursor-pointer overflow-hidden"
+                aria-label="Load interactive map"
               >
-                <div className="text-center">
-                  <div className="w-16 h-16 rounded-full bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center mx-auto mb-4 transition-colors">
-                    <MapPin size={28} className="text-primary" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/images/location-map.png"
+                  alt="Map of Tesseract Arena in Gachibowli, Hyderabad"
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/30 group-hover:from-background/90 group-hover:via-background/50 group-hover:to-background/20 transition-colors" />
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
+                  <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center mb-4 shadow-lg shadow-primary/40 group-hover:scale-110 transition-transform">
+                    <MapPin size={28} className="text-primary-foreground" />
                   </div>
-                  <p className="text-sm font-medium mb-1">Click to load map</p>
-                  <p className="text-xs text-muted-foreground">
-                    Preston Prime Mall, Gachibowli
+                  <p className="font-heading text-lg font-bold mb-1">
+                    Preston Prime Mall
+                  </p>
+                  <p className="text-xs text-muted-foreground max-w-xs">
+                    Lumbini Avenue · Gachibowli · Hyderabad 500032
                   </p>
                 </div>
+                <span className="absolute bottom-4 right-4 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-primary text-primary-foreground text-xs font-medium shadow-md group-hover:bg-primary/90 transition-colors">
+                  Tap to open interactive map →
+                </span>
               </button>
             )}
           </motion.div>
