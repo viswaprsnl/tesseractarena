@@ -3,6 +3,7 @@ import { z } from "zod";
 import { google } from "googleapis";
 import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
+import { NOTIFY_RECIPIENTS } from "@/lib/contact";
 
 const contactSchema = z.object({
   name: z.string().min(2).max(100),
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
       const resend = new Resend(process.env.RESEND_API_KEY);
       await resend.emails.send({
         from: "Tesseract Arena <bookings@tesseractarena.com>",
-        to: ["admin@tesseractarena.com"],
+        to: NOTIFY_RECIPIENTS,
         replyTo: email,
         subject: `[Contact] ${subject}`,
         html: `

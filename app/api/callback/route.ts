@@ -3,6 +3,7 @@ import { z } from "zod";
 import { google } from "googleapis";
 import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
+import { NOTIFY_RECIPIENTS } from "@/lib/contact";
 
 const callbackSchema = z.object({
   phone: z.string().min(8).max(20),
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
       const resend = new Resend(process.env.RESEND_API_KEY);
       await resend.emails.send({
         from: "Tesseract Arena <bookings@tesseractarena.com>",
-        to: ["admin@tesseractarena.com"],
+        to: NOTIFY_RECIPIENTS,
         subject: `Callback Request: ${phone}`,
         html: `
           <div style="font-family: Arial, sans-serif; padding: 20px;">

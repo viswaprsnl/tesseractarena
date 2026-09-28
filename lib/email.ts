@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { NOTIFY_RECIPIENTS } from "@/lib/contact";
 
 let resendInstance: Resend | null = null;
 
@@ -143,7 +144,7 @@ export async function sendBookingConfirmation(data: BookingEmailData): Promise<{
 export async function sendOwnerNotification(data: BookingEmailData): Promise<{ data: unknown; error: unknown }> {
   return await getResend().emails.send({
     from: "Tesseract Arena <bookings@tesseractarena.com>",
-    to: ["admin@tesseractarena.com"],
+    to: NOTIFY_RECIPIENTS,
     subject: `New Booking: ${data.bookingId} - ${data.customerName}`,
     html: `
       <div style="font-family: Arial, sans-serif; padding: 20px;">

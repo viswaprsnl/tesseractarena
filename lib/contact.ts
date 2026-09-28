@@ -8,6 +8,15 @@ export const CONTACT_EMAIL = "admin@tesseractarena.com";
 export const INSTAGRAM_HANDLE = "@tesseractarena";
 export const INSTAGRAM_URL = "https://instagram.com/tesseractarena";
 
+// Everyone who should be notified when a new booking / callback / contact
+// form comes in. Kept separate from CONTACT_EMAIL (which is
+// customer-facing signage on the site) so we can add branch inboxes
+// without changing what customers see. New arena inboxes go here.
+export const NOTIFY_RECIPIENTS = [
+  "admin@tesseractarena.com",
+  "arena-hyd01@tesseractarena.com",
+];
+
 // Pre-filled WhatsApp link for corporate / large-group enquiries. Same
 // wa.me pattern as the birthday CTA but with a corporate-flavored message
 // so the incoming lead is already tagged.
