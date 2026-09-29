@@ -42,6 +42,14 @@ const bookingSchema = z
     paymentMethod: z.enum(["razorpay", "pay_at_center"]),
     specialRequests: z.string().max(500).optional(),
     arenaId: z.string().optional().default("arena-1"),
+    // Optional coupon code the customer entered in the booking flow. When
+    // set, pickActiveDiscount considers coupon-gated campaigns matching
+    // this code — otherwise only auto-apply campaigns are considered.
+    couponCode: z
+      .string()
+      .max(24)
+      .regex(/^[A-Za-z0-9_-]*$/)
+      .optional(),
   })
   .refine(
     (data) => {
@@ -170,7 +178,13 @@ export async function POST(request: NextRequest) {
     let amount = basePrice;
     try {
       const discounts = await listDiscounts();
-      const active = pickActiveDiscount(discounts, data.date, data.package, basePrice);
+      const active = pickActiveDiscount(
+        discounts,
+        data.date,
+        data.package,
+        basePrice,
+        data.couponCode
+      );
       if (active) amount = applyDiscount(basePrice, active);
     } catch (err) {
       // Discount lookup failure should not block a booking — fall back to base.

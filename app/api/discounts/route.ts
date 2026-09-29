@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listDiscounts } from "@/lib/discount-sheets";
+import { hasCoupon } from "@/lib/discount-config";
 
-// Public endpoint used by the booking flow. Returns every discount that is
-// active AND in-window for the given session date; client-side code uses
-// pickActiveDiscount() to select the best one per package.
+// Public endpoint used by the booking flow. Returns every AUTO-APPLY
+// discount that is active AND in-window for the given session date;
+// client-side code uses pickActiveDiscount() to select the best one per
+// package. Coupon-gated discounts (those with a `code`) are deliberately
+// omitted so the codes never leak — customers redeem them through
+// /api/discounts/validate instead.
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -18,7 +22,13 @@ export async function GET(request: NextRequest) {
 
     const all = await listDiscounts();
     const applicable = all
-      .filter((d) => d.active && d.startsOn <= date && d.endsOn >= date)
+      .filter(
+        (d) =>
+          d.active &&
+          !hasCoupon(d) &&
+          d.startsOn <= date &&
+          d.endsOn >= date
+      )
       .map((d) => ({
         id: d.id,
         label: d.label,

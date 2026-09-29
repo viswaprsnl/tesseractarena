@@ -2,8 +2,10 @@
 
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
-import { Minus, Plus, Check, Users, Tag, Gamepad2 } from "lucide-react";
+import { Minus, Plus, Check, Users, Tag, Gamepad2, X, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   calculateSessionPrice,
   getPackageForSize,
@@ -41,6 +43,10 @@ interface PackageSelectorProps {
   onPackageChange: (pkg: PackageType) => void;
   onGameChange: (gameId: string | null) => void;
   onDiscountChange?: (discount: ActiveDiscount | null) => void;
+  // Bubbled up to the wizard so the eventual /api/bookings POST can pass
+  // the code back to the server for independent re-validation. Sent as
+  // the code string on success, null when cleared or invalid.
+  onCouponChange?: (code: string | null) => void;
 }
 
 const packages = [
@@ -74,9 +80,21 @@ export function PackageSelector({
   onPackageChange,
   onGameChange,
   onDiscountChange,
+  onCouponChange,
 }: PackageSelectorProps) {
   const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [gameStatuses, setGameStatuses] = useState<Record<string, { status: string; hidden?: boolean }>>({});
+
+  // Coupon flow state — separate from `discounts` (which is only the auto-
+  // apply pool the public /api/discounts endpoint returned) because a
+  // redeemed coupon comes back from a different endpoint and never joins
+  // the public list. The applied coupon is merged into the eligibility
+  // pool via `mergedDiscounts` below so pickActiveDiscount picks the
+  // best-of between it and any live auto-apply campaign.
+  const [couponInput, setCouponInput] = useState("");
+  const [couponApplied, setCouponApplied] = useState<Discount | null>(null);
+  const [couponBusy, setCouponBusy] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
 
   // Games available for booking. Any admin-hidden / non-available game is
   // filtered out so the dropdown only offers real choices.
@@ -165,11 +183,21 @@ export function PackageSelector({
   const baseTotal = perHeadBase
     ? calculateSessionPrice(perHeadBase, perPersonPkg, partySize)
     : 0;
+  // Combine auto-apply campaigns with the redeemed coupon (if any). pickActiveDiscount
+  // then chooses whichever gives the customer the biggest rupees-off.
+  const mergedDiscounts = useMemo(
+    () => (couponApplied ? [...discounts, couponApplied] : discounts),
+    [discounts, couponApplied]
+  );
   const activeDiscount = sessionDate && perHeadBase
-    ? pickActiveDiscount(discounts, sessionDate, packageType, baseTotal)
+    ? pickActiveDiscount(mergedDiscounts, sessionDate, packageType, baseTotal, couponApplied?.code)
     : null;
   const amount = activeDiscount ? applyDiscount(baseTotal, activeDiscount) : baseTotal;
   const savings = baseTotal - amount;
+  // Only surface the coupon code upstream when it actually beat every
+  // auto-apply campaign — if a site-wide won on price, the customer
+  // doesn't need us to tell the server about their coupon at all.
+  const couponWon = !!(activeDiscount && couponApplied && activeDiscount.id === couponApplied.id);
 
   // Bubble the resolved discount up to the wizard so the summary + booking
   // POST share the same view of "what's on sale right now".
@@ -190,6 +218,65 @@ export function PackageSelector({
     // activeDiscount identity changes each render — depend on primitives.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeDiscount?.id, savings]);
+
+  // Same bubble for the redeemed coupon code — only sent up when the
+  // coupon actually won on price, so the server never gets a code it
+  // isn't going to honour anyway.
+  useEffect(() => {
+    if (!onCouponChange) return;
+    onCouponChange(couponWon && couponApplied ? couponApplied.code || null : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [couponWon, couponApplied?.code]);
+
+  // Re-validate the applied coupon whenever the date or package changes,
+  // since a coupon may be scoped to a specific package or a specific
+  // window and could become ineligible after those change.
+  useEffect(() => {
+    if (!couponApplied || !sessionDate) return;
+    const outOfWindow =
+      couponApplied.startsOn > sessionDate || couponApplied.endsOn < sessionDate;
+    const wrongPackage =
+      couponApplied.appliesTo !== "all" && couponApplied.appliesTo !== packageType;
+    if (outOfWindow || wrongPackage) {
+      setCouponApplied(null);
+      setCouponError(
+        wrongPackage
+          ? `Coupon ${couponApplied.code} only applies to the ${couponApplied.appliesTo} package.`
+          : `Coupon ${couponApplied.code} isn't valid for the selected date.`
+      );
+    }
+  }, [sessionDate, packageType, couponApplied]);
+
+  const handleApplyCoupon = async () => {
+    const code = couponInput.trim().toUpperCase();
+    if (!code || !sessionDate) return;
+    setCouponBusy(true);
+    setCouponError(null);
+    try {
+      const res = await fetch("/api/discounts/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, date: sessionDate, package: packageType }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.discount) {
+        setCouponApplied(null);
+        setCouponError(data.error || "Coupon isn't valid");
+      } else {
+        setCouponApplied(data.discount as Discount);
+        setCouponInput("");
+      }
+    } catch {
+      setCouponError("Something went wrong. Try again.");
+    }
+    setCouponBusy(false);
+  };
+
+  const handleRemoveCoupon = () => {
+    setCouponApplied(null);
+    setCouponInput("");
+    setCouponError(null);
+  };
 
   const handleSizeChange = (newSize: number) => {
     // Clamp to the intersection of the global cap and the current game's
@@ -408,7 +495,13 @@ export function PackageSelector({
             : 0;
           const cardBaseTotal = perPersonBase * Math.max(1, partySize);
           const cardDiscount = sessionDate && perPersonBase
-            ? pickActiveDiscount(discounts, sessionDate, pkg.type, cardBaseTotal)
+            ? pickActiveDiscount(
+                mergedDiscounts,
+                sessionDate,
+                pkg.type,
+                cardBaseTotal,
+                couponApplied?.code
+              )
             : null;
           const cardTotal = cardDiscount ? applyDiscount(cardBaseTotal, cardDiscount) : cardBaseTotal;
           const perPersonAfter = Math.round(cardTotal / Math.max(1, partySize));
@@ -571,6 +664,112 @@ export function PackageSelector({
           </p>
         </div>
       </div>
+
+      {/* Coupon input — only rendered once a game/date is picked so a
+          bare "have a coupon?" prompt doesn't distract before the customer
+          knows their base price. When a code wins on price the summary
+          card above already reflects the discounted amount. */}
+      {sessionDate && amount > 0 && (
+        <div className="glass-card p-4 mt-4">
+          {couponApplied && couponWon ? (
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <Tag size={14} className="text-green-400 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">
+                    <span className="font-mono tracking-wider text-green-400">
+                      {couponApplied.code}
+                    </span>
+                    <span className="text-muted-foreground ml-2">
+                      applied — {couponApplied.label}
+                    </span>
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Saving ₹{savings.toLocaleString("en-IN")} on this booking.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleRemoveCoupon}
+                className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                aria-label="Remove coupon"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ) : couponApplied && !couponWon ? (
+            // Coupon is valid but a live site-wide discount is currently
+            // cheaper — keep the code around so the customer can see it,
+            // but tell them why it isn't being used.
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <Tag size={14} className="text-amber-400 shrink-0" />
+                <p className="text-xs text-muted-foreground">
+                  Coupon{" "}
+                  <span className="font-mono tracking-wider text-amber-400">
+                    {couponApplied.code}
+                  </span>{" "}
+                  is valid but a live site-wide offer is giving you a bigger
+                  discount right now, so we&apos;re using that.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleRemoveCoupon}
+                className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                aria-label="Remove coupon"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ) : (
+            <div>
+              <label className="text-xs text-muted-foreground uppercase tracking-wider block mb-2">
+                Have a coupon code?
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  value={couponInput}
+                  onChange={(e) => {
+                    setCouponInput(
+                      e.target.value
+                        .replace(/[^A-Za-z0-9_-]/g, "")
+                        .toUpperCase()
+                    );
+                    if (couponError) setCouponError(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleApplyCoupon();
+                    }
+                  }}
+                  placeholder="ENTER CODE"
+                  maxLength={24}
+                  className="bg-card/60 border-white/10 text-xs h-9 uppercase tracking-wider font-mono"
+                  disabled={couponBusy}
+                />
+                <Button
+                  type="button"
+                  onClick={handleApplyCoupon}
+                  disabled={!couponInput.trim() || couponBusy}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs h-9 px-4 shrink-0"
+                >
+                  {couponBusy ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    "Apply"
+                  )}
+                </Button>
+              </div>
+              {couponError && (
+                <p className="text-[11px] text-destructive mt-2">{couponError}</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Corporate escape hatch — anything beyond the 8-player Party cap or
           a bespoke team event routes to WhatsApp. Kept subtle so it doesn't

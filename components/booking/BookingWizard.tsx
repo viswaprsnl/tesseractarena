@@ -131,6 +131,9 @@ export function BookingWizard({ preselectedGame }: { preselectedGame?: string })
           gamePreference: state.personalDetails.gamePreference,
           paymentMethod: "razorpay",
           specialRequests: state.personalDetails.specialRequests,
+          // Only sent when the customer redeemed a coupon that actually
+          // beat the auto-apply pool. Server re-validates independently.
+          ...(state.couponCode ? { couponCode: state.couponCode } : {}),
         }),
       });
 
@@ -276,6 +279,9 @@ export function BookingWizard({ preselectedGame }: { preselectedGame?: string })
                   }
                   onDiscountChange={(discount) =>
                     dispatch({ type: "SET_DISCOUNT", discount })
+                  }
+                  onCouponChange={(code) =>
+                    dispatch({ type: "SET_COUPON_CODE", code })
                   }
                 />
                 <div className="flex flex-col items-center gap-2 mt-6">

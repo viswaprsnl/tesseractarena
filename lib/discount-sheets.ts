@@ -1,9 +1,12 @@
 import { google } from "googleapis";
+import { normalizeCode } from "./discount-config";
 import type { Discount, DiscountScope, DiscountType } from "./discount-config";
 
 const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_SPREADSHEET_ID!;
 const SHEET_NAME = "Discounts";
-const HEADER = ["id", "label", "type", "value", "appliesTo", "startsOn", "endsOn", "active"];
+// Column I ("code") is the coupon gate — empty on legacy rows means the
+// row is an auto-apply campaign, matching pre-coupon behaviour.
+const HEADER = ["id", "label", "type", "value", "appliesTo", "startsOn", "endsOn", "active", "code"];
 
 function getAuth() {
   const privateKey = Buffer.from(
@@ -21,15 +24,19 @@ function getSheets() {
   return google.sheets({ version: "v4", auth: getAuth() });
 }
 
-// Idempotently create the sheet + header row on first use.
+// Idempotently create the sheet + header row on first use. Also backfills
+// the "code" header (col I) on sheets created before coupon support so
+// admins can eyeball the column without a manual migration.
 async function ensureSheet(): Promise<void> {
   const sheets = getSheets();
+  let existed = true;
   try {
     await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: `${SHEET_NAME}!A1`,
     });
   } catch {
+    existed = false;
     try {
       await sheets.spreadsheets.batchUpdate({
         spreadsheetId: SPREADSHEET_ID,
@@ -42,10 +49,33 @@ async function ensureSheet(): Promise<void> {
     }
     await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAME}!A1:H1`,
+      range: `${SHEET_NAME}!A1:I1`,
       valueInputOption: "RAW",
       requestBody: { values: [HEADER] },
     });
+  }
+
+  if (existed) {
+    // Lightweight forward-migration: if the sheet already existed but has
+    // no header for col I, add it. Header text is decorative — the data
+    // itself is positional — so this is safe to run repeatedly.
+    try {
+      const res = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${SHEET_NAME}!I1`,
+      });
+      const cell = res.data.values?.[0]?.[0];
+      if (!cell) {
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: SPREADSHEET_ID,
+          range: `${SHEET_NAME}!I1`,
+          valueInputOption: "RAW",
+          requestBody: { values: [["code"]] },
+        });
+      }
+    } catch {
+      // Best-effort header backfill — data still reads/writes fine without it.
+    }
   }
 }
 
@@ -59,6 +89,9 @@ function rowToDiscount(row: string[]): Discount {
     startsOn: row[5] || "",
     endsOn: row[6] || "",
     active: row[7] === "true" || row[7] === "TRUE",
+    // Legacy rows written before coupon support just have 8 columns —
+    // row[8] is undefined and we fall back to "" (auto-apply campaign).
+    code: normalizeCode(row[8]),
   };
 }
 
@@ -72,6 +105,7 @@ function discountToRow(d: Discount): string[] {
     d.startsOn,
     d.endsOn,
     d.active ? "true" : "false",
+    normalizeCode(d.code),
   ];
 }
 
@@ -80,7 +114,7 @@ export async function listDiscounts(): Promise<Discount[]> {
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A2:H`,
+    range: `${SHEET_NAME}!A2:I`,
   });
   const rows = (res.data.values || []) as string[][];
   return rows.filter((r) => r[0]).map(rowToDiscount);
@@ -91,7 +125,7 @@ export async function appendDiscount(d: Discount): Promise<void> {
   const sheets = getSheets();
   await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A:H`,
+    range: `${SHEET_NAME}!A:I`,
     valueInputOption: "RAW",
     requestBody: { values: [discountToRow(d)] },
   });
@@ -114,7 +148,7 @@ export async function updateDiscount(d: Discount): Promise<boolean> {
   const sheets = getSheets();
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A${rowIndex}:H${rowIndex}`,
+    range: `${SHEET_NAME}!A${rowIndex}:I${rowIndex}`,
     valueInputOption: "RAW",
     requestBody: { values: [discountToRow(d)] },
   });
@@ -129,9 +163,9 @@ export async function deleteDiscount(id: string): Promise<boolean> {
   // CustomGames handles removals and avoids reshuffling row indices).
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A${rowIndex}:H${rowIndex}`,
+    range: `${SHEET_NAME}!A${rowIndex}:I${rowIndex}`,
     valueInputOption: "RAW",
-    requestBody: { values: [["", "", "", "", "", "", "", ""]] },
+    requestBody: { values: [["", "", "", "", "", "", "", "", ""]] },
   });
   return true;
 }

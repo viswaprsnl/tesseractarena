@@ -38,6 +38,10 @@ export interface BookingState {
   bookingId: string | null;
   amount: number;
   discount: ActiveDiscount | null;
+  // Coupon code the customer has redeemed on the pricing step. Stored so
+  // the eventual /api/bookings POST can send it and the server can
+  // independently verify + re-apply the discount server-side.
+  couponCode: string | null;
   isLoading: boolean;
   error: string | null;
   availableSlots: TimeSlot[];
@@ -55,6 +59,7 @@ type Action =
   | { type: "SET_BOOKING_ID"; id: string }
   | { type: "SET_AMOUNT"; amount: number }
   | { type: "SET_DISCOUNT"; discount: ActiveDiscount | null }
+  | { type: "SET_COUPON_CODE"; code: string | null }
   | { type: "SET_LOADING"; loading: boolean }
   | { type: "SET_ERROR"; error: string | null }
   | { type: "SET_SLOTS"; slots: TimeSlot[] }
@@ -76,6 +81,7 @@ const initialState: BookingState = {
   bookingId: null,
   amount: 0,
   discount: null,
+  couponCode: null,
   isLoading: false,
   error: null,
   availableSlots: [],
@@ -116,6 +122,8 @@ function reducer(state: BookingState, action: Action): BookingState {
       return { ...state, amount: action.amount };
     case "SET_DISCOUNT":
       return { ...state, discount: action.discount };
+    case "SET_COUPON_CODE":
+      return { ...state, couponCode: action.code };
     case "SET_LOADING":
       return { ...state, isLoading: action.loading };
     case "SET_ERROR":

@@ -7,7 +7,7 @@ import {
   updateDiscount,
   deleteDiscount,
 } from "@/lib/discount-sheets";
-import type { Discount } from "@/lib/discount-config";
+import { normalizeCode, type Discount } from "@/lib/discount-config";
 
 const discountBodySchema = z.object({
   label: z.string().min(1).max(80),
@@ -17,7 +17,30 @@ const discountBodySchema = z.object({
   startsOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   endsOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   active: z.boolean(),
+  // Optional coupon code. Blank / undefined = auto-apply campaign. When
+  // set, only bookings where the customer enters this exact code (case-
+  // insensitive) get the discount. Restricted to a small alphanumeric-
+  // dash-underscore alphabet so codes are easy to speak on the phone and
+  // safe to paste anywhere.
+  code: z
+    .string()
+    .max(24)
+    .regex(/^[A-Za-z0-9_-]*$/, "Coupon codes are letters, digits, dashes or underscores only")
+    .optional()
+    .default(""),
 });
+
+// Reject anything blatantly invalid up front so the sheet write can assume
+// well-formed input. Called from POST + PATCH.
+function extraValidation(body: z.infer<typeof discountBodySchema>): string | null {
+  if (body.startsOn > body.endsOn) {
+    return "startsOn must be on or before endsOn";
+  }
+  if (body.type === "percent" && body.value > 100) {
+    return "Percent discount cannot exceed 100";
+  }
+  return null;
+}
 
 function checkPin(request: NextRequest): boolean {
   const { searchParams } = new URL(request.url);
@@ -55,22 +78,25 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    if (parsed.data.startsOn > parsed.data.endsOn) {
-      return NextResponse.json(
-        { error: "startsOn must be on or before endsOn" },
-        { status: 400 }
-      );
+    const extraErr = extraValidation(parsed.data);
+    if (extraErr) {
+      return NextResponse.json({ error: extraErr }, { status: 400 });
     }
-    if (parsed.data.type === "percent" && parsed.data.value > 100) {
-      return NextResponse.json(
-        { error: "Percent discount cannot exceed 100" },
-        { status: 400 }
-      );
+    const code = normalizeCode(parsed.data.code);
+    if (code) {
+      const existing = await listDiscounts();
+      if (existing.some((d) => normalizeCode(d.code) === code)) {
+        return NextResponse.json(
+          { error: `Coupon code "${code}" is already in use` },
+          { status: 409 }
+        );
+      }
     }
 
     const discount: Discount = {
       id: `disc-${nanoid(6).toLowerCase()}`,
       ...parsed.data,
+      code,
     };
     await appendDiscount(discount);
     return NextResponse.json({ success: true, discount });
@@ -100,19 +126,23 @@ export async function PATCH(request: NextRequest) {
         { status: 400 }
       );
     }
-    if (parsed.data.startsOn > parsed.data.endsOn) {
-      return NextResponse.json(
-        { error: "startsOn must be on or before endsOn" },
-        { status: 400 }
-      );
+    const extraErr = extraValidation(parsed.data);
+    if (extraErr) {
+      return NextResponse.json({ error: extraErr }, { status: 400 });
     }
-    if (parsed.data.type === "percent" && parsed.data.value > 100) {
-      return NextResponse.json(
-        { error: "Percent discount cannot exceed 100" },
-        { status: 400 }
-      );
+    const code = normalizeCode(parsed.data.code);
+    if (code) {
+      const existing = await listDiscounts();
+      // Uniqueness applies across sibling rows only — editing a row and
+      // keeping its own code is fine.
+      if (existing.some((d) => d.id !== id && normalizeCode(d.code) === code)) {
+        return NextResponse.json(
+          { error: `Coupon code "${code}" is already in use` },
+          { status: 409 }
+        );
+      }
     }
-    const ok = await updateDiscount({ id, ...parsed.data });
+    const ok = await updateDiscount({ id, ...parsed.data, code });
     if (!ok) {
       return NextResponse.json({ error: "Discount not found" }, { status: 404 });
     }

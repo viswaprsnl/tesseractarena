@@ -149,6 +149,10 @@ interface DiscountFormPayload {
   startsOn: string;
   endsOn: string;
   active: boolean;
+  // Blank string = auto-apply site-wide campaign (current behaviour).
+  // Non-blank = coupon-only; customer must type the code in the booking
+  // flow. Stored + validated upper-cased on the server.
+  code: string;
 }
 
 function DiscountForm({
@@ -173,6 +177,7 @@ function DiscountForm({
   const [appliesTo, setAppliesTo] = useState<DiscountScope>(initial?.appliesTo || "all");
   const [startsOn, setStartsOn] = useState(initial?.startsOn || today);
   const [endsOn, setEndsOn] = useState(initial?.endsOn || twoWeeksOut);
+  const [code, setCode] = useState<string>((initial?.code || "").toUpperCase());
   const [active, setActive] = useState(initial?.active ?? true);
 
   return (
@@ -181,7 +186,16 @@ function DiscountForm({
         e.preventDefault();
         const numeric = Number(value);
         if (!label.trim() || !Number.isFinite(numeric) || numeric <= 0) return;
-        onSubmit({ label: label.trim(), type, value: numeric, appliesTo, startsOn, endsOn, active });
+        onSubmit({
+          label: label.trim(),
+          type,
+          value: numeric,
+          appliesTo,
+          startsOn,
+          endsOn,
+          active,
+          code: code.trim().toUpperCase(),
+        });
       }}
       className="glass-card p-5 space-y-3"
     >
@@ -261,6 +275,29 @@ function DiscountForm({
             className="bg-card/60 border-white/10 text-xs h-9"
           />
         </div>
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-xs text-muted-foreground">
+          Coupon code (optional)
+        </label>
+        <Input
+          value={code}
+          onChange={(e) =>
+            // Restrict live typing to the same alphabet the server accepts
+            // (letters, digits, dash, underscore) and always upper-case so
+            // the customer sees the same thing the sheet stores.
+            setCode(e.target.value.replace(/[^A-Za-z0-9_-]/g, "").toUpperCase())
+          }
+          placeholder="Leave blank for site-wide auto-apply · e.g. DIWALI20"
+          maxLength={24}
+          className="bg-card/60 border-white/10 text-xs h-9 uppercase tracking-wider"
+        />
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          {code
+            ? "Coupon-only — customers must enter this code in the booking flow to unlock the discount."
+            : "Auto-apply — every eligible booking in the date window gets this discount."}
+        </p>
       </div>
 
       <label className="flex items-center gap-2 text-xs cursor-pointer">
@@ -469,6 +506,7 @@ export default function AdminPage() {
     startsOn: string;
     endsOn: string;
     active: boolean;
+    code?: string;
   }) => {
     setDiscountBusy(payload.id || "new");
     try {
@@ -1469,11 +1507,12 @@ export default function AdminPage() {
         {activeTab === "discounts" && (
           <div className="space-y-4">
             <div className="text-center mb-6">
-              <h2 className="font-heading text-lg font-bold mb-2">Seasonal Discounts</h2>
+              <h2 className="font-heading text-lg font-bold mb-2">Seasonal Discounts & Coupons</h2>
               <p className="text-xs text-muted-foreground max-w-lg mx-auto">
-                Create date-bounded campaigns. Only campaigns that are <strong>active</strong> and
-                whose window covers the customer&apos;s session date are applied.
-                If two overlap, the one giving the bigger rupee saving wins.
+                Create date-bounded campaigns. Leave <strong>Coupon code</strong> blank
+                to auto-apply site-wide, or set a code so only customers who type it
+                in the booking flow get the discount. When multiple discounts overlap
+                for a booking, the one giving the bigger rupee saving wins.
               </p>
             </div>
 
@@ -1526,6 +1565,15 @@ export default function AdminPage() {
                             <Badge className="text-[10px] bg-secondary text-muted-foreground capitalize">
                               {d.appliesTo === "all" ? "All packages" : d.appliesTo}
                             </Badge>
+                            {d.code ? (
+                              <Badge className="text-[10px] bg-primary/20 text-primary font-mono tracking-wider">
+                                Code: {d.code}
+                              </Badge>
+                            ) : (
+                              <Badge className="text-[10px] bg-secondary text-muted-foreground">
+                                Auto-apply
+                              </Badge>
+                            )}
                             {live ? (
                               <Badge className="text-[10px] bg-green-500/20 text-green-400">Live now</Badge>
                             ) : d.active ? (
