@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { fadeInUp, staggerContainer } from "@/lib/animations";
@@ -12,7 +13,26 @@ const ParticleField = dynamic(
   { ssr: false }
 );
 
+// Play the hero clip a touch slower than real-time so the movement feels
+// cinematic rather than snappy phone-capture, and cut the loop early
+// before the clip's fast ending so it re-enters cleanly.
+const HERO_PLAYBACK_RATE = 0.75;
+const HERO_LOOP_ENDS_AT_SECONDS = 9.5; // full clip is ~12.5s
+
 export function Hero() {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Set playbackRate imperatively. onLoadedMetadata can fire before React
+  // hydration when the video is cached, so relying on the JSX handler
+  // alone leaves the rate at 1 on repeat visits. This effect runs once
+  // per mount and also handles the case where metadata has already
+  // loaded by the time we get here.
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    el.playbackRate = HERO_PLAYBACK_RATE;
+  }, []);
+
   return (
     <section className="relative min-h-[100dvh] flex items-center justify-center overflow-hidden pt-16 sm:pt-20">
       {/* Background video — real footage of players in the arena. Portrait
@@ -24,14 +44,30 @@ export function Hero() {
           first-frame poster instead of the moving video. */}
       <div className="absolute inset-0 motion-safe:block motion-reduce:hidden">
         <video
+          ref={videoRef}
           src="/videos/hero.mp4"
           autoPlay
           muted
-          loop
+          // loop attribute is omitted intentionally — we drive the loop
+          // manually via onTimeUpdate so we can cut before the clip's
+          // fast ending. `loop` on the element would race with this and
+          // let the tail play through once per full cycle.
           playsInline
           preload="metadata"
           aria-hidden="true"
           className="w-full h-full object-cover"
+          onLoadedMetadata={(e) => {
+            e.currentTarget.playbackRate = HERO_PLAYBACK_RATE;
+          }}
+          onTimeUpdate={(e) => {
+            const el = e.currentTarget;
+            if (el.currentTime >= HERO_LOOP_ENDS_AT_SECONDS) {
+              el.currentTime = 0;
+              // Play again in case the seek paused it briefly (rare on
+              // some browsers when the video has just started).
+              void el.play().catch(() => {});
+            }
+          }}
         />
       </div>
       {/* Fallback for reduced-motion users: a solid dark backdrop matching
