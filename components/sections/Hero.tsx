@@ -1,7 +1,6 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -16,18 +15,31 @@ const ParticleField = dynamic(
 export function Hero() {
   return (
     <section className="relative min-h-[100dvh] flex items-center justify-center overflow-hidden pt-16 sm:pt-20">
-      {/* Background photo */}
-      <div className="absolute inset-0">
-        <Image
-          src="https://images.pexels.com/photos/6498959/pexels-photo-6498959.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop"
-          alt="Friends playing virtual reality game together in arena"
-          fill
-          className="object-cover"
-          priority
+      {/* Background video — real footage of players in the arena. Portrait
+          9:16 source (WhatsApp phone capture, ~2.7MB, ~12s), so it fills
+          naturally on mobile and crops to the centre strip on desktop
+          where the on-screen action usually sits. Muted + inline autoplay
+          is what mobile browsers require for a background loop. Users who
+          set prefers-reduced-motion at the OS level get the static
+          first-frame poster instead of the moving video. */}
+      <div className="absolute inset-0 motion-safe:block motion-reduce:hidden">
+        <video
+          src="/videos/hero.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          aria-hidden="true"
+          className="w-full h-full object-cover"
         />
       </div>
+      {/* Fallback for reduced-motion users: a solid dark backdrop matching
+          the video's tone so the tagline still reads well without any
+          motion at all. */}
+      <div className="absolute inset-0 motion-safe:hidden motion-reduce:block bg-gradient-to-b from-[#100a2e] via-[#0a0a0f] to-[#0a0a0f]" />
       {/* Dark overlay for readability — always dark regardless of theme */}
-      <div className="absolute inset-0 bg-black/75" />
+      <div className="absolute inset-0 bg-black/60" />
       {/* Particle field on top */}
       <ParticleField />
       {/* Bottom gradient fade (theme-aware) */}
