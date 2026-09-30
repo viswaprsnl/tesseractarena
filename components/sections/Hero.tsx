@@ -21,9 +21,11 @@ const HERO_PLAYBACK_RATE = 0.75;
 // around t=9s and a Tesseract logo animation after that; we already have
 // our own hero copy and brand on top so looping past ~8s would double up
 // the messaging. Cutoff kept a hair short of the transition.
-// A bit under 8s so the ~200ms timeupdate overshoot still lands before
-// the title-card transition begins.
-const HERO_LOOP_ENDS_AT_SECONDS = 7.5;
+// The source clip ramps up into a fast/timelapse-y section before its
+// title card kicks in around t=9s. We loop only the natural-speed
+// footage from the front of the clip so the movement always reads at
+// normal human pace.
+const HERO_LOOP_ENDS_AT_SECONDS = 5.0;
 
 export function Hero() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
