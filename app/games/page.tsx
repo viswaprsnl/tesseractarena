@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import { motion } from "framer-motion";
 import { Users, Clock, Swords, Search } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { availableGames, comingSoonGames, type Game, type GameCategory } from "@/data/games";
 import { fadeInUp, staggerFast } from "@/lib/animations";
 import { GamePreviewModal } from "@/components/GamePreviewModal";
+import { GameCardMedia } from "@/components/GameCardMedia";
 
 type GameStatusInfo = { status: string; note: string; videoUrl?: string; hidden?: boolean };
 
@@ -30,12 +30,16 @@ function GameCard({ game, status, onClick }: { game: Game; status?: GameStatusIn
         isUnavailable ? "opacity-60" : "hover:-translate-y-1"
       }`}
     >
+      {/* Game thumbnail — hover on desktop swaps the image for a muted
+          looping video preview when the game has a videoUrl set (admin
+          panel or seed data). Mobile has no hover, so the image stays
+          and the tap-to-open modal handles playback there. */}
       <div className="relative aspect-[16/10] bg-card overflow-hidden">
-        <Image
-          src={game.image}
+        <GameCardMedia
+          imageSrc={game.image}
+          videoSrc={isUnavailable ? undefined : [status?.videoUrl, game.videoUrl]}
           alt={game.title}
-          fill
-          className={`object-cover transition-transform duration-500 ${
+          imageClassName={`object-cover transition-transform duration-500 ${
             isUnavailable ? "grayscale" : "group-hover:scale-105"
           }`}
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
