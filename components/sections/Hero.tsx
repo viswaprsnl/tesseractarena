@@ -17,7 +17,13 @@ const ParticleField = dynamic(
 // cinematic rather than snappy phone-capture, and cut the loop early
 // before the clip's fast ending so it re-enters cleanly.
 const HERO_PLAYBACK_RATE = 0.75;
-const HERO_LOOP_ENDS_AT_SECONDS = 9.5; // full clip is ~12.5s
+// The source clip has a "STEP INTO THE NEW WORLD" title card starting
+// around t=9s and a Tesseract logo animation after that; we already have
+// our own hero copy and brand on top so looping past ~8s would double up
+// the messaging. Cutoff kept a hair short of the transition.
+// A bit under 8s so the ~200ms timeupdate overshoot still lands before
+// the title-card transition begins.
+const HERO_LOOP_ENDS_AT_SECONDS = 7.5;
 
 export function Hero() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
