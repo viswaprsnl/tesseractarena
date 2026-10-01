@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Orbitron, Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { SiteChrome } from "@/components/layout/SiteChrome";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
@@ -180,6 +181,11 @@ export default function RootLayout({
             per-route via beforeSend later if staff routes need to be
             excluded. */}
         <Analytics />
+        {/* Vercel Speed Insights — Core Web Vitals (LCP, CLS, INP, FCP,
+            TTFB) collected from real visitors. Desktop vs mobile is a
+            dashboard filter, no second component needed. Also edge-
+            served; sibling of <Analytics /> above. */}
+        <SpeedInsights />
       </body>
     </html>
   );
