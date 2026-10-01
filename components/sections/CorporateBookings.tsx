@@ -69,8 +69,8 @@ export function CorporateBookings() {
           {/* Left: pitch + CTAs. Takes 3 of 5 columns on desktop so the
               headline has room to breathe. */}
           <motion.div variants={fadeInUp} className="lg:col-span-3">
-            <p className="text-[11px] tracking-[0.25em] text-primary/80 font-heading mb-4">
-              CORPORATE &amp; TEAM EVENTS
+            <p className="text-xs sm:text-[13px] tracking-[0.18em] font-semibold text-primary/80 uppercase mb-4">
+              Corporate &amp; Team Events
             </p>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-5">
               Team-building that your team{" "}
@@ -87,7 +87,7 @@ export function CorporateBookings() {
             <ul className="flex flex-col sm:flex-row flex-wrap gap-x-6 gap-y-2 text-sm text-foreground/90 mb-8">
               <li className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                Groups of 8 to 24 players
+                Groups of 4 to 32 players
               </li>
               <li className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary" />

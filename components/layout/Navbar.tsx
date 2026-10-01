@@ -12,11 +12,11 @@ import { useTheme } from "@/components/ThemeProvider";
 const navLinks = [
   { href: "/", label: "Home" },
   { href: "/games", label: "Games" },
+  { href: "/#corporate", label: "Corporate" },
   { href: "/birthday", label: "Birthday" },
   // Pricing link intentionally hidden — the on-page Pricing section is
   // disabled on the homepage; per-game prices live in the booking flow.
   // { href: "/#pricing", label: "Pricing" },
-  { href: "/#corporate", label: "Corporate" },
   { href: "/about", label: "About" },
   { href: "/faq", label: "FAQ" },
   { href: "/contact", label: "Contact" },
