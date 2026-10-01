@@ -51,8 +51,18 @@ export function Navbar() {
           </span>
         </Link>
 
-        {/* Desktop nav */}
-        <div className="hidden md:flex items-center gap-8">
+        {/* Desktop nav — while over the hero video (top of page, header
+            still transparent) we use near-white text with a soft shadow
+            so bright frames of the video don't wash it out. Once the
+            user scrolls past and the solid header background appears,
+            we drop back to the normal dim colour. */}
+        <div
+          className={`hidden md:flex items-center gap-8 ${
+            scrolled || mobileOpen
+              ? ""
+              : "[&_a:not(.text-primary)]:text-white/90 [&_a]:[text-shadow:0_1px_8px_rgba(0,0,0,0.6)]"
+          }`}
+        >
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -70,10 +80,14 @@ export function Navbar() {
 
         {/* CTA + mobile toggle */}
         <div className="flex items-center gap-3">
-          {/* Theme toggle */}
+          {/* Theme toggle — same contrast treatment as the nav links. */}
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/50 transition-colors"
+            className={`p-2 rounded-lg hover:text-primary hover:bg-secondary/50 transition-colors ${
+              scrolled || mobileOpen
+                ? "text-muted-foreground"
+                : "text-white/90 [filter:drop-shadow(0_1px_6px_rgba(0,0,0,0.6))]"
+            }`}
             aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
             title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           >
