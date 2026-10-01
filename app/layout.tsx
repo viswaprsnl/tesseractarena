@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Orbitron, Inter } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { SiteChrome } from "@/components/layout/SiteChrome";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
@@ -172,6 +173,13 @@ export default function RootLayout({
             measurementId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}
           />
         )}
+        {/* Vercel Analytics — zero-config page-view + Web Vitals tracking,
+            server-side via Vercel's edge so no extra client bundle beyond
+            the small script. First-party cookies (no cross-site tracking),
+            complementary to GA4 above. Enabled on all surfaces; filter
+            per-route via beforeSend later if staff routes need to be
+            excluded. */}
+        <Analytics />
       </body>
     </html>
   );
