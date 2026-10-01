@@ -1,5 +1,9 @@
 import { Hero } from "@/components/sections/Hero";
-import { SocialProof } from "@/components/sections/SocialProof";
+import { ReviewsMarquee } from "@/components/sections/ReviewsMarquee";
+// SocialProof (the hardware-tagline strip) is replaced by the real-review
+// marquee right under the hero. Keeping the import out so the component
+// isn't bundled; re-enable later by swapping the two renders below.
+// import { SocialProof } from "@/components/sections/SocialProof";
 import { HowItWorks } from "@/components/sections/HowItWorks";
 import { GamesLibrary } from "@/components/sections/GamesLibrary";
 import { Features } from "@/components/sections/Features";
@@ -16,7 +20,7 @@ export default function Home() {
   return (
     <>
       <Hero />
-      <SocialProof />
+      <ReviewsMarquee />
       <HowItWorks />
       <GamesLibrary />
       <Features />
