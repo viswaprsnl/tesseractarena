@@ -5,6 +5,7 @@ import { findBookingById, updateBookingCells } from "@/lib/google-sheets";
 import { calculateAdvance } from "@/lib/booking-config";
 import { isBirthdayPackage } from "@/lib/booking-types";
 import { birthdayAdvance } from "@/data/birthday";
+import { sendBookingEmailsFromRow } from "@/lib/email";
 
 const verifySchema = z.object({
   razorpay_order_id: z.string().min(1),
@@ -51,6 +52,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Already-paid guard: if the Razorpay webhook got there first, do
+    // nothing — don't rewrite the sheet row, don't send a second email.
+    // Returning success here is safe: the booking is paid; the client
+    // just wants acknowledgement so it can route to the confirmation
+    // page.
+    if (result.booking.paymentStatus === "paid") {
+      return NextResponse.json({
+        success: true,
+        bookingId,
+        paymentStatus: "paid",
+        already: true,
+      });
+    }
+
     // Advance = ₹500 per player for regular sessions, capped at total;
     // BIRTHDAY_ADVANCE_PERCENT of the flat package total for birthdays.
     // Balance = total − advance.
@@ -70,22 +85,20 @@ export async function POST(request: NextRequest) {
       balanceDue: String(Math.max(0, result.booking.amount - advance)),
     });
 
-    // Send payment confirmation email
-    try {
-      await fetch("https://api.web3forms.com/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          access_key: process.env.WEB3FORMS_ACCESS_KEY,
-          subject: `[Tesseract Arena] Payment Confirmed: ${bookingId}`,
-          from_name: "Tesseract Arena",
-          email: result.booking.email,
-          message: `Payment of ₹${result.booking.amount} received for booking ${bookingId}. See you on ${result.booking.date}!`,
-        }),
-      });
-    } catch {
-      // Email failure shouldn't block
-    }
+    // The booking is only "real" now that payment has cleared. Fire
+    // customer + arena-ops emails here, not at /api/bookings create
+    // time, so a customer who closes the Razorpay sheet never gets a
+    // "Booking Confirmed" email for a session they didn't pay for.
+    // Pass the row with its freshly-flipped paymentStatus so the email
+    // copy reads correctly ("Advance paid online" rather than "due").
+    const bookingForEmail = {
+      ...result.booking,
+      paymentStatus: "paid" as const,
+      razorpayPaymentId: razorpay_payment_id,
+      amountPaid: advance,
+      balanceDue: Math.max(0, result.booking.amount - advance),
+    };
+    await sendBookingEmailsFromRow(bookingForEmail);
 
     return NextResponse.json({
       success: true,

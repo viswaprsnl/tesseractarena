@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import { NOTIFY_RECIPIENTS } from "@/lib/contact";
-import { gstOn, withGST, GST_PERCENT } from "@/lib/booking-config";
+import { gstOn, withGST, GST_PERCENT, formatTimeDisplay } from "@/lib/booking-config";
+import type { BookingRow } from "@/lib/booking-types";
 
 let resendInstance: Resend | null = null;
 
@@ -247,4 +248,39 @@ export async function sendCancellationEmail(data: CancellationEmailData): Promis
       </div>
     `,
   });
+}
+
+// Shared "booking is now confirmed" notification. Call from the places
+// that mark a booking as paid (payments/verify, payments/webhook) or
+// the pay-at-center path on first create. Returns the error (if any)
+// but never throws — a flaky email provider must not break the booking
+// write that just succeeded.
+export async function sendBookingEmailsFromRow(
+  booking: BookingRow
+): Promise<string | null> {
+  const emailData: BookingEmailData = {
+    customerEmail: booking.email,
+    customerName: booking.name,
+    bookingId: booking.bookingId,
+    date: booking.date,
+    time: formatTimeDisplay(booking.timeSlot),
+    partySize: booking.partySize,
+    packageType: booking.package,
+    amount: booking.amount,
+    gamePreference: booking.gamePreference,
+    paymentMethod: booking.paymentMethod,
+  };
+  try {
+    const [custResult, ownerResult] = await Promise.all([
+      sendBookingConfirmation(emailData),
+      sendOwnerNotification(emailData),
+    ]);
+    console.log("Customer email result:", JSON.stringify(custResult));
+    console.log("Owner email result:", JSON.stringify(ownerResult));
+    return null;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("Booking email send failed:", msg);
+    return msg;
+  }
 }

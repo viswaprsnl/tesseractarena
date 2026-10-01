@@ -10,7 +10,7 @@ import {
 } from "@/lib/google-sheets";
 import { listDiscounts } from "@/lib/discount-sheets";
 import { pickActiveDiscount, applyDiscount } from "@/lib/discount-config";
-import { sendBookingConfirmation, sendOwnerNotification } from "@/lib/email";
+import { sendBookingEmailsFromRow } from "@/lib/email";
 import {
   calculatePrice,
   calculateSessionPrice,
@@ -232,31 +232,17 @@ export async function POST(request: NextRequest) {
     // Save to Google Sheets
     await appendBooking(booking);
 
-    // Send confirmation emails via Resend
-    const emailData = {
-      customerEmail: data.email,
-      customerName: data.name,
-      bookingId,
-      date: data.date,
-      time: formatTimeDisplay(data.timeSlot),
-      partySize: data.partySize,
-      packageType: data.package,
-      amount,
-      gamePreference: data.gamePreference,
-      paymentMethod: data.paymentMethod,
-    };
-
+    // Confirmation emails:
+    //   - pay_at_center: send immediately. The booking IS final at
+    //     create-time; no payment step follows that could invalidate it.
+    //   - razorpay: SKIP here. Emails fire from /api/payments/verify
+    //     (client success path) or /api/payments/webhook (Razorpay's
+    //     server-side callback) once the payment is actually captured.
+    //     Both guard on paymentStatus !== "paid" so we avoid double-
+    //     sending in the common case where both signals arrive.
     let emailError: string | null = null;
-    try {
-      const [custResult, ownerResult] = await Promise.all([
-        sendBookingConfirmation(emailData),
-        sendOwnerNotification(emailData),
-      ]);
-      console.log("Customer email result:", JSON.stringify(custResult));
-      console.log("Owner email result:", JSON.stringify(ownerResult));
-    } catch (err) {
-      emailError = err instanceof Error ? err.message : String(err);
-      console.error("Email sending failed:", emailError);
+    if (data.paymentMethod === "pay_at_center") {
+      emailError = await sendBookingEmailsFromRow(booking);
     }
 
     return NextResponse.json({

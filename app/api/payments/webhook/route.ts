@@ -8,6 +8,7 @@ import {
 import { calculateAdvance } from "@/lib/booking-config";
 import { isBirthdayPackage } from "@/lib/booking-types";
 import { birthdayAdvance } from "@/data/birthday";
+import { sendBookingEmailsFromRow } from "@/lib/email";
 
 // Razorpay may retry the same event on non-2xx. Every handler below is
 // designed to be idempotent — replaying a "payment.captured" event on an
@@ -97,6 +98,9 @@ export async function POST(request: NextRequest) {
       case "payment.captured":
       case "order.paid": {
         // Only flip pending → paid; never overwrite a manual admin state.
+        // Also skips the email send below so a late-arriving webhook on
+        // a booking that /api/payments/verify already handled doesn't
+        // produce a second confirmation.
         if (hit.booking.paymentStatus === "paid") {
           return NextResponse.json({ ok: true, already: "paid" });
         }
@@ -112,6 +116,22 @@ export async function POST(request: NextRequest) {
         if (payment?.id) updates.razorpayPaymentId = payment.id;
         if (payment?.order_id) updates.razorpayOrderId = payment.order_id;
         await updateBookingCells(hit.rowIndex, updates);
+
+        // This path handles the case where the customer closed their
+        // browser tab after paying — /api/payments/verify never ran, so
+        // the webhook is the only chance to send the confirmation
+        // email. Guard above means we only send on the pending→paid
+        // transition, not on retried webhook deliveries.
+        const bookingForEmail = {
+          ...hit.booking,
+          paymentStatus: "paid" as const,
+          razorpayPaymentId: payment?.id || hit.booking.razorpayPaymentId,
+          razorpayOrderId: payment?.order_id || hit.booking.razorpayOrderId,
+          amountPaid: advance,
+          balanceDue: Math.max(0, hit.booking.amount - advance),
+        };
+        await sendBookingEmailsFromRow(bookingForEmail);
+
         return NextResponse.json({ ok: true, updated: "paid" });
       }
 
