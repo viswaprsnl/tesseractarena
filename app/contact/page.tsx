@@ -15,7 +15,7 @@ import {
   CONTACT_EMAIL,
   INSTAGRAM_URL,
   INSTAGRAM_HANDLE,
-  whatsappCorporateLink,
+  whatsappGeneralLink,
 } from "@/lib/contact";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -250,7 +250,7 @@ export default function ContactPage() {
                 </div>
               ))}
               <a
-                href={whatsappCorporateLink()}
+                href={whatsappGeneralLink()}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-2 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#25D366] hover:bg-[#1EBE5A] text-white text-sm font-medium transition-colors"

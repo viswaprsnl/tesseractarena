@@ -8,7 +8,7 @@ import {
   CONTACT_EMAIL,
   INSTAGRAM_URL,
   INSTAGRAM_HANDLE,
-  whatsappCorporateLink,
+  whatsappGeneralLink,
 } from "@/lib/contact";
 
 const quickLinks = [
@@ -46,7 +46,7 @@ export function Footer() {
             </p>
             <div className="flex flex-wrap gap-2">
               <a
-                href={whatsappCorporateLink()}
+                href={whatsappGeneralLink()}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#25D366] hover:bg-[#1EBE5A] text-white text-sm font-medium transition-colors"
