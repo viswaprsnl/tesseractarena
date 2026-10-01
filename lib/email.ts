@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { NOTIFY_RECIPIENTS } from "@/lib/contact";
+import { gstOn, withGST, GST_PERCENT } from "@/lib/booking-config";
 
 let resendInstance: Resend | null = null;
 
@@ -86,18 +87,40 @@ export async function sendBookingConfirmation(data: BookingEmailData): Promise<{
               <td style="padding: 10px 0; color: #888; font-size: 13px; border-bottom: 1px solid #333;">Payment</td>
               <td style="padding: 10px 0; text-align: right; font-size: 14px; border-bottom: 1px solid #333;">${paymentText}</td>
             </tr>
+            ${(() => {
+              // Mirror the breakdown the BookingSummary + Razorpay use.
+              // `data.amount` is the ex-GST session cost (that's what the
+              // sheet records). We derive GST and the gross totals here
+              // so the customer, Razorpay, and the admin notification
+              // all tie together on the same numbers.
+              const base = data.amount;
+              const gst = gstOn(base);
+              const grossTotal = withGST(base);
+              const advanceBase = advanceFor(data); // ex-GST advance
+              const advanceGross = withGST(advanceBase); // what Razorpay actually charges
+              const balanceGross = grossTotal - advanceGross; // what the customer owes at venue
+              return `
             <tr>
-              <td style="padding: 10px 0; color: #888; font-size: 13px; border-bottom: 1px solid #333;">Total session cost</td>
-              <td style="padding: 10px 0; text-align: right; font-size: 14px; border-bottom: 1px solid #333;">₹${data.amount.toLocaleString("en-IN")}</td>
+              <td style="padding: 10px 0; color: #888; font-size: 13px; border-bottom: 1px solid #333;">Session cost (excl. GST)</td>
+              <td style="padding: 10px 0; text-align: right; font-size: 14px; border-bottom: 1px solid #333;">₹${base.toLocaleString("en-IN")}</td>
             </tr>
             <tr>
-              <td style="padding: 10px 0; color: #888; font-size: 13px; font-weight: bold; border-bottom: 1px solid #333;">${data.paymentMethod === "razorpay" ? "Advance paid" : "Advance"}</td>
-              <td style="padding: 10px 0; text-align: right; font-size: 18px; font-weight: bold; color: #6C3BFF; border-bottom: 1px solid #333;">₹${advanceFor(data).toLocaleString("en-IN")}</td>
+              <td style="padding: 10px 0; color: #888; font-size: 13px; border-bottom: 1px solid #333;">GST @ ${GST_PERCENT}%</td>
+              <td style="padding: 10px 0; text-align: right; font-size: 14px; border-bottom: 1px solid #333;">+ ₹${gst.toLocaleString("en-IN")}</td>
             </tr>
             <tr>
-              <td style="padding: 10px 0; color: #888; font-size: 13px;">Balance at center</td>
-              <td style="padding: 10px 0; text-align: right; font-size: 14px;">₹${(data.amount - advanceFor(data)).toLocaleString("en-IN")}</td>
+              <td style="padding: 10px 0; color: #ccc; font-size: 14px; font-weight: bold; border-bottom: 1px solid #333;">Total (incl. GST)</td>
+              <td style="padding: 10px 0; text-align: right; font-size: 14px; font-weight: bold; border-bottom: 1px solid #333;">₹${grossTotal.toLocaleString("en-IN")}</td>
             </tr>
+            <tr>
+              <td style="padding: 10px 0; color: #888; font-size: 13px; font-weight: bold; border-bottom: 1px solid #333;">${data.paymentMethod === "razorpay" ? "Advance paid (incl. GST)" : "Advance due (incl. GST)"}</td>
+              <td style="padding: 10px 0; text-align: right; font-size: 18px; font-weight: bold; color: #6C3BFF; border-bottom: 1px solid #333;">₹${advanceGross.toLocaleString("en-IN")}</td>
+            </tr>
+            <tr>
+              <td style="padding: 10px 0; color: #888; font-size: 13px;">Balance at center (incl. GST)</td>
+              <td style="padding: 10px 0; text-align: right; font-size: 14px;">₹${balanceGross.toLocaleString("en-IN")}</td>
+            </tr>`;
+            })()}
           </table>
         </div>
 
@@ -156,8 +179,29 @@ export async function sendOwnerNotification(data: BookingEmailData): Promise<{ d
         <p><strong>Players:</strong> ${data.partySize}</p>
         <p><strong>Package:</strong> ${data.packageType}</p>
         <p><strong>Game:</strong> ${data.gamePreference}</p>
-        <p><strong>Amount:</strong> ₹${data.amount.toLocaleString("en-IN")}</p>
-        <p><strong>Payment:</strong> ${data.paymentMethod === "razorpay" ? "Paid Online" : "Pay at Center"}</p>
+        ${(() => {
+          // Same breakdown the customer sees — base ex-GST, GST line,
+          // gross total, advance (what Razorpay collected or will
+          // collect on arrival), and the balance still to collect at
+          // the counter. All amounts here match the customer email so
+          // the counter never has to reconcile two different stories.
+          const base = data.amount;
+          const gst = gstOn(base);
+          const grossTotal = withGST(base);
+          const advanceBase = advanceFor(data);
+          const advanceGross = withGST(advanceBase);
+          const balanceGross = grossTotal - advanceGross;
+          const advanceLabel = data.paymentMethod === "razorpay"
+            ? "Advance paid online (incl. GST)"
+            : "Advance due at arrival (incl. GST)";
+          return `
+        <p><strong>Session cost (excl. GST):</strong> ₹${base.toLocaleString("en-IN")}</p>
+        <p><strong>GST @ ${GST_PERCENT}%:</strong> ₹${gst.toLocaleString("en-IN")}</p>
+        <p><strong>Total (incl. GST):</strong> ₹${grossTotal.toLocaleString("en-IN")}</p>
+        <p><strong>${advanceLabel}:</strong> ₹${advanceGross.toLocaleString("en-IN")}</p>
+        <p><strong>Balance to collect at venue (incl. GST):</strong> ₹${balanceGross.toLocaleString("en-IN")}</p>`;
+        })()}
+        <p><strong>Payment method:</strong> ${data.paymentMethod === "razorpay" ? "Paid Online" : "Pay at Center"}</p>
       </div>
     `,
   });
