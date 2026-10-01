@@ -55,9 +55,17 @@ const contactInfo: {
   { icon: Clock, label: "Hours", value: "Mon-Fri: 11AM - 10PM · Sat-Sun: 10AM - 10PM" },
 ];
 
+// Google Maps Embed API — official endpoint, key restricted by HTTP
+// referrer. Falls back to the legacy unauthenticated embed when the
+// env var is missing so dev builds without a key still render.
+const MAPS_QUERY = "Preston Prime Mall Lumbini Avenue Gachibowli Hyderabad 500032";
+const EMBED_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_API_KEY;
+const EMBED_URL = EMBED_API_KEY
+  ? `https://www.google.com/maps/embed/v1/place?key=${EMBED_API_KEY}&q=${encodeURIComponent(MAPS_QUERY)}&zoom=15`
+  : `https://www.google.com/maps?q=${encodeURIComponent(MAPS_QUERY)}&output=embed`;
+
 export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
-  const [mapLoaded, setMapLoaded] = useState(false);
 
   const {
     register,
@@ -252,59 +260,21 @@ export default function ContactPage() {
               </a>
             </div>
 
-            {/* Google Map — click-to-load for performance. Placeholder
-                shows a real static map of the venue's neighbourhood
-                (public/images/location-map.png — fetched once from a
-                free static-maps service and committed) so the card
-                reads as "map" from the first paint instead of a blank
-                gradient. Live iframe swaps in on tap. */}
+            {/* Google Map — loaded immediately via the official Maps
+                Embed API (key restricted to our domains). Browser
+                lazy-load keeps it from blocking above-the-fold render. */}
             <div className="glass-card overflow-hidden h-[250px] relative">
-              {mapLoaded ? (
-                <iframe
-                  src="https://www.google.com/maps?q=Preston+Prime+Mall+Lumbini+Avenue+Gachibowli+Hyderabad+500032&output=embed"
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0 }}
-                  allowFullScreen
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  title="Tesseract Arena Location"
-                  className="absolute inset-0"
-                />
-              ) : (
-                <button
-                  onClick={() => setMapLoaded(true)}
-                  className="absolute inset-0 w-full group cursor-pointer overflow-hidden"
-                  aria-label="Load interactive map"
-                >
-                  {/* Static map image as the base layer */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/images/location-map.png"
-                    alt="Map of Tesseract Arena in Gachibowli, Hyderabad"
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  {/* Dark violet overlay for legibility + theme match. Fades
-                      slightly on hover so the map peeks through more. */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/30 group-hover:from-background/90 group-hover:via-background/50 group-hover:to-background/20 transition-colors" />
-                  {/* Centre content */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
-                    <div className="w-14 h-14 rounded-full bg-primary/90 flex items-center justify-center mb-3 shadow-lg shadow-primary/40 group-hover:scale-110 transition-transform">
-                      <MapPin size={22} className="text-primary-foreground" />
-                    </div>
-                    <p className="font-heading text-base font-bold mb-0.5">
-                      Preston Prime Mall
-                    </p>
-                    <p className="text-[11px] text-muted-foreground max-w-xs">
-                      Lumbini Avenue · Gachibowli · Hyderabad 500032
-                    </p>
-                  </div>
-                  {/* Bottom-right CTA pill */}
-                  <span className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-[11px] font-medium shadow-md group-hover:bg-primary/90 transition-colors">
-                    Tap to open interactive map →
-                  </span>
-                </button>
-              )}
+              <iframe
+                src={EMBED_URL}
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="Tesseract Arena Location"
+                className="absolute inset-0"
+              />
             </div>
           </motion.div>
         </motion.div>

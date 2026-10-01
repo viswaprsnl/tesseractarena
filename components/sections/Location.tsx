@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { MapPin, Phone, Mail, Clock, Navigation, MessageCircle } from "lucide-react";
@@ -31,13 +30,17 @@ const contactInfo = [
   },
 ];
 
-const MAPS_QUERY = "Preston+Prime+Mall+Lumbini+Avenue+Gachibowli+Hyderabad+500032";
-const DIRECTIONS_URL = `https://www.google.com/maps/dir/?api=1&destination=${MAPS_QUERY}`;
-const EMBED_URL = `https://www.google.com/maps?q=${MAPS_QUERY}&output=embed`;
+const MAPS_QUERY = "Preston Prime Mall Lumbini Avenue Gachibowli Hyderabad 500032";
+const DIRECTIONS_URL = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(MAPS_QUERY)}`;
+// Google Maps Embed API — official, supported, free up to 10k loads/mo.
+// Falls back to the legacy unauthenticated embed if the env var is missing
+// (dev builds without a key still render a map, just via the old URL).
+const EMBED_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_API_KEY;
+const EMBED_URL = EMBED_API_KEY
+  ? `https://www.google.com/maps/embed/v1/place?key=${EMBED_API_KEY}&q=${encodeURIComponent(MAPS_QUERY)}&zoom=15`
+  : `https://www.google.com/maps?q=${encodeURIComponent(MAPS_QUERY)}&output=embed`;
 
 export function Location() {
-  const [mapLoaded, setMapLoaded] = useState(false);
-
   return (
     <section className="py-12 sm:py-24 px-4">
       <div className="max-w-7xl mx-auto">
@@ -115,55 +118,25 @@ export function Location() {
             </div>
           </motion.div>
 
-          {/* Google Map — click-to-load for performance. Placeholder
-              shows a real static map of the venue's neighbourhood so
-              the card reads as "map" from the first paint. Live iframe
-              swaps in on tap. Mirrors the /contact page treatment. */}
+          {/* Google Map — loaded immediately via the official Maps
+              Embed API (key restricted to our domains). Lazy-loaded by
+              the browser so it doesn't block above-the-fold rendering,
+              but no longer gated behind a tap. */}
           <motion.div
             variants={fadeInUp}
             className="glass-card overflow-hidden min-h-[400px] relative"
           >
-            {mapLoaded ? (
-              <iframe
-                src={EMBED_URL}
-                width="100%"
-                height="100%"
-                style={{ border: 0, minHeight: "400px" }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title="Tesseract Arena Location"
-                className="absolute inset-0"
-              />
-            ) : (
-              <button
-                onClick={() => setMapLoaded(true)}
-                className="absolute inset-0 w-full group cursor-pointer overflow-hidden"
-                aria-label="Load interactive map"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/images/location-map.png"
-                  alt="Map of Tesseract Arena in Gachibowli, Hyderabad"
-                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/30 group-hover:from-background/90 group-hover:via-background/50 group-hover:to-background/20 transition-colors" />
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
-                  <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center mb-4 shadow-lg shadow-primary/40 group-hover:scale-110 transition-transform">
-                    <MapPin size={28} className="text-primary-foreground" />
-                  </div>
-                  <p className="font-heading text-lg font-bold mb-1">
-                    Preston Prime Mall
-                  </p>
-                  <p className="text-xs text-muted-foreground max-w-xs">
-                    Lumbini Avenue · Gachibowli · Hyderabad 500032
-                  </p>
-                </div>
-                <span className="absolute bottom-4 right-4 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-primary text-primary-foreground text-xs font-medium shadow-md group-hover:bg-primary/90 transition-colors">
-                  Tap to open interactive map →
-                </span>
-              </button>
-            )}
+            <iframe
+              src={EMBED_URL}
+              width="100%"
+              height="100%"
+              style={{ border: 0, minHeight: "400px" }}
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="Tesseract Arena Location"
+              className="absolute inset-0"
+            />
           </motion.div>
         </motion.div>
       </div>
