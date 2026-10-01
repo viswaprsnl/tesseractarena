@@ -52,7 +52,7 @@ const contactInfo: {
     iconBg: "bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600",
     iconColor: "text-white",
   },
-  { icon: Clock, label: "Hours", value: "Mon-Fri: 11AM - 10PM · Sat-Sun: 10AM - 10PM" },
+  { icon: Clock, label: "Hours", value: "Mon-Fri: 11AM - 9PM · Sat-Sun: 11AM - 10PM" },
 ];
 
 // Google Maps Embed API — official endpoint, key restricted by HTTP

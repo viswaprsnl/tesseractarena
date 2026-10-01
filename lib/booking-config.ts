@@ -5,7 +5,11 @@ import { isBirthdayPackage } from "./booking-types";
 
 const TIMEZONE = "Asia/Kolkata";
 
-export const SLOT_DURATION_MINUTES = 40;
+// Each booking slot = 1 hour (45 min play + 15 min changeover/setup).
+// Bumped from 40 min on 2026-09-30 — simpler for walk-ins to understand
+// ("book 7-8pm"), gives staff more buffer between sessions, and makes
+// the hourly grid read cleaner than the staggered :00/:40/:20 cadence.
+export const SLOT_DURATION_MINUTES = 60;
 export const MAX_PLAYERS = 8;
 
 // Flat advance per person paid at booking. Remaining is paid at the center.
@@ -124,20 +128,18 @@ export function getRefundStatus(
   };
 }
 
-// Weekday (Mon-Fri): 11:00 AM to 10:00 PM (last slot must end by 10 PM)
-// Each slot is 40 min (30 min play + 10 min setup)
+// Weekday (Mon-Fri): 11:00 AM to 9:00 PM — last slot starts at 8pm,
+// ends at 9pm. Ten 1-hour slots.
 export const WEEKDAY_SLOTS = [
-  "11:00", "11:40", "12:20", "13:00", "13:40", "14:20",
-  "15:00", "15:40", "16:20", "17:00", "17:40", "18:20",
-  "19:00", "19:40", "20:20", "21:00",
+  "11:00", "12:00", "13:00", "14:00", "15:00",
+  "16:00", "17:00", "18:00", "19:00", "20:00",
 ];
 
-// Weekend (Sat-Sun): 10:00 AM to 10:00 PM (last slot must end by 10 PM)
-// Each slot is 40 min (30 min play + 10 min setup)
+// Weekend (Sat-Sun): 11:00 AM to 10:00 PM — last slot starts at 9pm,
+// ends at 10pm. Eleven 1-hour slots.
 export const WEEKEND_SLOTS = [
-  "10:00", "10:40", "11:20", "12:00", "12:40", "13:20",
-  "14:00", "14:40", "15:20", "16:00", "16:40", "17:20",
-  "18:00", "18:40", "19:20", "20:00", "20:40", "21:20",
+  "11:00", "12:00", "13:00", "14:00", "15:00",
+  "16:00", "17:00", "18:00", "19:00", "20:00", "21:00",
 ];
 
 export function isWeekend(dateStr: string): boolean {
