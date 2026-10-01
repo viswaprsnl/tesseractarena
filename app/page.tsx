@@ -1,8 +1,10 @@
 import { Hero } from "@/components/sections/Hero";
-import { ReviewsMarquee } from "@/components/sections/ReviewsMarquee";
-// SocialProof (the hardware-tagline strip) is replaced by the real-review
-// marquee right under the hero. Keeping the import out so the component
-// isn't bundled; re-enable later by swapping the two renders below.
+// ReviewsMarquee now renders as an overlay inside <Hero/>, pinned to
+// the hero's bottom edge, so it's in viewport from first paint on
+// both desktop and mobile. Keep the component import out of this file
+// so it isn't double-rendered.
+// SocialProof (the hardware-tagline strip) was replaced by the review
+// marquee. Re-enable here by uncommenting both the import and the render.
 // import { SocialProof } from "@/components/sections/SocialProof";
 import { HowItWorks } from "@/components/sections/HowItWorks";
 import { GamesLibrary } from "@/components/sections/GamesLibrary";
@@ -20,7 +22,6 @@ export default function Home() {
   return (
     <>
       <Hero />
-      <ReviewsMarquee />
       <HowItWorks />
       <GamesLibrary />
       <Features />

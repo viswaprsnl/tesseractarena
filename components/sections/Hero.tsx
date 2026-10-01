@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { fadeInUp, staggerContainer } from "@/lib/animations";
+import { ReviewsMarquee } from "@/components/sections/ReviewsMarquee";
 
 const ParticleField = dynamic(
   () => import("@/components/three/ParticleField"),
@@ -180,8 +181,19 @@ export function Hero() {
         </motion.div>
       </motion.div>
 
-      {/* Bottom fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
+      {/* Bottom fade. Ends above the reviews band so the fade doesn't
+          bleed over the quotes. */}
+      <div className="absolute bottom-16 sm:bottom-20 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent" />
+
+      {/* Reviews marquee pinned to the hero's bottom edge. Overlays
+          the video so it reads as part of the hero (visible in viewport
+          on load, both desktop and mobile) instead of as a separate
+          section below the fold. Its own section tag has a thin
+          backdrop blur + translucent fill so quotes stay legible over
+          any frame of the video. */}
+      <div className="absolute bottom-0 left-0 right-0 z-20 backdrop-blur-sm bg-background/55 border-t border-white/10">
+        <ReviewsMarquee />
+      </div>
     </section>
   );
 }
