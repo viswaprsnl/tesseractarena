@@ -7,6 +7,7 @@ import { Features } from "@/components/sections/Features";
 // visible in the booking flow. Re-enable by restoring the import and
 // <Pricing /> render below.
 // import { Pricing } from "@/components/sections/Pricing";
+import { CorporateBookings } from "@/components/sections/CorporateBookings";
 import { Testimonials } from "@/components/sections/Testimonials";
 import { FAQ } from "@/components/sections/FAQ";
 import { Location } from "@/components/sections/Location";
@@ -20,6 +21,7 @@ export default function Home() {
       <GamesLibrary />
       <Features />
       {/* <Pricing /> */}
+      <CorporateBookings />
       <Testimonials />
       <FAQ />
       <Location />
