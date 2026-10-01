@@ -25,32 +25,38 @@ export const NOTIFY_RECIPIENTS = [
 // birthday equivalent lives in data/birthday.ts next to the package
 // data it needs.
 
-function whatsappLink(message: string): string {
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+function whatsappLink(message?: string): string {
+  const base = `https://wa.me/${WHATSAPP_NUMBER}`;
+  return message ? `${base}?text=${encodeURIComponent(message)}` : base;
 }
 
-// Catch-all general enquiry — footer, contact page, any "just reach
-// out" surface. Deliberately open-ended so the customer can continue
-// in their own words after it opens WhatsApp.
+// Pre-filled WhatsApp messages. All kept short on purpose — Totem /
+// Anvio and the industry use one-liners because the real greeting
+// comes back from the arena's WhatsApp Business auto-reply (set up in
+// the Business app, not here). A long pre-fill makes the lead feel
+// like a form, and the staff reply has to repeat half of it anyway.
+
+// Catch-all general enquiry — footer button has no pre-fill at all
+// (just opens the chat), copy below is for the "Chat on WhatsApp"
+// buttons that benefit from a sender-side intent tag.
 export function whatsappGeneralLink(): string {
-  return whatsappLink(
-    "Hi Tesseract Arena! I just checked out tesseractarena.com and wanted to know more. Can you help?"
-  );
+  return whatsappLink("Hi Tesseract Arena, I'd like to book a session.");
 }
 
-// Corporate / large-group enquiries. Pre-fills group + date so the
-// staff reply can be specific from the first message.
+// Explicitly no pre-fill — same wa.me/<number> URL with nothing in
+// the text parameter. Use this on floating / nav / icon-only
+// buttons where "typing has already started" feels pushy.
+export function whatsappEmptyLink(): string {
+  return whatsappLink();
+}
+
+// Corporate / large-group enquiries. One short line — the staff
+// follow-up asks for group size, date and session length.
 export function whatsappCorporateLink(): string {
-  return whatsappLink(
-    "Hi Tesseract Arena! I'd like to enquire about a corporate / team booking.\n\nGroup size:\nPreferred date:\nSession length (2 or 3 hours):"
-  );
+  return whatsappLink("Hi Tesseract Arena! I'd like to plan a team event.");
 }
 
-// "What are your current rates?" — used from the booking flow or any
-// pricing-adjacent CTA so staff can lead with slot availability + the
-// right discount they can offer that day.
-export function whatsappPricingLink(): string {
-  return whatsappLink(
-    "Hi Tesseract Arena! Can you share your current rates and any offers running right now?"
-  );
+// Pre-booking question — "Ask on WhatsApp" style CTA.
+export function whatsappQuestionLink(): string {
+  return whatsappLink("Hi Tesseract Arena, I have a question before booking.");
 }
