@@ -13,7 +13,9 @@ const navLinks = [
   { href: "/", label: "Home" },
   { href: "/games", label: "Games" },
   { href: "/birthday", label: "Birthday" },
-  { href: "/#pricing", label: "Pricing" },
+  // Pricing link intentionally hidden — the on-page Pricing section is
+  // disabled on the homepage; per-game prices live in the booking flow.
+  // { href: "/#pricing", label: "Pricing" },
   { href: "/about", label: "About" },
   { href: "/faq", label: "FAQ" },
   { href: "/contact", label: "Contact" },
