@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 import type { BookingRow } from "@/lib/booking-types";
 import { findBookingById, updateBookingCells } from "@/lib/google-sheets";
+import { listWalkinRevenue } from "@/lib/revenue-sheets";
 
 function getAuth() {
   const privateKey = Buffer.from(
@@ -104,14 +105,32 @@ export async function GET(request: NextRequest) {
       return a.timeSlot.localeCompare(b.timeSlot);
     });
 
+    // Also pull walk-ins for this date so staff can see the full picture
+    // of what the arena served today — online bookings AND counter walk-
+    // ins — on a single screen. Walk-ins live in the Revenue sheet (not
+    // Sheet1) because they don't have a slot or a Razorpay flow; this
+    // is purely a display join. Non-blocking: if the Revenue sheet
+    // read fails, we still return the online bookings.
+    let walkins: Awaited<ReturnType<typeof listWalkinRevenue>> = [];
+    try {
+      const all = await listWalkinRevenue();
+      walkins = date ? all.filter((w) => w.date === date) : all;
+    } catch (err) {
+      console.error("Walk-in lookup failed:", err);
+    }
+
     // Stats
     const active = bookings.filter((b) => b.status !== "cancelled");
     const totalRevenue = active.reduce((sum, b) => sum + b.amount, 0);
+    const walkinRevenue = walkins.reduce((sum, w) => sum + w.revenue, 0);
     const paid = active.filter((b) => b.paymentStatus === "paid");
     const payAtCenter = active.filter((b) => b.paymentStatus === "pay_at_center");
+    const totalPlayers = active.reduce((sum, b) => sum + b.partySize, 0)
+      + walkins.reduce((sum, w) => sum + w.players, 0);
 
     return NextResponse.json({
       bookings,
+      walkins,
       stats: {
         total: bookings.length,
         active: active.length,
@@ -119,6 +138,9 @@ export async function GET(request: NextRequest) {
         paid: paid.length,
         payAtCenter: payAtCenter.length,
         totalRevenue,
+        walkins: walkins.length,
+        walkinRevenue,
+        totalPlayers,
       },
     });
   } catch (error) {

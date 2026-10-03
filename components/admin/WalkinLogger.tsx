@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PRICING, getTodayISTString } from "@/lib/booking-config";
+import { PRICING, getTodayISTString, withGST, GST_PERCENT } from "@/lib/booking-config";
 import type { GroupType, PaymentMethod } from "@/lib/revenue-config";
 
 const DISCOUNT_PRESETS = [0, 5, 10, 15, 20] as const;
@@ -42,13 +42,20 @@ export function WalkinLogger({ pin, onSaved }: WalkinLoggerProps) {
     "preset"
   );
 
-  // Auto-fill revenue from package × players. Staff can still overtype
-  // for promos or "friend rate" sessions.
+  // Auto-fill revenue from package × players, inc-GST. PRICING is the
+  // ex-GST per-head base, so we multiply by (1 + GST%) to show staff
+  // the amount they actually collect at the till. Staff can overtype
+  // for promos / friend rate / cash tweaks.
   useEffect(() => {
     const perPerson = PRICING[formGroup];
-    setFormRevenue(String(perPerson * Math.max(1, formPlayers)));
+    const baseTotal = perPerson * Math.max(1, formPlayers);
+    setFormRevenue(String(withGST(baseTotal)));
   }, [formGroup, formPlayers]);
 
+  // Everything below treats formRevenue as INC-GST — what the customer
+  // actually paid at the counter. Discount reduces that gross figure.
+  // Ex-GST base + GST portion are derived so the Revenue sheet (and
+  // downstream reports) still store ex-GST like Sheet1 bookings do.
   const grossRevenue = Number(formRevenue) || 0;
   const effectivePct =
     discountMode === "preset"
@@ -58,7 +65,12 @@ export function WalkinLogger({ pin, onSaved }: WalkinLoggerProps) {
     () => Math.round((grossRevenue * effectivePct) / 100),
     [grossRevenue, effectivePct]
   );
-  const netRevenue = Math.max(0, grossRevenue - discountAmount);
+  const netRevenueIncGST = Math.max(0, grossRevenue - discountAmount);
+  // Derive the ex-GST base from the inc-GST net. GST is the remainder
+  // so the two always sum back to the inc-GST amount — no rounding
+  // mismatches that leave the Revenue sheet off by a rupee.
+  const netRevenueExGST = Math.round(netRevenueIncGST / (1 + GST_PERCENT / 100));
+  const netGSTAmount = Math.max(0, netRevenueIncGST - netRevenueExGST);
 
   const reset = () => {
     setFormDate(today);
@@ -75,14 +87,18 @@ export function WalkinLogger({ pin, onSaved }: WalkinLoggerProps) {
     setBusy(true);
     setError(null);
     setFlash(null);
-    // Fold discount into the notes so the audit trail is on the row
-    // itself — the /api/admin/revenue endpoint doesn't know about our
-    // discount fields, and revenue we log here is the POST-discount
-    // amount (matches how the counter treats it).
-    const notesWithDiscount =
-      effectivePct > 0
-        ? `${formNotes ? formNotes + " · " : ""}${effectivePct}% rep discount (₹${discountAmount} off gross ₹${grossRevenue})`
-        : formNotes;
+    // Audit trail folded into notes: discount %, GST portion collected,
+    // and inc-GST total so the row self-documents. The /api/admin/
+    // revenue endpoint stores the ex-GST base in the `revenue` column
+    // so walk-in rows match Sheet1 bookings — both are ex-GST revenue
+    // for Anvio royalty / finance reporting.
+    const noteParts: string[] = [];
+    if (formNotes) noteParts.push(formNotes);
+    if (effectivePct > 0) {
+      noteParts.push(`${effectivePct}% rep discount (₹${discountAmount} off ₹${grossRevenue} gross)`);
+    }
+    noteParts.push(`GST ₹${netGSTAmount} collected · ₹${netRevenueIncGST} total`);
+    const notesForRow = noteParts.join(" · ");
     try {
       const res = await fetch(`/api/admin/revenue?pin=${pin}`, {
         method: "POST",
@@ -92,9 +108,11 @@ export function WalkinLogger({ pin, onSaved }: WalkinLoggerProps) {
           source: "walkin",
           groupType: formGroup,
           players: formPlayers,
-          revenue: netRevenue,
+          // ex-GST base — same semantics as Sheet1 bookings so revenue
+          // reports sum like-for-like.
+          revenue: netRevenueExGST,
           paymentMethod: formPayment,
-          notes: notesWithDiscount,
+          notes: notesForRow,
         }),
       });
       const data = await res.json();
@@ -103,7 +121,9 @@ export function WalkinLogger({ pin, onSaved }: WalkinLoggerProps) {
       } else {
         const suffix =
           effectivePct > 0 ? ` (after ${effectivePct}% off)` : "";
-        setFlash(`Logged: ${formGroup} × ${formPlayers} · ₹${netRevenue.toLocaleString("en-IN")}${suffix}`);
+        setFlash(
+          `Logged: ${formGroup} × ${formPlayers} · ₹${netRevenueIncGST.toLocaleString("en-IN")} collected${suffix}`
+        );
         reset();
         onSaved?.();
         setTimeout(() => setFlash(null), 3000);
@@ -175,7 +195,9 @@ export function WalkinLogger({ pin, onSaved }: WalkinLoggerProps) {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Revenue ₹</label>
+              <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Total collected ₹ <span className="text-amber-400/80">(incl. GST)</span>
+              </label>
               <Input
                 type="number"
                 min="0"
@@ -267,23 +289,43 @@ export function WalkinLogger({ pin, onSaved }: WalkinLoggerProps) {
             {effectivePct > 0 && (
               <p className="text-[11px] text-amber-300">
                 Gross ₹{grossRevenue.toLocaleString("en-IN")} − ₹
-                {discountAmount.toLocaleString("en-IN")} ({effectivePct}%) = <strong>₹{netRevenue.toLocaleString("en-IN")}</strong> logged
+                {discountAmount.toLocaleString("en-IN")} ({effectivePct}%)
+                = <strong>₹{netRevenueIncGST.toLocaleString("en-IN")}</strong> collected
               </p>
             )}
           </div>
 
+          {/* GST breakdown of what will actually be stored. Base is the
+              ex-GST revenue (what goes into reports); GST is remitted to
+              govt and never counts as our revenue. Total matches the
+              Revenue field so staff can sanity-check the maths. */}
+          {grossRevenue > 0 && (
+            <div className="rounded-lg bg-secondary/40 border border-white/5 p-3 text-[11px] space-y-1">
+              <div className="flex justify-between text-muted-foreground">
+                <span>Ex-GST base (recorded as revenue)</span>
+                <span>₹{netRevenueExGST.toLocaleString("en-IN")}</span>
+              </div>
+              <div className="flex justify-between text-muted-foreground">
+                <span>GST @ {GST_PERCENT}% (remitted to govt)</span>
+                <span>+ ₹{netGSTAmount.toLocaleString("en-IN")}</span>
+              </div>
+              <div className="flex justify-between pt-1 mt-1 border-t border-white/5 font-medium text-foreground">
+                <span>Customer paid</span>
+                <span>₹{netRevenueIncGST.toLocaleString("en-IN")}</span>
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-end">
             <Button
               onClick={submit}
-              disabled={busy}
+              disabled={busy || grossRevenue <= 0}
               className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs h-8"
             >
               <Plus size={12} className="mr-1" />
               {busy
                 ? "Saving…"
-                : effectivePct > 0
-                ? `Log walk-in (₹${netRevenue.toLocaleString("en-IN")})`
-                : "Log walk-in"}
+                : `Log walk-in (₹${netRevenueIncGST.toLocaleString("en-IN")} collected)`}
             </Button>
           </div>
         </>

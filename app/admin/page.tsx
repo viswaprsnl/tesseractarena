@@ -31,7 +31,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { formatTimeDisplay, getTodayISTString } from "@/lib/booking-config";
+import { formatTimeDisplay, getTodayISTString, GST_PERCENT } from "@/lib/booking-config";
 import type { BookingRow } from "@/lib/booking-types";
 import { allGames, availableGames, comingSoonGames, type Game, type GameCategory } from "@/data/games";
 import { formatDiscountBadge, type Discount, type DiscountScope, type DiscountType } from "@/lib/discount-config";
@@ -56,6 +56,21 @@ interface Stats {
   paid: number;
   payAtCenter: number;
   totalRevenue: number;
+  // Optional on legacy responses that pre-date walk-in merging.
+  walkins?: number;
+  walkinRevenue?: number;
+  totalPlayers?: number;
+}
+
+interface WalkinSummary {
+  id: string;
+  date: string;
+  groupType: "solo" | "squad" | "party";
+  players: number;
+  revenue: number;
+  paymentMethod: "cash" | "upi" | "card" | "razorpay";
+  notes: string;
+  createdAt: string;
 }
 
 function ServiceCard({ name, purpose, plan, limits, upgrade, url, login, status }: {
@@ -368,6 +383,7 @@ export default function AdminPage() {
   // calendar popup on top of the label.
   const datePickerRef = useRef<HTMLInputElement>(null);
   const [bookings, setBookings] = useState<BookingRow[]>([]);
+  const [walkins, setWalkins] = useState<WalkinSummary[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(false);
   const [cancelling, setCancelling] = useState<string | null>(null);
@@ -614,6 +630,7 @@ export default function AdminPage() {
           if (res.status === 401) setAuthenticated(false);
         } else {
           setBookings(data.bookings);
+          setWalkins(Array.isArray(data.walkins) ? data.walkins : []);
           setStats(data.stats);
           checkAllWaivers(data.bookings);
         }
@@ -1629,7 +1646,10 @@ export default function AdminPage() {
         {activeTab === "bookings" && <>
         {/* Walk-in logger — for counter customers who paid without booking online */}
         <div className="mb-6">
-          <WalkinLogger pin={pin} />
+          <WalkinLogger
+            pin={pin}
+            onSaved={() => fetchBookings(selectedDate, pin)}
+          />
         </div>
 
         {/* Date navigation — chevrons step ±1 day, the pretty label opens
@@ -1735,7 +1755,9 @@ export default function AdminPage() {
               <div className="glass-card p-8 text-center">
                 <Calendar size={32} className="mx-auto mb-3 text-muted-foreground/40" />
                 <p className="text-muted-foreground">
-                  No bookings for this date
+                  {walkins.length > 0
+                    ? "No online bookings for this date — walk-ins below."
+                    : "No bookings for this date"}
                 </p>
               </div>
             ) : (
@@ -1859,6 +1881,57 @@ export default function AdminPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Walk-ins for this date — counter sessions logged via
+                WalkinLogger. Stored in the Revenue sheet (not Sheet1)
+                because they don't take a slot, but shown here so staff
+                see the full day's traffic in one place. Revenue column
+                is ex-GST; inc-GST total is derived for display. */}
+            {walkins.length > 0 && (
+              <div className="mt-8">
+                <h3 className="text-sm text-muted-foreground mb-3">
+                  Walk-ins ({walkins.length})
+                </h3>
+                <div className="space-y-2">
+                  {walkins.map((w) => {
+                    const incGST = Math.round(w.revenue * (1 + GST_PERCENT / 100));
+                    return (
+                      <div key={w.id} className="glass-card p-3 sm:p-4 bg-amber-500/5 border-amber-500/10">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="flex-1">
+                            <div className="flex flex-wrap items-center gap-2 mb-1">
+                              <Badge className="bg-amber-500/20 text-amber-400 text-[10px]">
+                                Walk-in
+                              </Badge>
+                              <span className="text-sm font-medium capitalize">{w.groupType}</span>
+                              <span className="text-xs text-muted-foreground">
+                                · {w.players} {w.players === 1 ? "player" : "players"}
+                              </span>
+                              <Badge className="bg-secondary text-muted-foreground text-[10px] capitalize">
+                                {w.paymentMethod}
+                              </Badge>
+                            </div>
+                            {w.notes && (
+                              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                {w.notes}
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-base font-bold">
+                              ₹{incGST.toLocaleString("en-IN")}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              ₹{w.revenue.toLocaleString("en-IN")} + GST
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
