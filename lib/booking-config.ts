@@ -10,6 +10,13 @@ const TIMEZONE = "Asia/Kolkata";
 // ("book 7-8pm"), gives staff more buffer between sessions, and makes
 // the hourly grid read cleaner than the staggered :00/:40/:20 cadence.
 export const SLOT_DURATION_MINUTES = 60;
+
+// How long after a slot's START time it's still bookable (as a late
+// walk-in). A 3 PM slot stays "available" until 3:40 PM — gives staff
+// a 40-min window to seat anyone who shows up or calls in late. After
+// this window the slot flips to "past" since not enough play time
+// remains to justify the price. Independent of SLOT_DURATION_MINUTES.
+export const SLOT_LATE_BOOKING_WINDOW_MINUTES = 40;
 export const MAX_PLAYERS = 8;
 
 // Flat advance per person paid at booking. Remaining is paid at the center.
@@ -174,9 +181,14 @@ export function generateSlots(
 
     if (isToday) {
       const [h, m] = time.split(":").map(Number);
-      const slotDate = new Date(nowIST);
-      slotDate.setHours(h, m, 0, 0);
-      isPast = isBefore(slotDate, nowIST);
+      // Cutoff = slot start + SLOT_LATE_BOOKING_WINDOW_MINUTES. The
+      // slot is only "past" once that window closes, so e.g. the 3 PM
+      // slot stays available until 3:40 PM — late walk-ins can still
+      // grab it. Before this change the slot flipped at 3:00:01 PM
+      // and we'd lose anyone who showed up a minute late.
+      const slotCutoff = new Date(nowIST);
+      slotCutoff.setHours(h, m + SLOT_LATE_BOOKING_WINDOW_MINUTES, 0, 0);
+      isPast = isBefore(slotCutoff, nowIST);
     }
 
     // Booked wins over past — a slot that IS actually booked stays labelled
