@@ -42,6 +42,12 @@ export interface BookingState {
   // the eventual /api/bookings POST can send it and the server can
   // independently verify + re-apply the discount server-side.
   couponCode: string | null;
+  // True when the wizard was entered from the arena's counter kiosk
+  // (via QR scan to /book?kiosk=1). Drives the "pay at counter" UX:
+  // skip Razorpay, skip the advance / balance split, land on today's
+  // date, and route the final confirm straight to the pay-at-center
+  // booking endpoint.
+  isKiosk: boolean;
   isLoading: boolean;
   error: string | null;
   availableSlots: TimeSlot[];
@@ -82,6 +88,7 @@ const initialState: BookingState = {
   amount: 0,
   discount: null,
   couponCode: null,
+  isKiosk: false,
   isLoading: false,
   error: null,
   availableSlots: [],
@@ -159,10 +166,14 @@ function reducer(state: BookingState, action: Action): BookingState {
 // game is set on the very first render rather than through a follow-up
 // useEffect (which can no-op in React StrictMode's second render pass and
 // leave the state null).
-export function useBooking(options?: { initialGame?: string | null }) {
+export function useBooking(options?: {
+  initialGame?: string | null;
+  initialKiosk?: boolean;
+}) {
   const [state, dispatch] = useReducer(reducer, {
     ...initialState,
     selectedGame: options?.initialGame ?? initialState.selectedGame,
+    isKiosk: options?.initialKiosk ?? initialState.isKiosk,
   });
   return { state, dispatch };
 }

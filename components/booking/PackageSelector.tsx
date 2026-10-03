@@ -47,6 +47,10 @@ interface PackageSelectorProps {
   // the code back to the server for independent re-validation. Sent as
   // the code string on success, null when cleared or invalid.
   onCouponChange?: (code: string | null) => void;
+  // Kiosk / counter mode. Hides the "Pay now (advance) vs Pay at
+  // center" split in the pricing card — a walk-in customer pays the
+  // whole thing at the counter, not an online advance.
+  isKiosk?: boolean;
 }
 
 const packages = [
@@ -81,6 +85,7 @@ export function PackageSelector({
   onGameChange,
   onDiscountChange,
   onCouponChange,
+  isKiosk = false,
 }: PackageSelectorProps) {
   const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [gameStatuses, setGameStatuses] = useState<Record<string, { status: string; hidden?: boolean }>>({});
@@ -642,27 +647,47 @@ export function PackageSelector({
           </div>
         )}
 
-        <div className="border-t border-border pt-4 space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">
-              Pay now (advance, incl. GST)
-            </span>
-            <span className="text-sm font-bold text-primary">
-              ₹{withGST(calculateAdvance(partySize, amount)).toLocaleString("en-IN")}
-            </span>
+        {isKiosk ? (
+          /* Counter / walk-in flow: whole amount is paid at the counter
+             after this form is submitted. No advance / balance split,
+             no "pay 500 per person" line (misleading at the till). */
+          <div className="border-t border-border pt-4 space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">
+                Pay at counter (incl. GST)
+              </span>
+              <span className="text-base font-bold text-primary">
+                ₹{withGST(amount).toLocaleString("en-IN")}
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground/70 pt-1">
+              Pay in cash, UPI or card at the counter after you&apos;ve
+              confirmed your details on the next step.
+            </p>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">
-              Pay at center (incl. GST)
-            </span>
-            <span className="text-sm font-medium">
-              ₹{withGST(amount - calculateAdvance(partySize, amount)).toLocaleString("en-IN")}
-            </span>
+        ) : (
+          <div className="border-t border-border pt-4 space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">
+                Pay now (advance, incl. GST)
+              </span>
+              <span className="text-sm font-bold text-primary">
+                ₹{withGST(calculateAdvance(partySize, amount)).toLocaleString("en-IN")}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">
+                Pay at center (incl. GST)
+              </span>
+              <span className="text-sm font-medium">
+                ₹{withGST(amount - calculateAdvance(partySize, amount)).toLocaleString("en-IN")}
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground/70 pt-1">
+              Just ₹500 per person (+ GST) reserves your slot. Pay the rest when you arrive.
+            </p>
           </div>
-          <p className="text-[11px] text-muted-foreground/70 pt-1">
-            Just ₹500 per person (+ GST) reserves your slot. Pay the rest when you arrive.
-          </p>
-        </div>
+        )}
       </div>
 
       {/* Coupon input — only rendered once a game/date is picked so a

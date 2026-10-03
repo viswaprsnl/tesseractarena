@@ -9,6 +9,7 @@ import { BookingWizard } from "@/components/booking/BookingWizard";
 function BookPageContent() {
   const params = useSearchParams();
   const preselectedGame = params.get("game") || undefined;
+  const isKiosk = params.get("kiosk") === "1";
 
   return (
     <div className="pt-24 pb-16 px-4">
@@ -19,14 +20,18 @@ function BookPageContent() {
         className="text-center mb-10"
       >
         <h1 className="text-3xl sm:text-4xl font-bold mb-3">
-          <span className="gradient-text">Book Your Session</span>
+          <span className="gradient-text">
+            {isKiosk ? "Book at the Counter" : "Book Your Session"}
+          </span>
         </h1>
         <p className="text-muted-foreground max-w-md mx-auto text-sm">
-          Reserve your VR experience in just a few steps
+          {isKiosk
+            ? "Finish your booking on your phone, pay at the counter."
+            : "Reserve your VR experience in just a few steps"}
         </p>
       </motion.div>
 
-      <BookingWizard preselectedGame={preselectedGame} />
+      <BookingWizard preselectedGame={preselectedGame} isKiosk={isKiosk} />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft } from "lucide-react";
@@ -7,6 +8,8 @@ import { useBooking } from "@/hooks/use-booking";
 import {
   calculatePrice,
   calculateSessionPrice,
+  getTodayISTString,
+  formatTimeDisplay,
 } from "@/lib/booking-config";
 import type { PerPersonPackageType } from "@/lib/booking-types";
 import { allGames, availableGames } from "@/data/games";
@@ -19,11 +22,36 @@ import { PersonalDetailsForm } from "./PersonalDetailsForm";
 import { PaymentStep } from "./PaymentStep";
 import { BookingSummary } from "./BookingSummary";
 
-export function BookingWizard({ preselectedGame }: { preselectedGame?: string }) {
+export function BookingWizard({
+  preselectedGame,
+  isKiosk = false,
+}: {
+  preselectedGame?: string;
+  isKiosk?: boolean;
+}) {
   const router = useRouter();
   // Seed selectedGame on the first render so step 3 already shows the
-  // /games modal's choice ticked when the user arrives.
-  const { state, dispatch } = useBooking({ initialGame: preselectedGame });
+  // /games modal's choice ticked when the user arrives. Seed isKiosk so
+  // downstream components (PackageSelector pricing display, PaymentStep
+  // button) can branch without extra prop drilling.
+  const { state, dispatch } = useBooking({
+    initialGame: preselectedGame,
+    initialKiosk: isKiosk,
+  });
+
+  // Kiosk mode: skip the date-picker step. The customer is at the
+  // counter right now — they're booking for today, not next week. Pre-
+  // load today's date and jump to the time-slot step. We only run once
+  // on mount; subsequent "Back" navigations stay at step 2 because the
+  // date is already set.
+  useEffect(() => {
+    if (!isKiosk) return;
+    const today = getTodayISTString();
+    dispatch({ type: "SET_DATE", date: today });
+    fetchSlots(today);
+    dispatch({ type: "GO_TO_STEP", step: 2 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isKiosk]);
 
   // Fetch slots when date is selected
   const fetchSlots = async (date: string) => {
@@ -217,12 +245,61 @@ export function BookingWizard({ preselectedGame }: { preselectedGame?: string })
     }
   };
 
+  // Kiosk pay-at-counter flow. No Razorpay round-trip: just create the
+  // booking with paymentMethod="pay_at_center" and route the customer
+  // to the confirmation screen. The /api/bookings route already fires
+  // customer + arena emails on pay-at-center at create time, so this
+  // path is final the moment the sheet write returns.
+  const handlePayAtCenter = async () => {
+    if (!state.personalDetails || !state.selectedDate || !state.selectedSlot) return;
+    dispatch({ type: "SET_LOADING", loading: true });
+    try {
+      const bookingRes = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: state.personalDetails.name,
+          email: state.personalDetails.email,
+          phone: state.personalDetails.phone,
+          date: state.selectedDate,
+          timeSlot: state.selectedSlot,
+          partySize: state.partySize,
+          package: state.packageType,
+          gamePreference: state.personalDetails.gamePreference,
+          paymentMethod: "pay_at_center",
+          specialRequests: state.personalDetails.specialRequests,
+          ...(state.couponCode ? { couponCode: state.couponCode } : {}),
+        }),
+      });
+      const bookingData = await bookingRes.json();
+      if (!bookingData.success) {
+        dispatch({
+          type: "SET_ERROR",
+          error: bookingData.error || "Could not confirm the booking. Please ask the counter staff.",
+        });
+        dispatch({ type: "SET_LOADING", loading: false });
+        return;
+      }
+      const bookingId = bookingData.booking.bookingId;
+      const amount = bookingData.booking.amount;
+      const timeDisplay = state.selectedSlotDisplay || formatTimeDisplay(state.selectedSlot);
+      router.push(
+        `/book/confirmation?id=${bookingId}&amount=${amount}&date=${state.selectedDate}&time=${encodeURIComponent(timeDisplay)}&players=${state.partySize}&package=${state.packageType}&payment=pay_at_center&advance=0`
+      );
+    } catch {
+      dispatch({ type: "SET_ERROR", error: "Something went wrong. Please try again or ask the counter staff." });
+      dispatch({ type: "SET_LOADING", loading: false });
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
       <StepIndicator currentStep={state.step} />
 
-      {/* Back button */}
-      {state.step > 1 && (
+      {/* Back button. In kiosk mode we skip step 1 (date is forced to
+          today), so "Back" from step 2 would land on an empty date
+          picker. Gate the back button to steps 3+ in kiosk mode. */}
+      {state.step > (state.isKiosk ? 2 : 1) && (
         <button
           onClick={() => dispatch({ type: "PREV_STEP" })}
           className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-6 transition-colors"
@@ -283,6 +360,7 @@ export function BookingWizard({ preselectedGame }: { preselectedGame?: string })
                   onCouponChange={(code) =>
                     dispatch({ type: "SET_COUPON_CODE", code })
                   }
+                  isKiosk={state.isKiosk}
                 />
                 <div className="flex flex-col items-center gap-2 mt-6">
                   <button
@@ -321,6 +399,7 @@ export function BookingWizard({ preselectedGame }: { preselectedGame?: string })
                 key="payment"
                 state={state}
                 onPayOnline={handlePayOnline}
+                onPayAtCenter={handlePayAtCenter}
               />
             )}
           </AnimatePresence>

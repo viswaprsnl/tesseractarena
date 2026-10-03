@@ -13,7 +13,11 @@ import KioskShell from "./KioskShell";
 export default async function KioskPage() {
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL || "https://www.tesseractarena.com";
-  const walkInBookingUrl = `${siteUrl}/book`;
+  // ?kiosk=1 switches /book into counter mode: pre-selects today's date,
+  // hides the Razorpay advance / balance split (the customer is paying
+  // at the counter, not online), and routes "Confirm" straight to the
+  // pay-at-center booking endpoint.
+  const walkInBookingUrl = `${siteUrl}/book?kiosk=1`;
   const walkInQrSvg = await QRCode.toString(walkInBookingUrl, {
     type: "svg",
     errorCorrectionLevel: "M",
