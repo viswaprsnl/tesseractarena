@@ -107,11 +107,30 @@ export async function POST(request: NextRequest) {
         const advance = isBirthdayPackage(hit.booking.package)
           ? birthdayAdvance(hit.booking.amount)
           : calculateAdvance(hit.booking.partySize, hit.booking.amount);
+
+        // Derive paid base from the Razorpay payment amount so a kiosk
+        // "pay full" flow is recorded correctly even when the client
+        // closed the tab before /api/payments/verify ran. Razorpay
+        // amount is paise inc-GST; dividing by 1.18 gets the ex-GST
+        // base. If the result is closer to the full ticket than to the
+        // advance, assume full payment.
+        let paidBase = advance;
+        if (payment?.amount) {
+          const paymentInRupees = payment.amount / 100;
+          const estimatedBase = Math.round(paymentInRupees / 1.18);
+          if (
+            Math.abs(estimatedBase - hit.booking.amount) <
+            Math.abs(estimatedBase - advance)
+          ) {
+            paidBase = hit.booking.amount;
+          }
+        }
+
         const updates: Record<string, string> = {
           paymentStatus: "paid",
           status: "confirmed",
-          amountPaid: String(advance),
-          balanceDue: String(Math.max(0, hit.booking.amount - advance)),
+          amountPaid: String(paidBase),
+          balanceDue: String(Math.max(0, hit.booking.amount - paidBase)),
         };
         if (payment?.id) updates.razorpayPaymentId = payment.id;
         if (payment?.order_id) updates.razorpayOrderId = payment.order_id;
@@ -127,8 +146,8 @@ export async function POST(request: NextRequest) {
           paymentStatus: "paid" as const,
           razorpayPaymentId: payment?.id || hit.booking.razorpayPaymentId,
           razorpayOrderId: payment?.order_id || hit.booking.razorpayOrderId,
-          amountPaid: advance,
-          balanceDue: Math.max(0, hit.booking.amount - advance),
+          amountPaid: paidBase,
+          balanceDue: Math.max(0, hit.booking.amount - paidBase),
         };
         await sendBookingEmailsFromRow(bookingForEmail);
 

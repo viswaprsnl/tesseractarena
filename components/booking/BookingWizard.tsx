@@ -178,11 +178,15 @@ export function BookingWizard({
       // no amount is sent here to keep the client tamper-proof.
       const amount = bookingData.booking.amount;
 
-      // 2. Create Razorpay order (server computes the advance from the booking)
+      // 2. Create Razorpay order. In kiosk mode we charge the full
+      // ticket (customer is already at the counter — the advance /
+      // balance split only exists for remote bookings). payFull=true
+      // tells both create and verify to use booking.amount instead of
+      // calculateAdvance().
       const payRes = await fetch("/api/payments/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookingId }),
+        body: JSON.stringify({ bookingId, payFull: state.isKiosk }),
       });
 
       const payData = await payRes.json();
@@ -217,12 +221,18 @@ export function BookingWizard({
               body: JSON.stringify({
                 ...response,
                 bookingId,
+                payFull: state.isKiosk,
               }),
             });
 
             const verifyData = await verifyRes.json();
             if (verifyData.success) {
-              router.push(`/book/confirmation?id=${bookingId}&amount=${amount}&date=${state.selectedDate}&time=${state.selectedSlotDisplay}&players=${state.partySize}&package=${state.packageType}&payment=paid&advance=${Math.min(500 * state.partySize, amount)}`);
+              // Advance paid depends on whether this was a full-payment
+              // kiosk flow or the regular ₹500/head advance online.
+              const advancePaid = state.isKiosk
+                ? amount
+                : Math.min(500 * state.partySize, amount);
+              router.push(`/book/confirmation?id=${bookingId}&amount=${amount}&date=${state.selectedDate}&time=${state.selectedSlotDisplay}&players=${state.partySize}&package=${state.packageType}&payment=paid&advance=${advancePaid}`);
             } else {
               dispatch({ type: "SET_ERROR", error: "Payment verification failed" });
             }

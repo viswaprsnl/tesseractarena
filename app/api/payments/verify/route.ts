@@ -12,6 +12,11 @@ const verifySchema = z.object({
   razorpay_payment_id: z.string().min(1),
   razorpay_signature: z.string().min(1),
   bookingId: z.string().min(1),
+  // Mirror of the flag passed to /api/payments/create. When true, the
+  // sheet row records amountPaid = full amount and balanceDue = 0 so
+  // the counter staff never asks the customer for a balance they've
+  // already paid online.
+  payFull: z.boolean().optional().default(false),
 });
 
 export async function POST(request: NextRequest) {
@@ -26,7 +31,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, bookingId } =
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, bookingId, payFull } =
       parsed.data;
 
     // Verify signature
@@ -75,14 +80,16 @@ export async function POST(request: NextRequest) {
     // reporting. Razorpay charged the customer ex-GST × 1.18; the extra
     // 18% is remitted to the government and never sits in our revenue
     // accounting. See lib/booking-config.ts (GST_PERCENT) for the rule.
-    const advance = isBirthdayPackage(result.booking.package)
+    const chargeBase = payFull
+      ? result.booking.amount
+      : isBirthdayPackage(result.booking.package)
       ? birthdayAdvance(result.booking.amount)
       : calculateAdvance(result.booking.partySize, result.booking.amount);
     await updateBookingCells(result.rowIndex, {
       paymentStatus: "paid",
       razorpayPaymentId: razorpay_payment_id,
-      amountPaid: String(advance),
-      balanceDue: String(Math.max(0, result.booking.amount - advance)),
+      amountPaid: String(chargeBase),
+      balanceDue: String(Math.max(0, result.booking.amount - chargeBase)),
     });
 
     // The booking is only "real" now that payment has cleared. Fire
@@ -95,8 +102,8 @@ export async function POST(request: NextRequest) {
       ...result.booking,
       paymentStatus: "paid" as const,
       razorpayPaymentId: razorpay_payment_id,
-      amountPaid: advance,
-      balanceDue: Math.max(0, result.booking.amount - advance),
+      amountPaid: chargeBase,
+      balanceDue: Math.max(0, result.booking.amount - chargeBase),
     };
     await sendBookingEmailsFromRow(bookingForEmail);
 

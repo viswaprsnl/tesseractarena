@@ -74,20 +74,21 @@ export function PaymentStep({
       animate={{ opacity: 1, y: 0 }}
       className="max-w-lg mx-auto"
     >
-      {!state.isKiosk && (
-        <Script
-          src="https://checkout.razorpay.com/v1/checkout.js"
-          strategy="lazyOnload"
-        />
-      )}
+      {/* Razorpay checkout script. Needed in both regular and kiosk
+          flows now that kiosk offers "Pay Online" as one of two
+          options. */}
+      <Script
+        src="https://checkout.razorpay.com/v1/checkout.js"
+        strategy="lazyOnload"
+      />
 
       <h3 className="font-heading text-lg font-bold text-center mb-2">
-        {state.isKiosk ? "Confirm & Pay at Counter" : "Reserve Your Slot"}
+        {state.isKiosk ? "How would you like to pay?" : "Reserve Your Slot"}
       </h3>
       <p className="text-sm text-muted-foreground text-center mb-6">
         {state.isKiosk ? (
           <>
-            Pay <span className="text-primary font-bold">₹{totalWithGST.toLocaleString("en-IN")}</span> (incl. GST) at the counter
+            Total <span className="text-primary font-bold">₹{totalWithGST.toLocaleString("en-IN")}</span> (incl. GST). Pay online now or at the counter.
           </>
         ) : (
           <>
@@ -156,25 +157,44 @@ export function PaymentStep({
       </div>
 
       {state.isKiosk ? (
-        /* Kiosk flow: confirm booking, no online payment. Counter
-           staff collects at the till after this returns. */
-        <Button
-          onClick={handlePayAtCenter}
-          disabled={processing || !onPayAtCenter}
-          className="w-full h-auto py-4 bg-primary hover:bg-primary/90 text-primary-foreground glow-violet"
-        >
-          {processing ? (
-            <Loader2 className="animate-spin mr-2" size={18} />
-          ) : (
-            <CreditCard className="mr-2" size={18} />
-          )}
-          <div className="text-left">
-            <div className="font-semibold">Confirm Booking</div>
-            <div className="text-xs opacity-80">
-              Show this screen at the counter to pay ₹{totalWithGST.toLocaleString("en-IN")}
+        /* Kiosk flow: offer both. "Pay Online" opens Razorpay for the
+           FULL ticket (no advance split since customer is already at
+           the arena); "Pay at Counter" skips the gateway and routes
+           direct to pay_at_center. */
+        <div className="space-y-3">
+          <Button
+            onClick={handlePayOnline}
+            disabled={processing}
+            className="w-full h-auto py-4 bg-primary hover:bg-primary/90 text-primary-foreground glow-violet"
+          >
+            {processing ? (
+              <Loader2 className="animate-spin mr-2" size={18} />
+            ) : (
+              <CreditCard className="mr-2" size={18} />
+            )}
+            <div className="text-left">
+              <div className="font-semibold">
+                Pay ₹{totalWithGST.toLocaleString("en-IN")} Online Now
+              </div>
+              <div className="text-xs opacity-80">UPI, Cards, Net Banking · Instant receipt</div>
             </div>
-          </div>
-        </Button>
+          </Button>
+          <Button
+            onClick={handlePayAtCenter}
+            disabled={processing || !onPayAtCenter}
+            className="w-full h-auto py-4 bg-secondary/80 hover:bg-secondary text-foreground border border-white/10"
+          >
+            {processing ? (
+              <Loader2 className="animate-spin mr-2" size={18} />
+            ) : null}
+            <div className="text-left">
+              <div className="font-semibold">Pay at Counter</div>
+              <div className="text-xs opacity-80">
+                Confirm now, hand over ₹{totalWithGST.toLocaleString("en-IN")} at the till
+              </div>
+            </div>
+          </Button>
+        </div>
       ) : (
         <Button
           onClick={handlePayOnline}
@@ -204,12 +224,10 @@ export function PaymentStep({
         </p>
       </div>
 
-      {!state.isKiosk && (
-        <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mt-4">
-          <Shield size={12} className="text-primary" />
-          Secure payment powered by Razorpay
-        </p>
-      )}
+      <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mt-4">
+        <Shield size={12} className="text-primary" />
+        Online payments secured by Razorpay
+      </p>
     </motion.div>
   );
 }
