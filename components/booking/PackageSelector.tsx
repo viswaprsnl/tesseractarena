@@ -550,32 +550,42 @@ export function PackageSelector({
                 <h4 className="font-heading text-base font-bold">{pkg.name}</h4>
                 {isSelected && <Check size={16} className="text-primary" />}
               </div>
+              {/* Price block. "/person" sits on its own line below the
+                  number — keeping it inline with a text-2xl figure
+                  overflowed the narrow mobile card when both the
+                  strikethrough original and the discounted price had to
+                  fit on one row. Stacking is also easier to read at a
+                  glance. */}
               {!perHeadBase ? (
-                <p className="text-2xl font-bold mb-1 text-muted-foreground">
-                  —
-                  <span className="text-xs text-muted-foreground font-normal ml-1">
-                    /person
-                  </span>
-                </p>
+                <div className="mb-1">
+                  <p className="text-2xl font-bold text-muted-foreground">—</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    per person
+                  </p>
+                </div>
               ) : showDiscount ? (
                 <div className="mb-1">
-                  <span className="text-xs text-muted-foreground line-through mr-2">
-                    ₹{perPersonBase.toLocaleString("en-IN")}
-                  </span>
-                  <span className="text-2xl font-bold text-green-400">
-                    ₹{perPersonAfter.toLocaleString("en-IN")}
-                  </span>
-                  <span className="text-xs text-muted-foreground font-normal ml-1">
-                    /person
-                  </span>
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className="text-xs text-muted-foreground line-through">
+                      ₹{perPersonBase.toLocaleString("en-IN")}
+                    </span>
+                    <span className="text-2xl font-bold text-green-400 leading-none">
+                      ₹{perPersonAfter.toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    per person
+                  </p>
                 </div>
               ) : (
-                <p className="text-2xl font-bold mb-1">
-                  ₹{perPersonBase.toLocaleString("en-IN")}
-                  <span className="text-xs text-muted-foreground font-normal ml-1">
-                    /person
-                  </span>
-                </p>
+                <div className="mb-1">
+                  <p className="text-2xl font-bold leading-none">
+                    ₹{perPersonBase.toLocaleString("en-IN")}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    per person
+                  </p>
+                </div>
               )}
               <p className="text-xs text-muted-foreground">{pkg.range}</p>
               {perHeadBase > 0 && (
