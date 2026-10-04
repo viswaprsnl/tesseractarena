@@ -34,7 +34,9 @@ const TILES: LensTile[] = [
   { src: "/videos/lens-h.mp4", label: "Mission brief", orientation: "landscape" },
   { src: "/videos/lens-b.mp4", label: "The arena", orientation: "landscape" },
   { src: "/videos/lens-i.mp4", label: "The squad", orientation: "landscape" },
+  { src: "/videos/lens-k.mp4", label: "Gearing up", orientation: "landscape" },
   { src: "/videos/lens-j.mp4", label: "Walking in", orientation: "landscape" },
+  { src: "/videos/lens-l.mp4", label: "Debrief", orientation: "landscape" },
 ];
 
 export function ThroughTheLens() {
