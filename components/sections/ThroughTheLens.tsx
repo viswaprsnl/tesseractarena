@@ -27,7 +27,7 @@ const TILES: LensTile[] = [
   { src: "/videos/lens-a.mp4", label: "In the arena", orientation: "portrait" },
   { src: "/videos/lens-e.mp4", label: "Suited up", orientation: "landscape" },
   { src: "/videos/lens-c.mp4", label: "First-timers", orientation: "portrait" },
-  { src: "/videos/lens-f.mp4", label: "The reaction", orientation: "landscape" },
+  { src: "/videos/lens-f.mp4", label: "The reaction", orientation: "portrait" },
   { src: "/videos/hero.mp4", label: "Mid-session", orientation: "portrait" },
   { src: "/videos/lens-g.mp4", label: "In formation", orientation: "landscape" },
   { src: "/videos/lens-d.mp4", label: "On the floor", orientation: "landscape" },
