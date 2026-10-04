@@ -25,7 +25,7 @@ export const pricingTiers: PricingTier[] = [
     description: "Perfect for first-timers or solo adventurers joining a public session.",
     features: [
       "1 player",
-      "40-minute session (30 min VR + 10 min gear-up & briefing)",
+      "1-hour session (45 min VR + 15 min changeover & briefing)",
       "Choose any Available game",
       "All equipment provided",
       "Brief orientation included",
@@ -40,7 +40,7 @@ export const pricingTiers: PricingTier[] = [
     description: "Grab your crew for the ultimate co-op VR experience.",
     features: [
       "2-5 players",
-      "40-minute session (30 min VR + 10 min gear-up & briefing)",
+      "1-hour session (45 min VR + 15 min changeover & briefing)",
       "Choose any Available game",
       "All equipment provided",
       "Private arena session",

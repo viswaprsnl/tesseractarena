@@ -3,9 +3,13 @@
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 
+// Note: step numbers in state still run 1-5 to keep the reducer's
+// typed step union intact, but step 2 is now invisible in the
+// indicator because step 1 handles both Date and Time together.
+// A booking that reaches state.step === 2 (rare, old url) just
+// falls through to the "Date & Time" chip here.
 const steps = [
-  { num: 1, label: "Date" },
-  { num: 2, label: "Time" },
+  { num: 1, label: "Date & Time" },
   { num: 3, label: "Package" },
   { num: 4, label: "Details" },
   { num: 5, label: "Payment" },

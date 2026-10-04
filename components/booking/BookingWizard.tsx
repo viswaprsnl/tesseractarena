@@ -39,17 +39,16 @@ export function BookingWizard({
     initialKiosk: isKiosk,
   });
 
-  // Kiosk mode: skip the date-picker step. The customer is at the
-  // counter right now — they're booking for today, not next week. Pre-
-  // load today's date and jump to the time-slot step. We only run once
-  // on mount; subsequent "Back" navigations stay at step 2 because the
-  // date is already set.
+  // Kiosk mode: today's date is forced. The customer is at the counter
+  // right now — they're booking for today, not next week. We still show
+  // step 1 (Date & Time), but with the date pre-selected and locked, so
+  // the time-slot pane appears immediately alongside and the customer
+  // only has to tap a slot.
   useEffect(() => {
     if (!isKiosk) return;
     const today = getTodayISTString();
     dispatch({ type: "SET_DATE", date: today });
     fetchSlots(today);
-    dispatch({ type: "GO_TO_STEP", step: 2 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isKiosk]);
 
@@ -70,17 +69,21 @@ export function BookingWizard({
     dispatch({ type: "SET_LOADING", loading: false });
   };
 
-  // Step 1: Date selected
+  // Step 1 is now "Date & Time" — DatePicker and TimeSlotGrid render
+  // side by side. Picking a date fetches slots and populates the right
+  // pane; picking a slot advances straight to step 3 (Package), skipping
+  // the old step 2. state.step=2 is never reached in the new flow but
+  // the type union keeps it around for safe GO_TO_STEP calls elsewhere.
   const handleDateSelect = (date: string) => {
     dispatch({ type: "SET_DATE", date });
     fetchSlots(date);
-    dispatch({ type: "NEXT_STEP" });
+    // No NEXT_STEP here — we stay on step 1 so the time grid appears
+    // beside the calendar.
   };
 
-  // Step 2: Slot selected
   const handleSlotSelect = (time: string, displayTime: string) => {
     dispatch({ type: "SET_SLOT", slot: time, displayTime });
-    dispatch({ type: "NEXT_STEP" });
+    dispatch({ type: "GO_TO_STEP", step: 3 });
   };
 
   // Step 3: Package confirmed (auto-advance via button)
@@ -330,22 +333,31 @@ export function BookingWizard({
         {/* Main content */}
         <div className="lg:col-span-2">
           <AnimatePresence mode="wait">
-            {state.step === 1 && (
-              <DatePicker
-                key="date"
-                selectedDate={state.selectedDate}
-                onSelectDate={handleDateSelect}
-              />
-            )}
-            {state.step === 2 && state.selectedDate && (
-              <div key="time">
-                <TimeSlotGrid
-                  date={state.selectedDate}
-                  slots={state.availableSlots}
-                  selectedSlot={state.selectedSlot}
-                  isLoading={state.isLoading}
-                  onSelectSlot={handleSlotSelect}
-                />
+            {(state.step === 1 || state.step === 2) && (
+              <div key="date-time" className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8">
+                <div className="lg:col-span-3">
+                  <DatePicker
+                    selectedDate={state.selectedDate}
+                    onSelectDate={handleDateSelect}
+                  />
+                </div>
+                <div className="lg:col-span-2">
+                  {state.selectedDate ? (
+                    <TimeSlotGrid
+                      date={state.selectedDate}
+                      slots={state.availableSlots}
+                      selectedSlot={state.selectedSlot}
+                      isLoading={state.isLoading}
+                      onSelectSlot={handleSlotSelect}
+                    />
+                  ) : (
+                    // Empty-state placeholder for the right column so the
+                    // layout doesn't collapse before a date is picked.
+                    <div className="glass-card p-6 text-center text-sm text-muted-foreground min-h-[220px] flex items-center justify-center">
+                      Pick a date on the calendar to see available time slots.
+                    </div>
+                  )}
+                </div>
               </div>
             )}
             {state.step === 3 && (
