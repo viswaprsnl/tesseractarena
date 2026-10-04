@@ -8,6 +8,7 @@ import { Hero } from "@/components/sections/Hero";
 // import { SocialProof } from "@/components/sections/SocialProof";
 import { HowItWorks } from "@/components/sections/HowItWorks";
 import { GamesLibrary } from "@/components/sections/GamesLibrary";
+import { ThroughTheLens } from "@/components/sections/ThroughTheLens";
 import { Features } from "@/components/sections/Features";
 // Pricing section intentionally hidden for now — game prices are already
 // visible in the booking flow. Re-enable by restoring the import and
@@ -24,6 +25,7 @@ export default function Home() {
       <Hero />
       <HowItWorks />
       <GamesLibrary />
+      <ThroughTheLens />
       <Features />
       {/* <Pricing /> */}
       <CorporateBookings />
