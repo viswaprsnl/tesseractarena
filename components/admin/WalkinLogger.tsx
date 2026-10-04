@@ -4,7 +4,25 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PRICING, getTodayISTString, withGST, GST_PERCENT } from "@/lib/booking-config";
+import { getTodayISTString, withGST, GST_PERCENT } from "@/lib/booking-config";
+import type { PackageType } from "@/lib/booking-types";
+
+// Walk-in auto-fill prices. These are per-head ex-GST base rates
+// aligned with the current Anvio catalogue (City Z / Station Zarya /
+// Revolta are all ₹1,599 Solo, with the 10%/15% squad/party tier
+// discounts from the online flow baked in). Values match
+// calculateSessionPrice() so a walk-in and an online booking for the
+// same group look like-for-like in the Revenue sheet.
+//
+// Kept local to the walk-in form on purpose — lib/booking-config's
+// PRICING constants are the legacy fallback for /api/bookings when a
+// game id doesn't match, which runs at different numbers (1499/1199/
+// 999) and shouldn't be touched without a wider review.
+const WALKIN_BASE_PRICE: Record<Extract<PackageType, "solo" | "squad" | "party">, number> = {
+  solo: 1599,
+  squad: 1439, // 1599 × 0.9 — matches PerPersonPackageType squad tier
+  party: 1359, // 1599 × 0.85 — matches party tier
+};
 import type { GroupType, PaymentMethod } from "@/lib/revenue-config";
 
 const DISCOUNT_PRESETS = [0, 5, 10, 15, 20, 25] as const;
@@ -41,6 +59,14 @@ export function WalkinLogger({ pin, onSaved }: WalkinLoggerProps) {
   const [discountMode, setDiscountMode] = useState<"preset" | "custom">(
     "preset"
   );
+  // Once staff manually picks a discount (preset or custom), stop
+  // auto-overriding it on group / date changes. Prevents the "I set
+  // it to 10% and then changed the group and it jumped back to 25%"
+  // frustration.
+  const [discountTouched, setDiscountTouched] = useState(false);
+  // Same idea for the price field: once staff has overtyped it,
+  // changing the player count or group shouldn't wipe their value.
+  const [priceTouched, setPriceTouched] = useState(false);
   // Auto-apply site-wide discount (e.g. the October opening offer) so
   // walk-ins match what customers see online. Fetched once per form
   // open per date — same /api/discounts the booking page uses. Only
@@ -60,20 +86,19 @@ export function WalkinLogger({ pin, onSaved }: WalkinLoggerProps) {
         const eligible = list.filter(
           (d) => d.appliesTo === "all" || d.appliesTo === formGroup
         );
-        if (eligible.length === 0) {
-          setAutoDiscountLabel(null);
-          // Only reset if the user hadn't manually bumped the discount.
-          if (discountMode === "preset") setDiscountPct(0);
-          return;
-        }
-        // Prefer percent (easiest to apply to a counter total).
         const bestPercent = eligible
           .filter((d) => d.type === "percent")
           .reduce<D | null>((best, d) => (!best || d.value > best.value ? d : best), null);
         if (bestPercent) {
-          setDiscountMode("preset");
-          setDiscountPct(bestPercent.value);
           setAutoDiscountLabel(`${bestPercent.label} (${bestPercent.value}%)`);
+          // Honour the staff's manual choice if they've already clicked.
+          if (!discountTouched) {
+            setDiscountMode("preset");
+            setDiscountPct(bestPercent.value);
+          }
+        } else {
+          setAutoDiscountLabel(null);
+          if (!discountTouched && discountMode === "preset") setDiscountPct(0);
         }
       })
       .catch(() => {
@@ -85,15 +110,15 @@ export function WalkinLogger({ pin, onSaved }: WalkinLoggerProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expanded, formDate, formGroup]);
 
-  // Auto-fill revenue from package × players, inc-GST. PRICING is the
-  // ex-GST per-head base, so we multiply by (1 + GST%) to show staff
-  // the amount they actually collect at the till. Staff can overtype
-  // for promos / friend rate / cash tweaks.
+  // Auto-fill the "List price" field (ex-GST base × players × GST) when
+  // staff hasn't overtyped it. Guarded by priceTouched so a manual
+  // override survives further group / player tweaks.
   useEffect(() => {
-    const perPerson = PRICING[formGroup];
+    if (priceTouched) return;
+    const perPerson = WALKIN_BASE_PRICE[formGroup];
     const baseTotal = perPerson * Math.max(1, formPlayers);
     setFormRevenue(String(withGST(baseTotal)));
-  }, [formGroup, formPlayers]);
+  }, [formGroup, formPlayers, priceTouched]);
 
   // Everything below treats formRevenue as INC-GST — what the customer
   // actually paid at the counter. Discount reduces that gross figure.
@@ -124,6 +149,8 @@ export function WalkinLogger({ pin, onSaved }: WalkinLoggerProps) {
     setDiscountPct(0);
     setCustomDiscountPct("");
     setDiscountMode("preset");
+    setDiscountTouched(false);
+    setPriceTouched(false);
   };
 
   const submit = async () => {
@@ -239,13 +266,16 @@ export function WalkinLogger({ pin, onSaved }: WalkinLoggerProps) {
             </div>
             <div className="space-y-1">
               <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                Total collected ₹ <span className="text-amber-400/80">(incl. GST)</span>
+                List price ₹ <span className="text-amber-400/80">(before discount)</span>
               </label>
               <Input
                 type="number"
                 min="0"
                 value={formRevenue}
-                onChange={(e) => setFormRevenue(e.target.value)}
+                onChange={(e) => {
+                  setFormRevenue(e.target.value);
+                  setPriceTouched(true);
+                }}
                 className="bg-card/60 border-white/10 text-xs h-9"
               />
             </div>
@@ -301,6 +331,7 @@ export function WalkinLogger({ pin, onSaved }: WalkinLoggerProps) {
                       onClick={() => {
                         setDiscountMode("preset");
                         setDiscountPct(pct);
+                        setDiscountTouched(true);
                       }}
                       className={`px-2.5 py-1 rounded-md text-[11px] transition-colors ${
                         active
@@ -313,7 +344,10 @@ export function WalkinLogger({ pin, onSaved }: WalkinLoggerProps) {
                   );
                 })}
                 <button
-                  onClick={() => setDiscountMode("custom")}
+                  onClick={() => {
+                    setDiscountMode("custom");
+                    setDiscountTouched(true);
+                  }}
                   className={`px-2.5 py-1 rounded-md text-[11px] transition-colors ${
                     discountMode === "custom"
                       ? "bg-amber-500/25 text-amber-200 border border-amber-500/50"
@@ -331,37 +365,47 @@ export function WalkinLogger({ pin, onSaved }: WalkinLoggerProps) {
                 max="100"
                 step="0.5"
                 value={customDiscountPct}
-                onChange={(e) => setCustomDiscountPct(e.target.value)}
+                onChange={(e) => {
+                  setCustomDiscountPct(e.target.value);
+                  setDiscountTouched(true);
+                }}
                 placeholder="e.g. 25"
                 className="bg-card/60 border-white/10 text-xs h-8"
               />
             )}
-            {effectivePct > 0 && (
-              <p className="text-[11px] text-amber-300">
-                Gross ₹{grossRevenue.toLocaleString("en-IN")} − ₹
-                {discountAmount.toLocaleString("en-IN")} ({effectivePct}%)
-                = <strong>₹{netRevenueIncGST.toLocaleString("en-IN")}</strong> collected
-              </p>
-            )}
           </div>
 
-          {/* GST breakdown of what will actually be stored. Base is the
-              ex-GST revenue (what goes into reports); GST is remitted to
-              govt and never counts as our revenue. Total matches the
-              Revenue field so staff can sanity-check the maths. */}
+          {/* Final-amount summary. "Collect from customer" is the big
+              headline number — the one the counter staff should type
+              into UPI / tell the customer to pay. The ex-GST + GST
+              split is secondary and sits below for audit purposes. */}
           {grossRevenue > 0 && (
-            <div className="rounded-lg bg-secondary/40 border border-white/5 p-3 text-[11px] space-y-1">
-              <div className="flex justify-between text-muted-foreground">
-                <span>Ex-GST base (recorded as revenue)</span>
-                <span>₹{netRevenueExGST.toLocaleString("en-IN")}</span>
+            <div className="rounded-lg bg-primary/10 border border-primary/30 p-3 sm:p-4">
+              <div className="flex items-baseline justify-between gap-3 flex-wrap">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-primary mb-1">
+                    Collect from customer (incl. GST)
+                  </p>
+                  {effectivePct > 0 && (
+                    <p className="text-[10px] text-muted-foreground">
+                      Was <span className="line-through">₹{grossRevenue.toLocaleString("en-IN")}</span>
+                      {" "}· {effectivePct}% off saves ₹{discountAmount.toLocaleString("en-IN")}
+                    </p>
+                  )}
+                </div>
+                <p className="text-2xl sm:text-3xl font-bold text-primary leading-none">
+                  ₹{netRevenueIncGST.toLocaleString("en-IN")}
+                </p>
               </div>
-              <div className="flex justify-between text-muted-foreground">
-                <span>GST @ {GST_PERCENT}% (remitted to govt)</span>
-                <span>+ ₹{netGSTAmount.toLocaleString("en-IN")}</span>
-              </div>
-              <div className="flex justify-between pt-1 mt-1 border-t border-white/5 font-medium text-foreground">
-                <span>Customer paid</span>
-                <span>₹{netRevenueIncGST.toLocaleString("en-IN")}</span>
+              <div className="mt-3 pt-3 border-t border-white/10 text-[11px] text-muted-foreground space-y-0.5">
+                <div className="flex justify-between">
+                  <span>Ex-GST revenue (sheet column F)</span>
+                  <span>₹{netRevenueExGST.toLocaleString("en-IN")}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>GST @ {GST_PERCENT}% (remitted to govt)</span>
+                  <span>₹{netGSTAmount.toLocaleString("en-IN")}</span>
+                </div>
               </div>
             </div>
           )}
