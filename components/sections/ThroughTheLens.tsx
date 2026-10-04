@@ -35,20 +35,17 @@ export function ThroughTheLens() {
     >
       {/* Section header — mirrors Totem's eyebrow + big headline. The
           italic "lens." reads as a signature touch without needing a
-          second CTA at the bottom. */}
-      <div className="max-w-7xl mx-auto px-4 mb-8 sm:mb-10 flex items-end justify-between gap-6 flex-wrap">
-        <div>
-          <p className="text-xs sm:text-[13px] tracking-[0.18em] font-semibold text-primary/80 uppercase mb-3">
-            Uncut. Real sessions.
-          </p>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight">
-            Through the{" "}
-            <span className="gradient-text italic">lens.</span>
-          </h2>
-        </div>
-        <p className="text-[11px] tracking-[0.2em] uppercase text-muted-foreground">
-          Scrolls sideways →
+          second CTA at the bottom. No "scrolls sideways" prompt: the
+          strip auto-plays and that reads as an instruction, not a
+          description. */}
+      <div className="max-w-7xl mx-auto px-4 mb-8 sm:mb-10">
+        <p className="text-xs sm:text-[13px] tracking-[0.18em] font-semibold text-primary/80 uppercase mb-3">
+          Uncut. Real sessions.
         </p>
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight">
+          Through the{" "}
+          <span className="gradient-text italic">lens.</span>
+        </h2>
       </div>
 
       {/* Marquee track. Fades out at the edges so tiles don't slam
@@ -81,17 +78,18 @@ export function ThroughTheLens() {
         </div>
       </div>
 
-      {/* 90s per full cycle = slow enough that a passing reader can
-          catch any single tile; fast enough that two refreshes of the
-          page don't both land the same framing. Scoped to this
-          section so the keyframe doesn't leak into globals. */}
+      {/* 25s per full cycle = clearly moving on both desktop and
+          mobile. Was 90s originally (effectively static) then 40s
+          (still too subtle). At 25s the human eye registers "this is
+          an active element" within one glance. Scoped so the keyframe
+          doesn't leak globally. */}
       <style jsx>{`
         @keyframes lens-scroll {
           from { transform: translateX(0); }
           to   { transform: translateX(-50%); }
         }
         .animate-lens-scroll {
-          animation: lens-scroll 90s linear infinite;
+          animation: lens-scroll 25s linear infinite;
           will-change: transform;
         }
         @media (prefers-reduced-motion: reduce) {
