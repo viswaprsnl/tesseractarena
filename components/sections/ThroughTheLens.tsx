@@ -13,12 +13,19 @@
 interface LensTile {
   src: string;
   label: string;
+  // Portrait tiles are 9:16, landscape are 16:9. Both run the same
+  // tile height — landscape just takes up ~1.75x the width so the
+  // mix reads like a photographer's contact sheet rather than a
+  // forced-crop grid.
+  orientation?: "portrait" | "landscape";
 }
 
 const TILES: LensTile[] = [
-  { src: "/videos/lens-a.mp4", label: "In the arena" },
-  { src: "/videos/lens-c.mp4", label: "First-timers" },
-  { src: "/videos/hero.mp4", label: "Mid-session" },
+  { src: "/videos/lens-a.mp4", label: "In the arena", orientation: "portrait" },
+  { src: "/videos/lens-d.mp4", label: "On the floor", orientation: "landscape" },
+  { src: "/videos/lens-c.mp4", label: "First-timers", orientation: "portrait" },
+  { src: "/videos/lens-b.mp4", label: "The arena", orientation: "landscape" },
+  { src: "/videos/hero.mp4", label: "Mid-session", orientation: "portrait" },
 ];
 
 export function ThroughTheLens() {
@@ -55,7 +62,11 @@ export function ThroughTheLens() {
           {rowItems.map((tile, i) => (
             <div
               key={`${tile.src}-${i}`}
-              className="relative shrink-0 w-[220px] h-[360px] sm:w-[260px] sm:h-[420px] rounded-2xl overflow-hidden bg-card border border-white/5"
+              className={`relative shrink-0 h-[360px] sm:h-[420px] rounded-2xl overflow-hidden bg-card border border-white/5 ${
+                tile.orientation === "landscape"
+                  ? "w-[380px] sm:w-[460px]"
+                  : "w-[220px] sm:w-[260px]"
+              }`}
             >
               <video
                 src={tile.src}
