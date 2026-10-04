@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+
 // Through-the-lens scrolling strip of real session footage, Totem-
 // pattern. Portrait 9:16 tiles slide right-to-left at a slow pace so
 // a visitor doesn't need to scroll to see what the arena actually
@@ -46,6 +48,55 @@ export function ThroughTheLens() {
   // left, so the eye never catches the restart.
   const rowItems = [...TILES, ...TILES];
 
+  // Track every <video> so we can (a) imperatively assert .muted=true
+  // on mount (React's muted prop sometimes races iOS Safari's autoplay-
+  // eligibility check — attribute isn't on the DOM node when WebKit
+  // decides whether to permit play, so inline muted autoplay is
+  // refused), and (b) feed each one into an IntersectionObserver that
+  // only lets visible tiles play. Mobile browsers cap concurrent
+  // video decoders (~10-16 on iOS Safari, lower on budget Android),
+  // and 26 autoplaying tiles blows that budget so some silently
+  // refuse to play. Pausing offscreen ones keeps the active count to
+  // whatever's actually visible (~3-5 at any time).
+  const trackRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const root = trackRef.current;
+    if (!root) return;
+    const videos = Array.from(root.querySelectorAll<HTMLVideoElement>("video"));
+
+    // Imperative muted + first play attempt. Even for tiles currently
+    // offscreen, this primes the browser's autoplay permission so when
+    // IntersectionObserver fires later, play() succeeds instantly.
+    for (const v of videos) {
+      v.muted = true;
+      v.setAttribute("muted", "");
+      v.playsInline = true;
+      void v.play().catch(() => {
+        // Not visible yet or decoder budget full — IO will retry.
+      });
+    }
+
+    // threshold:0 + rootMargin pre-loads tiles a bit before they enter
+    // view so visitors don't see a poster frame as the tile slides in.
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const v = entry.target as HTMLVideoElement;
+          if (entry.isIntersecting) {
+            v.muted = true;
+            void v.play().catch(() => {});
+          } else {
+            v.pause();
+          }
+        }
+      },
+      { root: null, rootMargin: "0px 200px", threshold: 0 }
+    );
+    for (const v of videos) io.observe(v);
+    return () => io.disconnect();
+  }, []);
+
   return (
     <section
       aria-label="Inside the arena — real sessions"
@@ -69,7 +120,7 @@ export function ThroughTheLens() {
       {/* Marquee track. Fades out at the edges so tiles don't slam
           against the viewport boundary. Hover pauses on desktop. */}
       <div className="relative overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_4%,black_96%,transparent)]">
-        <div className="flex gap-4 sm:gap-5 w-max animate-lens-scroll hover:[animation-play-state:paused] px-4">
+        <div ref={trackRef} className="flex gap-4 sm:gap-5 w-max animate-lens-scroll hover:[animation-play-state:paused] px-4">
           {rowItems.map((tile, i) => (
             <div
               key={`${tile.src}-${i}`}
@@ -81,11 +132,22 @@ export function ThroughTheLens() {
             >
               <video
                 src={tile.src}
+                // autoPlay stays as a hint, but the real work is done
+                // by the useEffect above — React's muted prop can
+                // race iOS Safari's autoplay check, so we also set
+                // .muted/.play() imperatively after mount.
                 autoPlay
                 muted
                 loop
                 playsInline
+                // preload="metadata" only — ~10KB per video, 260KB
+                // across the strip, so the moov atom is ready when
+                // IntersectionObserver fires play(). "auto" would
+                // start pulling the whole 1-5MB file for every tile
+                // on first paint, which on mobile saturates the
+                // connection and stalls everything else.
                 preload="metadata"
+                disableRemotePlayback
                 aria-hidden="true"
                 className="absolute inset-0 w-full h-full object-cover"
               />
