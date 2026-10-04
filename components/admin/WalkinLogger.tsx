@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { PRICING, getTodayISTString, withGST, GST_PERCENT } from "@/lib/booking-config";
 import type { GroupType, PaymentMethod } from "@/lib/revenue-config";
 
-const DISCOUNT_PRESETS = [0, 5, 10, 15, 20] as const;
+const DISCOUNT_PRESETS = [0, 5, 10, 15, 20, 25] as const;
 
 interface WalkinLoggerProps {
   pin: string;
@@ -41,6 +41,49 @@ export function WalkinLogger({ pin, onSaved }: WalkinLoggerProps) {
   const [discountMode, setDiscountMode] = useState<"preset" | "custom">(
     "preset"
   );
+  // Auto-apply site-wide discount (e.g. the October opening offer) so
+  // walk-ins match what customers see online. Fetched once per form
+  // open per date — same /api/discounts the booking page uses. Only
+  // auto-apply (code-less) campaigns come back; coupon-gated discounts
+  // are never auto-pulled here.
+  const [autoDiscountLabel, setAutoDiscountLabel] = useState<string | null>(null);
+  useEffect(() => {
+    if (!expanded) return;
+    let cancelled = false;
+    fetch(`/api/discounts?date=${formDate}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        type D = { label: string; type: "percent" | "flat"; value: number; appliesTo: "all" | "solo" | "squad" | "party" };
+        const list: D[] = Array.isArray(data?.discounts) ? data.discounts : [];
+        // Pick the biggest percent discount for this group OR site-wide.
+        const eligible = list.filter(
+          (d) => d.appliesTo === "all" || d.appliesTo === formGroup
+        );
+        if (eligible.length === 0) {
+          setAutoDiscountLabel(null);
+          // Only reset if the user hadn't manually bumped the discount.
+          if (discountMode === "preset") setDiscountPct(0);
+          return;
+        }
+        // Prefer percent (easiest to apply to a counter total).
+        const bestPercent = eligible
+          .filter((d) => d.type === "percent")
+          .reduce<D | null>((best, d) => (!best || d.value > best.value ? d : best), null);
+        if (bestPercent) {
+          setDiscountMode("preset");
+          setDiscountPct(bestPercent.value);
+          setAutoDiscountLabel(`${bestPercent.label} (${bestPercent.value}%)`);
+        }
+      })
+      .catch(() => {
+        /* silent: staff can still enter discount by hand */
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expanded, formDate, formGroup]);
 
   // Auto-fill revenue from package × players, inc-GST. PRICING is the
   // ex-GST per-head base, so we multiply by (1 + GST%) to show staff
@@ -236,6 +279,13 @@ export function WalkinLogger({ pin, onSaved }: WalkinLoggerProps) {
               on the owner PIN because the revenue amount is entered by
               hand anyway — the discount here is purely bookkeeping. */}
           <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 space-y-2">
+            {autoDiscountLabel && (
+              <p className="text-[11px] text-amber-300">
+                Auto-applied: <strong>{autoDiscountLabel}</strong> — matches
+                the online booking flow. Override below if the counter
+                customer isn&apos;t eligible.
+              </p>
+            )}
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <p className="text-[10px] uppercase tracking-wider text-amber-400 flex items-center gap-1">
                 <Tag size={11} />
