@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft } from "lucide-react";
@@ -80,6 +80,31 @@ export function BookingWizard({
     // No NEXT_STEP here — we stay on step 1 so the time grid appears
     // beside the calendar.
   };
+
+  // On mobile the time grid stacks BELOW the calendar instead of
+  // sitting beside it. Users were reporting that picking a date felt
+  // like nothing happened — the slots were rendered off-screen below
+  // the fold. Scroll them into view as soon as a date is picked, but
+  // only on viewports where the two panes aren't already visible
+  // together (lg: and up are side-by-side, no scroll needed).
+  const timeSlotRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!state.selectedDate) return;
+    if (typeof window === "undefined") return;
+    if (window.matchMedia("(min-width: 1024px)").matches) return;
+    // Wait one frame so the TimeSlotGrid is mounted (the conditional
+    // render above only turns it on once selectedDate is truthy).
+    const raf = window.requestAnimationFrame(() => {
+      // 80px top offset leaves the sticky navbar + a bit of breathing
+      // room above the "Available slots" header, instead of pinning
+      // the first chip flush against the chrome.
+      const el = timeSlotRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top + window.scrollY - 80;
+      window.scrollTo({ top, behavior: "smooth" });
+    });
+    return () => window.cancelAnimationFrame(raf);
+  }, [state.selectedDate]);
 
   const handleSlotSelect = (time: string, displayTime: string) => {
     dispatch({ type: "SET_SLOT", slot: time, displayTime });
@@ -341,7 +366,7 @@ export function BookingWizard({
                     onSelectDate={handleDateSelect}
                   />
                 </div>
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-2" ref={timeSlotRef}>
                   {state.selectedDate ? (
                     <TimeSlotGrid
                       date={state.selectedDate}
