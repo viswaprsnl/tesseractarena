@@ -69,7 +69,7 @@ export function ThroughTheLens() {
       {/* Marquee track. Fades out at the edges so tiles don't slam
           against the viewport boundary. Hover pauses on desktop. */}
       <div className="relative overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_4%,black_96%,transparent)]">
-        <div className="flex gap-4 sm:gap-5 whitespace-nowrap animate-lens-scroll hover:[animation-play-state:paused] px-4">
+        <div className="flex gap-4 sm:gap-5 w-max animate-lens-scroll hover:[animation-play-state:paused] px-4">
           {rowItems.map((tile, i) => (
             <div
               key={`${tile.src}-${i}`}
@@ -100,19 +100,27 @@ export function ThroughTheLens() {
         </div>
       </div>
 
-      {/* 25s per full cycle = clearly moving on both desktop and
-          mobile. Was 90s originally (effectively static) then 40s
-          (still too subtle). At 25s the human eye registers "this is
-          an active element" within one glance. Scoped so the keyframe
-          doesn't leak globally. */}
+      {/* The real speed depends on how far translateX(-50%) actually
+          moves. That percentage is of the ELEMENT'S own box, not the
+          parent, which is why we set w-max on the flex row above —
+          without it the row was constrained to viewport width and
+          only moved ~187px per cycle on mobile (looked frozen).
+          With w-max the row's own width equals its full content
+          (~9000px), so -50% = ~4500px travel. 50s = ~90 px/sec,
+          which reads as "clearly scrolling, one tile every ~2.5s"
+          on both desktop and mobile viewports. translate3d forces
+          GPU compositing so the 13 autoplaying videos on mobile
+          don't throttle the animation thread. */}
       <style jsx>{`
         @keyframes lens-scroll {
-          from { transform: translateX(0); }
-          to   { transform: translateX(-50%); }
+          from { transform: translate3d(0, 0, 0); }
+          to   { transform: translate3d(-50%, 0, 0); }
         }
         .animate-lens-scroll {
-          animation: lens-scroll 25s linear infinite;
+          animation: lens-scroll 50s linear infinite;
           will-change: transform;
+          transform: translateZ(0);
+          backface-visibility: hidden;
         }
         @media (prefers-reduced-motion: reduce) {
           .animate-lens-scroll {
