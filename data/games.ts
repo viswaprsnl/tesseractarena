@@ -28,6 +28,7 @@ export interface Game {
 export const availableGames: Game[] = [
   {
     id: "city-z",
+    videoUrl: "/videos/games/city-z.mp4",
     title: "City Z",
     category: "available",
     description:
@@ -43,6 +44,7 @@ export const availableGames: Game[] = [
   },
   {
     id: "station-zarya",
+    videoUrl: "/videos/games/station-zarya.mp4",
     title: "Station Zarya",
     category: "available",
     description:
@@ -58,6 +60,7 @@ export const availableGames: Game[] = [
   },
   {
     id: "revolta",
+    videoUrl: "/videos/games/revolta.mp4",
     title: "Revolta",
     category: "available",
     description:
@@ -87,6 +90,7 @@ export const availableGames: Game[] = [
   },
   {
     id: "terminator-uprising",
+    videoUrl: "/videos/games/terminator-uprising.mp4",
     title: "Terminator Uprising",
     category: "available",
     description:
@@ -101,6 +105,7 @@ export const availableGames: Game[] = [
   },
   {
     id: "monkey-madness",
+    videoUrl: "/videos/games/monkey-madness.mp4",
     title: "Monkey Madness",
     category: "available",
     description:
@@ -116,6 +121,7 @@ export const availableGames: Game[] = [
   },
   {
     id: "dead-ahead",
+    videoUrl: "/videos/games/dead-ahead.mp4",
     title: "Dead Ahead",
     category: "available",
     description:
@@ -130,6 +136,7 @@ export const availableGames: Game[] = [
   },
   {
     id: "wayfinders",
+    videoUrl: "/videos/games/wayfinders.mp4",
     title: "Wayfinders",
     category: "available",
     description:
@@ -145,6 +152,7 @@ export const availableGames: Game[] = [
   },
   {
     id: "cops-vs-robbers",
+    videoUrl: "/videos/games/cops-vs-robbers.mp4",
     title: "Cops vs Robbers",
     category: "available",
     description:
@@ -162,6 +170,7 @@ export const availableGames: Game[] = [
 export const comingSoonGames: Game[] = [
   {
     id: "city-z-survivors",
+    videoUrl: "/videos/games/city-z-survivors.mp4",
     title: "City Z: Survivors",
     category: "coming_soon",
     description:
@@ -176,6 +185,7 @@ export const comingSoonGames: Game[] = [
   },
   {
     id: "city-z-antidote",
+    videoUrl: "/videos/games/city-z-antidote.mp4",
     title: "City Z: Antidote",
     category: "coming_soon",
     description:
@@ -190,6 +200,7 @@ export const comingSoonGames: Game[] = [
   },
   {
     id: "city-z-necropolis",
+    videoUrl: "/videos/games/city-z-necropolis.mp4",
     title: "City Z: Necropolis",
     category: "coming_soon",
     description:
@@ -204,6 +215,7 @@ export const comingSoonGames: Game[] = [
   },
   {
     id: "lost-sanctuary",
+    videoUrl: "/videos/games/lost-sanctuary.mp4",
     title: "Lost Sanctuary",
     category: "coming_soon",
     description:
@@ -218,6 +230,7 @@ export const comingSoonGames: Game[] = [
   },
   {
     id: "dragon-vr",
+    videoUrl: "/videos/games/dragon-vr.mp4",
     title: "Dragon VR",
     category: "coming_soon",
     description:
@@ -232,6 +245,7 @@ export const comingSoonGames: Game[] = [
   },
   {
     id: "trials-of-atlantis",
+    videoUrl: "/videos/games/trials-of-atlantis.mp4",
     title: "Trials of Atlantis",
     category: "coming_soon",
     description:
@@ -246,6 +260,7 @@ export const comingSoonGames: Game[] = [
   },
   {
     id: "versus",
+    videoUrl: "/videos/games/versus.mp4",
     title: "Versus",
     category: "coming_soon",
     description:
@@ -274,6 +289,7 @@ export const comingSoonGames: Game[] = [
   },
   {
     id: "wizard-academy",
+    videoUrl: "/videos/games/wizard-academy.mp4",
     title: "Wizard Academy",
     category: "coming_soon",
     description:
@@ -288,6 +304,7 @@ export const comingSoonGames: Game[] = [
   },
   {
     id: "espionage-express",
+    videoUrl: "/videos/games/espionage-express.mp4",
     title: "Espionage Express",
     category: "coming_soon",
     description:
@@ -302,6 +319,7 @@ export const comingSoonGames: Game[] = [
   },
   {
     id: "cookd-up",
+    videoUrl: "/videos/games/cookd-up.mp4",
     title: "Cook'd Up",
     category: "coming_soon",
     description:
@@ -316,6 +334,7 @@ export const comingSoonGames: Game[] = [
   },
   {
     id: "plush-rush",
+    videoUrl: "/videos/games/plush-rush.mp4",
     title: "Plush Rush",
     category: "coming_soon",
     description:
@@ -344,6 +363,7 @@ export const comingSoonGames: Game[] = [
   },
   {
     id: "cyber-shock",
+    videoUrl: "/videos/games/cyber-shock.mp4",
     title: "Cyber Shock",
     category: "coming_soon",
     description:
