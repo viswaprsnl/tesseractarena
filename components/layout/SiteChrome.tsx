@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { CallbackButton } from "@/components/CallbackButton";
+import { OpeningOfferBar } from "@/components/layout/OpeningOfferBar";
 
 // Wraps every page's site chrome (top nav, footer, "call me back"
 // floating button) so we can suppress the whole set on a given route
@@ -32,6 +33,7 @@ export function SiteChrome({ children }: SiteChromeProps) {
 
   return (
     <>
+      <OpeningOfferBar />
       <Navbar />
       <main className="flex-1">{children}</main>
       <Footer />
