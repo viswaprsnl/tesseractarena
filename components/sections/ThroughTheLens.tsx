@@ -20,12 +20,21 @@ interface LensTile {
   orientation?: "portrait" | "landscape";
 }
 
+// Ordered portrait → landscape → portrait → ... so the eye gets a
+// rhythm as the strip scrolls past. Add more by dropping an mp4 into
+// /public/videos and appending an entry here.
 const TILES: LensTile[] = [
   { src: "/videos/lens-a.mp4", label: "In the arena", orientation: "portrait" },
-  { src: "/videos/lens-d.mp4", label: "On the floor", orientation: "landscape" },
+  { src: "/videos/lens-e.mp4", label: "Suited up", orientation: "landscape" },
   { src: "/videos/lens-c.mp4", label: "First-timers", orientation: "portrait" },
-  { src: "/videos/lens-b.mp4", label: "The arena", orientation: "landscape" },
+  { src: "/videos/lens-f.mp4", label: "The reaction", orientation: "landscape" },
   { src: "/videos/hero.mp4", label: "Mid-session", orientation: "portrait" },
+  { src: "/videos/lens-g.mp4", label: "In formation", orientation: "landscape" },
+  { src: "/videos/lens-d.mp4", label: "On the floor", orientation: "landscape" },
+  { src: "/videos/lens-h.mp4", label: "Mission brief", orientation: "landscape" },
+  { src: "/videos/lens-b.mp4", label: "The arena", orientation: "landscape" },
+  { src: "/videos/lens-i.mp4", label: "The squad", orientation: "landscape" },
+  { src: "/videos/lens-j.mp4", label: "Walking in", orientation: "landscape" },
 ];
 
 export function ThroughTheLens() {
