@@ -48,7 +48,7 @@ export function ThroughTheLens() {
 
   return (
     <section
-      aria-label="Through the lens — real sessions"
+      aria-label="Inside the arena — real sessions"
       className="py-12 sm:py-24 overflow-hidden"
     >
       {/* Section header — mirrors Totem's eyebrow + big headline. The
@@ -61,8 +61,8 @@ export function ThroughTheLens() {
           Uncut. Real sessions.
         </p>
         <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight">
-          Through the{" "}
-          <span className="gradient-text italic">lens.</span>
+          Inside the{" "}
+          <span className="gradient-text italic">arena.</span>
         </h2>
       </div>
 

@@ -6,7 +6,11 @@ import { Hero } from "@/components/sections/Hero";
 // SocialProof (the hardware-tagline strip) was replaced by the review
 // marquee. Re-enable here by uncommenting both the import and the render.
 // import { SocialProof } from "@/components/sections/SocialProof";
-import { HowItWorks } from "@/components/sections/HowItWorks";
+// HowItWorks ("From booking to playing in three simple steps") was
+// dropped on 2026-10-04 in favour of leading with real-session footage
+// right after the hero. Re-enable here by uncommenting the import +
+// render if the three-step pitch becomes useful again.
+// import { HowItWorks } from "@/components/sections/HowItWorks";
 import { GamesLibrary } from "@/components/sections/GamesLibrary";
 import { ThroughTheLens } from "@/components/sections/ThroughTheLens";
 import { Features } from "@/components/sections/Features";
@@ -23,9 +27,8 @@ export default function Home() {
   return (
     <>
       <Hero />
-      <HowItWorks />
-      <GamesLibrary />
       <ThroughTheLens />
+      <GamesLibrary />
       <Features />
       {/* <Pricing /> */}
       <CorporateBookings />
