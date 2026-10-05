@@ -3,6 +3,7 @@ import { google } from "googleapis";
 import type { BookingRow } from "@/lib/booking-types";
 import { findBookingById, updateBookingCells } from "@/lib/google-sheets";
 import { listWalkinRevenue } from "@/lib/revenue-sheets";
+import { isAutotestRequest } from "@/lib/autotest";
 
 function getAuth() {
   const privateKey = Buffer.from(
@@ -19,12 +20,15 @@ function getAuth() {
 
 export async function GET(request: NextRequest) {
   try {
-    // Simple password protection
+    // Simple password protection. Autotest also gets through via the
+    // AUTOTEST_TOKEN header so the nightly smoke suite can read back
+    // its own test rows without needing the real admin PIN embedded
+    // in GitHub Secrets.
     const { searchParams } = new URL(request.url);
     const pin = searchParams.get("pin");
     const adminPin = process.env.ADMIN_PIN || "1234";
 
-    if (pin !== adminPin) {
+    if (!isAutotestRequest(request) && pin !== adminPin) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
