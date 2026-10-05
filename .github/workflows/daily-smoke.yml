@@ -87,11 +87,17 @@ jobs:
           FAIL_LIST=$(node -e "
             try {
               const r = require('./playwright-report/results.json');
+              // Report only tests whose FINAL result (last retry) is
+              // not passed — a test that flaked and recovered isn't a
+              // failure; failing attempts on a green test shouldn't
+              // show up in the Discord list.
               const fails = [];
               function walk(s) {
                 for (const spec of s.specs || []) {
                   for (const t of spec.tests || []) {
-                    if (t.results.some(x => x.status !== 'passed' && x.status !== 'skipped')) {
+                    if (!t.results.length) continue;
+                    const last = t.results[t.results.length - 1];
+                    if (last.status !== 'passed' && last.status !== 'skipped') {
                       fails.push(spec.title);
                     }
                   }
@@ -132,15 +138,20 @@ jobs:
           STATS=$(node -e "
             try {
               const r = require('./playwright-report/results.json');
+              // Count each test ONCE by its final outcome. A flaky test
+              // that failed on attempt 1 and passed on retry otherwise
+              // double-counts: 1 failed + 1 passed in the raw results[]
+              // array, which would spuriously inflate 'total' and under-
+              // report 'passed' as e.g. 6/7 for a 6/6 green run.
               let passed = 0, total = 0;
               function walk(s) {
                 for (const spec of s.specs || []) {
                   for (const t of spec.tests || []) {
-                    for (const result of t.results) {
-                      if (result.status === 'skipped') continue;
-                      total++;
-                      if (result.status === 'passed') passed++;
-                    }
+                    if (!t.results.length) continue;
+                    const last = t.results[t.results.length - 1];
+                    if (last.status === 'skipped') continue;
+                    total++;
+                    if (last.status === 'passed') passed++;
                   }
                 }
                 for (const sub of s.suites || []) walk(sub);
