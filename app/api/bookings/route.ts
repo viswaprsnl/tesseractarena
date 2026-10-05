@@ -21,6 +21,7 @@ import {
 } from "@/lib/booking-config";
 import type { BookingRow, PerPersonPackageType } from "@/lib/booking-types";
 import { allGames, availableGames, getGamePlayerRange } from "@/data/games";
+import { AUTOTEST_MARKER, isAutotestRequest } from "@/lib/autotest";
 
 // Sentinel game id used by the /book wizard when the customer opts to
 // pick their title at the counter instead of committing up front. When
@@ -77,6 +78,18 @@ export async function POST(request: NextRequest) {
 
     const data = parsed.data;
 
+    // Autotest mode: when the nightly smoke suite sets a valid
+    // x-autotest-token header the booking goes through the same
+    // validation + sheet-write path a real one does, but:
+    //   • paymentStatus is forced to "paid" (no Razorpay round-trip)
+    //   • specialRequests gets tagged with [AUTOTEST] so the cleanup
+    //     endpoint can find and delete it later
+    //   • the active-bookings quota check is skipped (every run uses a
+    //     unique autotest+<runId>@tesseractarena.com so it would never
+    //     trip, but belt-and-braces)
+    //   • no confirmation email fires — we don't want to spam ourselves
+    const isAutotest = isAutotestRequest(request);
+
     // Verify date is bookable
     if (!isDateBookable(data.date)) {
       return NextResponse.json(
@@ -115,20 +128,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check booking limit (max 2 active bookings per person)
-    const activeBookings = await getActiveBookingsByContact(data.email, data.phone);
-    const activePayAtCenter = activeBookings.filter(b => b.paymentMethod === "pay_at_center");
-    if (activePayAtCenter.length >= 2 && data.paymentMethod === "pay_at_center") {
-      return NextResponse.json(
-        { error: "You already have 2 active bookings with Pay at Center. Please pay online or cancel an existing booking first." },
-        { status: 429 }
-      );
-    }
-    if (activeBookings.length >= 4) {
-      return NextResponse.json(
-        { error: "Maximum 4 active bookings allowed per person. Please cancel an existing booking first." },
-        { status: 429 }
-      );
+    // Check booking limit (max 2 active bookings per person).
+    // Autotest runs use a unique email per execution so this check
+    // would never catch anything useful, and skipping it saves one
+    // Sheet round-trip on each smoke run.
+    if (!isAutotest) {
+      const activeBookings = await getActiveBookingsByContact(data.email, data.phone);
+      const activePayAtCenter = activeBookings.filter(b => b.paymentMethod === "pay_at_center");
+      if (activePayAtCenter.length >= 2 && data.paymentMethod === "pay_at_center") {
+        return NextResponse.json(
+          { error: "You already have 2 active bookings with Pay at Center. Please pay online or cancel an existing booking first." },
+          { status: 429 }
+        );
+      }
+      if (activeBookings.length >= 4) {
+        return NextResponse.json(
+          { error: "Maximum 4 active bookings allowed per person. Please cancel an existing booking first." },
+          { status: 429 }
+        );
+      }
     }
 
     // Check for double-booking. Party bookings (>=6 players) run ~90 min and
@@ -199,8 +217,23 @@ export async function POST(request: NextRequest) {
     const nowIST = toZonedTime(new Date(), "Asia/Kolkata");
     const createdAt = format(nowIST, "yyyy-MM-dd'T'HH:mm:ssxxx");
 
-    const paymentStatus =
-      data.paymentMethod === "pay_at_center" ? "pay_at_center" : "pending";
+    // Normal flow: pending (razorpay) or pay_at_center.
+    // Autotest flow: paid outright, no Razorpay step. Both the amount
+    // and the (fake) payment id get synthesised so the row looks
+    // internally consistent to any downstream reporting query.
+    const paymentStatus = isAutotest
+      ? "paid"
+      : data.paymentMethod === "pay_at_center"
+      ? "pay_at_center"
+      : "pending";
+
+    // specialRequests carries the AUTOTEST marker so the cleanup
+    // endpoint can scan Sheet1 for test rows without needing a
+    // schema change. Any customer specialRequests are preserved
+    // after a separator.
+    const tagged = isAutotest
+      ? `${AUTOTEST_MARKER}${data.specialRequests ? ` ${data.specialRequests}` : ""}`
+      : (data.specialRequests || "");
 
     const booking: BookingRow = {
       bookingId,
@@ -215,16 +248,17 @@ export async function POST(request: NextRequest) {
       gamePreference: data.gamePreference,
       paymentStatus,
       paymentMethod: data.paymentMethod,
-      razorpayOrderId: "",
-      razorpayPaymentId: "",
+      razorpayOrderId: isAutotest ? "autotest-order" : "",
+      razorpayPaymentId: isAutotest ? "autotest-payment" : "",
       amount,
-      specialRequests: data.specialRequests || "",
+      specialRequests: tagged,
       createdAt,
       status: "confirmed",
-      // At booking creation nothing is captured yet — verify/webhook will
-      // flip amountPaid to the advance once Razorpay confirms the charge.
-      amountPaid: 0,
-      balanceDue: amount,
+      // Autotest bookings are "paid" immediately so amountPaid mirrors
+      // the full amount and nothing is due. Regular flow leaves these
+      // zero until verify/webhook flips them.
+      amountPaid: isAutotest ? amount : 0,
+      balanceDue: isAutotest ? 0 : amount,
       gstAmount,
       discountAmount,
     };
@@ -233,6 +267,8 @@ export async function POST(request: NextRequest) {
     await appendBooking(booking);
 
     // Confirmation emails:
+    //   - autotest: NEVER send. The whole point is a silent smoke test
+    //     — spamming the arena ops inbox every night defeats it.
     //   - pay_at_center: send immediately. The booking IS final at
     //     create-time; no payment step follows that could invalidate it.
     //   - razorpay: SKIP here. Emails fire from /api/payments/verify
@@ -241,7 +277,7 @@ export async function POST(request: NextRequest) {
     //     Both guard on paymentStatus !== "paid" so we avoid double-
     //     sending in the common case where both signals arrive.
     let emailError: string | null = null;
-    if (data.paymentMethod === "pay_at_center") {
+    if (!isAutotest && data.paymentMethod === "pay_at_center") {
       emailError = await sendBookingEmailsFromRow(booking);
     }
 

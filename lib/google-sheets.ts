@@ -190,6 +190,46 @@ export async function updateBookingCells(
   });
 }
 
+// Tombstones a Sheet1 row by clearing every column. Mirrors the
+// deleteWalkinRevenue pattern — we blank the row rather than shifting
+// subsequent ones up so references into the sheet (e.g. row indices
+// held briefly in flight) don't go stale. Used by the autotest
+// cleanup endpoint and any future bulk delete flow.
+export async function clearBookingRow(rowIndex: number): Promise<void> {
+  const sheets = getSheets();
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${SHEET_NAME}!A${rowIndex}:V${rowIndex}`,
+    valueInputOption: "RAW",
+    requestBody: {
+      // 22 empty strings = columns A..V.
+      values: [Array.from({ length: 22 }, () => "")],
+    },
+  });
+}
+
+// Returns every Sheet1 row for which the predicate holds, with its
+// 1-based rowIndex (as updateBookingCells expects). Used by the
+// autotest cleanup to find [AUTOTEST]-tagged rows without pulling a
+// full list of bookings separately.
+export async function listBookingRows(
+  predicate: (booking: BookingRow) => boolean
+): Promise<{ booking: BookingRow; rowIndex: number }[]> {
+  const sheets = getSheets();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${SHEET_NAME}!A2:V`,
+  });
+  const rows = res.data.values || [];
+  const out: { booking: BookingRow; rowIndex: number }[] = [];
+  rows.forEach((row, i) => {
+    if (!row[0]) return; // skip tombstoned (blank bookingId) rows
+    const booking = rowToBooking(row);
+    if (predicate(booking)) out.push({ booking, rowIndex: i + 2 });
+  });
+  return out;
+}
+
 export async function getExpiredPayAtCenterBookings(): Promise<{ booking: BookingRow; rowIndex: number }[]> {
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({

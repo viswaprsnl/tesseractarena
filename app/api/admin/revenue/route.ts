@@ -10,6 +10,7 @@ import {
   listMonthlyCosts,
 } from "@/lib/revenue-sheets";
 import type { RevenueEntry } from "@/lib/revenue-config";
+import { AUTOTEST_MARKER, isAutotestRequest } from "@/lib/autotest";
 
 const entryBodySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -23,7 +24,10 @@ const entryBodySchema = z.object({
 
 // Two-tier auth: staff pin lets counter staff log/edit walk-ins on the
 // Bookings tab. Owner pin gates the finance dashboard (list + delete).
+// The nightly autotest also gets in via the AUTOTEST_TOKEN header
+// instead of needing a PIN embedded in the GitHub secret store.
 function checkStaffPin(request: NextRequest): boolean {
+  if (isAutotestRequest(request)) return true;
   const pin = new URL(request.url).searchParams.get("pin");
   const staffPin = process.env.ADMIN_PIN || "1234";
   const ownerPin = process.env.OWNER_PIN;
@@ -96,6 +100,15 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    // Tag autotest-sourced walk-ins so the cleanup endpoint can find
+    // and sweep them later. The marker goes at the START of notes so
+    // it's visible at a glance in the Revenue sheet and simple to
+    // substring-match on.
+    const isAutotest = isAutotestRequest(request);
+    const notes = isAutotest
+      ? `${AUTOTEST_MARKER} ${parsed.data.notes || ""}`.trim()
+      : (parsed.data.notes || "");
+
     const entry: RevenueEntry = {
       id: `walk-${nanoid(8).toLowerCase()}`,
       date: parsed.data.date,
@@ -104,7 +117,7 @@ export async function POST(request: NextRequest) {
       players: parsed.data.players,
       revenue: parsed.data.revenue,
       paymentMethod: parsed.data.paymentMethod,
-      notes: parsed.data.notes || "",
+      notes,
       createdAt: new Date().toISOString(),
     };
     await appendWalkinRevenue(entry);
