@@ -114,20 +114,20 @@ export function GameCardMedia({
 
   useEffect(() => clearTimer, [clearTimer]);
 
-  // Touch / no-hover autoplay path. Hover events never fire on phones
-  // and tablets, so if we only wired handleEnter the card would stay
-  // frozen on the poster forever. IntersectionObserver gives us a
-  // scroll-into-view trigger that works on every touch browser,
-  // including iOS Safari, as long as the <video> has muted + playsInline
-  // (which it does). We only autoplay when the card is at least 40%
-  // visible so a card half off-screen during a flick doesn't start,
-  // and we pause as soon as it drops below that threshold again to
-  // keep the browser from juggling 20+ live decoders at once.
+  // Autoplay-on-scroll path. Fires on EVERY device, not just
+  // touch — the hover-to-play handlers above still work as an extra
+  // trigger (desktop users who mouse over a card restart its video
+  // from the beginning), but we no longer gate the IO on (hover:
+  // none) because that left desktop cards stuck on the poster
+  // forever when a user simply scrolled past without hovering.
+  // Was originally restricted to touch because the hover UX was
+  // designed as "poster until hover" on desktop; feedback was that
+  // this made the Games Library look static. IO + threshold 0.4
+  // keeps the active-decoder count low on both platforms —
+  // typically 3-5 videos playing at any time.
   useEffect(() => {
     if (!canPlay) return;
     if (typeof window === "undefined") return;
-    const noHover = window.matchMedia("(hover: none)").matches;
-    if (!noHover) return;
     const node = rootRef.current;
     if (!node) return;
 
