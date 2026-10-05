@@ -114,3 +114,53 @@ jobs:
           curl -sS -H "Content-Type: application/json" \
             -X POST -d "$BODY" \
             "$DISCORD_WEBHOOK_URL"
+
+      - name: Notify Discord on success
+        if: success()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ -z "${DISCORD_WEBHOOK_URL}" ]; then
+            echo "DISCORD_WEBHOOK_URL not configured — skipping Discord ping."
+            exit 0
+          fi
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          # Count passed tests from the Playwright JSON report so the
+          # ping actually says "6/6 passed" instead of just "it ran."
+          # Falls back to a bare "passed" line if the report is missing
+          # (shouldn't happen on success but belt-and-braces).
+          STATS=$(node -e "
+            try {
+              const r = require('./playwright-report/results.json');
+              let passed = 0, total = 0;
+              function walk(s) {
+                for (const spec of s.specs || []) {
+                  for (const t of spec.tests || []) {
+                    for (const result of t.results) {
+                      if (result.status === 'skipped') continue;
+                      total++;
+                      if (result.status === 'passed') passed++;
+                    }
+                  }
+                }
+                for (const sub of s.suites || []) walk(sub);
+              }
+              for (const s of r.suites || []) walk(s);
+              console.log(passed + '/' + total + ' tests passed');
+            } catch (e) {
+              console.log('passed');
+            }
+          ")
+          # Success pings go green (3066993) and stay to one line
+          # content + a short embed so the channel never fills up.
+          # If daily success noise becomes annoying, swap `if: success()`
+          # for state-change detection or just delete this step — the
+          # failure alert above is the one that matters.
+          BODY=$(jq -n \
+            --arg content "✅ Nightly smoke green on ${SMOKE_BASE_URL}" \
+            --arg desc "$STATS" \
+            --arg url "$RUN_URL" \
+            '{content: $content, embeds: [{title: "Run details", description: $desc, url: $url, color: 3066993}]}')
+          curl -sS -H "Content-Type: application/json" \
+            -X POST -d "$BODY" \
+            "$DISCORD_WEBHOOK_URL"
