@@ -48,21 +48,23 @@ export function TimeSlotGrid({
             {availableCount} slot{availableCount !== 1 ? "s" : ""} available · 1 hour each (45 min VR + 15 min changeover)
           </p>
 
-          {/* Slot grid.
-              - 3 cols on phones (previously 2 — gave too-wide pills with
-                lots of empty space either side of "11:00 AM")
-              - 4 cols on sm+ (same as before — fits tightly in the
-                wizard's right pane without wrapping)
-              - tabular-nums so digits align column-to-column
-              - whitespace-nowrap guarantees "11:00 AM" never wraps to
-                two lines even in the narrowest pane; without it,
-                dropping the Clock icon alone wouldn't fix the squash
-                because the browser was wrapping between "11:00" and "AM"
-              - The Clock icon that used to sit left of the time is
-                removed: redundant in a grid clearly labeled "Select a
-                Time," and it was eating the horizontal budget that
-                forced the wrap in the first place. */}
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-2.5">
+          {/* Slot grid — 2 cols at every breakpoint.
+              Why not 3 or 4: the wizard's time-grid pane is
+              lg:col-span-2 of a lg:grid-cols-5 layout inside a
+              lg:col-span-2 of a lg:grid-cols-3 outer, which makes the
+              pane roughly 215px wide at desktop (NOT scaling with
+              viewport past the lg: breakpoint). A 4-col grid at that
+              width gives 46px pills — too narrow for "12:00 PM" (needs
+              ~58px) so the leading "1" visually gets cropped on 1280px+
+              desktops. 2 cols gives ~100px pills with comfortable
+              breathing room; on mobile the stacked layout gives the
+              grid the full ~343px, so 2 cols there yields chunky touch
+              targets. Keeping the breakpoint uniform avoids the trap
+              of "looks fine at the breakpoint I tested, breaks at the
+              one I didn't."
+              Padding is explicit px-3 so content never kisses the pill
+              edge even if a future locale lengthens the format. */}
+          <div className="grid grid-cols-2 gap-2.5">
             {slots.map((slot) => {
               const isAvailable = slot.status === "available";
               const isSelected = selectedSlot === slot.time;
@@ -75,7 +77,7 @@ export function TimeSlotGrid({
                   }
                   disabled={!isAvailable}
                   className={`
-                    h-10 rounded-md text-[13px] font-semibold tracking-tight tabular-nums whitespace-nowrap
+                    h-10 px-3 rounded-md text-sm font-semibold tabular-nums whitespace-nowrap
                     transition-colors
                     ${
                       isSelected
