@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Clock, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import type { TimeSlot } from "@/lib/booking-types";
 
@@ -48,7 +48,21 @@ export function TimeSlotGrid({
             {availableCount} slot{availableCount !== 1 ? "s" : ""} available · 1 hour each (45 min VR + 15 min changeover)
           </p>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {/* Slot grid.
+              - 3 cols on phones (previously 2 — gave too-wide pills with
+                lots of empty space either side of "11:00 AM")
+              - 4 cols on sm+ (same as before — fits tightly in the
+                wizard's right pane without wrapping)
+              - tabular-nums so digits align column-to-column
+              - whitespace-nowrap guarantees "11:00 AM" never wraps to
+                two lines even in the narrowest pane; without it,
+                dropping the Clock icon alone wouldn't fix the squash
+                because the browser was wrapping between "11:00" and "AM"
+              - The Clock icon that used to sit left of the time is
+                removed: redundant in a grid clearly labeled "Select a
+                Time," and it was eating the horizontal budget that
+                forced the wrap in the first place. */}
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-2.5">
             {slots.map((slot) => {
               const isAvailable = slot.status === "available";
               const isSelected = selectedSlot === slot.time;
@@ -61,17 +75,17 @@ export function TimeSlotGrid({
                   }
                   disabled={!isAvailable}
                   className={`
-                    py-3 px-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5
+                    h-10 rounded-md text-[13px] font-semibold tracking-tight tabular-nums whitespace-nowrap
+                    transition-colors
                     ${
                       isSelected
-                        ? "bg-primary text-primary-foreground glow-violet"
+                        ? "bg-primary text-primary-foreground shadow-[0_0_0_1px_rgba(255,255,255,0.08)]"
                         : isAvailable
-                        ? "bg-secondary/50 border border-white/10 hover:border-primary/30 hover:bg-primary/10"
-                        : "bg-muted/20 text-muted-foreground/40 cursor-not-allowed line-through"
+                        ? "bg-secondary/40 border border-white/10 text-foreground hover:border-primary/40 hover:bg-primary/10"
+                        : "bg-transparent border border-white/5 text-muted-foreground/35 cursor-not-allowed line-through decoration-muted-foreground/30"
                     }
                   `}
                 >
-                  <Clock size={12} className={isSelected ? "" : "text-primary/60"} />
                   {slot.displayTime}
                 </button>
               );
