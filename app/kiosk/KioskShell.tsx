@@ -330,29 +330,6 @@ export default function KioskPage({
                 </div>
                 <ArrowRight size={16} className="text-primary shrink-0" />
               </Link>
-
-              {/* Jump to Tab-2 payments surface. On a two-tablet
-                  setup this link is unused (Tab-2 opens /kiosk/pay
-                  directly), but on a single-tablet setup it lets
-                  staff flip between waiver and balance-collection
-                  modes with one tap. */}
-              <Link
-                href="/kiosk/pay"
-                className="glass-card p-4 border-white/10 hover:border-primary/40 transition-colors flex items-center gap-3"
-              >
-                <div className="w-10 h-10 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0">
-                  <span className="text-primary font-bold text-sm">₹</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-heading text-sm font-bold">
-                    Collect balance payments
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    Show a QR; customer pays on their phone
-                  </p>
-                </div>
-                <ArrowRight size={16} className="text-primary shrink-0" />
-              </Link>
             </div>
           </div>
         )}
