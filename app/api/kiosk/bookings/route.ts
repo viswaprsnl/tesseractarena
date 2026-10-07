@@ -82,6 +82,12 @@ export async function GET() {
           gamePreference: b.gamePreference,
           paymentStatus: b.paymentStatus,
           status,
+          // Balance info for the Tab-2 /kiosk/pay list — amounts here
+          // are ex-GST (matching the sheet basis); the client grosses
+          // up for display.
+          amount: b.amount,
+          amountPaid: b.amountPaid,
+          balanceDue: b.balanceDue,
         };
       })
       // Order by time-of-day so morning slots sit at the top.

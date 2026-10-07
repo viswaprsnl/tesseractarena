@@ -97,6 +97,34 @@ export async function POST(request: NextRequest) {
     switch (event.event) {
       case "payment.captured":
       case "order.paid": {
+        // Balance-payment short-circuit: if the booking is already
+        // "paid" (advance captured) BUT still has a balance due AND
+        // the webhook payment amount is in the ballpark of that
+        // balance, treat this as a balance clearance and flip
+        // amountPaid=amount, balanceDue=0. Covers the case where a
+        // customer closes their phone tab after paying via
+        // /book/pay/[bookingId] and the client-side verify never runs.
+        if (
+          hit.booking.paymentStatus === "paid" &&
+          hit.booking.balanceDue > 0 &&
+          payment?.amount
+        ) {
+          const paymentInRupees = payment.amount / 100;
+          const estimatedBase = Math.round(paymentInRupees / 1.18);
+          // Within ₹5 of the ex-GST balance — enough tolerance for
+          // Razorpay's inc-GST rounding, strict enough that an
+          // unrelated payment doesn't accidentally mark balance paid.
+          if (Math.abs(estimatedBase - hit.booking.balanceDue) <= 5) {
+            const updates: Record<string, string> = {
+              amountPaid: String(hit.booking.amount),
+              balanceDue: "0",
+            };
+            if (payment.id) updates.razorpayPaymentId = payment.id;
+            if (payment.order_id) updates.razorpayOrderId = payment.order_id;
+            await updateBookingCells(hit.rowIndex, updates);
+            return NextResponse.json({ ok: true, updated: "balance_paid" });
+          }
+        }
         // Only flip pending → paid; never overwrite a manual admin state.
         // Also skips the email send below so a late-arriving webhook on
         // a booking that /api/payments/verify already handled doesn't
