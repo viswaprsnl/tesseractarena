@@ -39,18 +39,23 @@ export function BookingWizard({
     initialKiosk: isKiosk,
   });
 
-  // Kiosk mode: today's date is forced. The customer is at the counter
-  // right now — they're booking for today, not next week. We still show
-  // step 1 (Date & Time), but with the date pre-selected and locked, so
-  // the time-slot pane appears immediately alongside and the customer
-  // only has to tap a slot.
+  // Pre-select today's IST date on mount so the time-slot pane renders
+  // with real slots instead of a "pick a date" placeholder. Kiosk mode
+  // additionally LOCKS the date (handled in DatePicker via the
+  // isKiosk prop), but the pre-select behavior is now the same for
+  // both flows — a customer landing on /book should see what today's
+  // availability looks like without having to click the calendar first.
+  // Guards: skip if a date is already selected (e.g. after a RESET
+  // dispatch) so we don't overwrite an existing choice. If today has
+  // no slots the TimeSlotGrid shows its empty-state message and the
+  // user picks another date, same as before.
   useEffect(() => {
-    if (!isKiosk) return;
+    if (state.selectedDate) return;
     const today = getTodayISTString();
     dispatch({ type: "SET_DATE", date: today });
     fetchSlots(today);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isKiosk]);
+  }, []);
 
   // Fetch slots when date is selected
   const fetchSlots = async (date: string) => {
@@ -84,16 +89,26 @@ export function BookingWizard({
   // On mobile the time grid stacks BELOW the calendar instead of
   // sitting beside it. Users were reporting that picking a date felt
   // like nothing happened — the slots were rendered off-screen below
-  // the fold. Scroll them into view as soon as a date is picked, but
+  // the fold. Scroll them into view when a USER picks a date, but
   // only on viewports where the two panes aren't already visible
   // together (lg: and up are side-by-side, no scroll needed).
+  //
+  // didInitialSelectRef guards against the auto-select-today effect
+  // triggering this scroll on page load — otherwise a mobile visitor
+  // landing on /book would immediately get scrolled past the hero/
+  // calendar before they'd even seen them. We mark the first run as
+  // "the mount-time auto-select" and only start scrolling on
+  // subsequent date changes (which are user clicks).
   const timeSlotRef = useRef<HTMLDivElement | null>(null);
+  const didInitialSelectRef = useRef(false);
   useEffect(() => {
     if (!state.selectedDate) return;
     if (typeof window === "undefined") return;
+    if (!didInitialSelectRef.current) {
+      didInitialSelectRef.current = true;
+      return;
+    }
     if (window.matchMedia("(min-width: 1024px)").matches) return;
-    // Wait one frame so the TimeSlotGrid is mounted (the conditional
-    // render above only turns it on once selectedDate is truthy).
     const raf = window.requestAnimationFrame(() => {
       // 80px top offset leaves the sticky navbar + a bit of breathing
       // room above the "Available slots" header, instead of pinning
