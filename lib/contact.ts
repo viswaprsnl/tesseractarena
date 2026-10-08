@@ -7,6 +7,8 @@ export const PHONE_DISPLAY = "+91 99081 16444";
 export const CONTACT_EMAIL = "admin@tesseractarena.com";
 export const INSTAGRAM_HANDLE = "@tesseractarena";
 export const INSTAGRAM_URL = "https://instagram.com/tesseractarena";
+export const YOUTUBE_HANDLE = "@TesseractVRGamingArena";
+export const YOUTUBE_URL = "https://www.youtube.com/@TesseractVRGamingArena";
 
 // Everyone who should be notified when a new booking / callback / contact
 // form comes in. Kept separate from CONTACT_EMAIL (which is

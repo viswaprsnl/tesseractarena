@@ -8,6 +8,7 @@ import { z } from "zod";
 import { MapPin, Phone, Mail, Clock, CheckCircle2 } from "lucide-react";
 import { InstagramIcon } from "@/components/icons/InstagramIcon";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
+import { YouTubeIcon } from "@/components/icons/YouTubeIcon";
 import { Button } from "@/components/ui/button";
 import {
   PHONE_DISPLAY,
@@ -15,6 +16,8 @@ import {
   CONTACT_EMAIL,
   INSTAGRAM_URL,
   INSTAGRAM_HANDLE,
+  YOUTUBE_URL,
+  YOUTUBE_HANDLE,
   whatsappGeneralLink,
 } from "@/lib/contact";
 import { Input } from "@/components/ui/input";
@@ -50,6 +53,14 @@ const contactInfo: {
     value: INSTAGRAM_HANDLE,
     href: INSTAGRAM_URL,
     iconBg: "bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600",
+    iconColor: "text-white",
+  },
+  {
+    icon: YouTubeIcon,
+    label: "YouTube",
+    value: YOUTUBE_HANDLE,
+    href: YOUTUBE_URL,
+    iconBg: "bg-[#FF0000]",
     iconColor: "text-white",
   },
   { icon: Clock, label: "Hours", value: "Mon-Fri: 11AM - 9PM · Sat-Sun: 11AM - 10PM" },
