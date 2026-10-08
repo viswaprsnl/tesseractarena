@@ -9,6 +9,11 @@ export const INSTAGRAM_HANDLE = "@tesseractarena";
 export const INSTAGRAM_URL = "https://instagram.com/tesseractarena";
 export const YOUTUBE_HANDLE = "@TesseractVRGamingArena";
 export const YOUTUBE_URL = "https://www.youtube.com/@TesseractVRGamingArena";
+// Facebook page uses the numeric profile.php id (no vanity handle
+// claimed yet). URL kept bare — no &sk=... admin-view params that
+// Meta appends when the owner copies the URL from their own session.
+export const FACEBOOK_HANDLE = "Tesseract Arena";
+export const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61594595350233";
 
 // Everyone who should be notified when a new booking / callback / contact
 // form comes in. Kept separate from CONTACT_EMAIL (which is

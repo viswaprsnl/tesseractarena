@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { MapPin, Phone, Mail, Clock, CheckCircle2 } from "lucide-react";
+import { FacebookIcon } from "@/components/icons/FacebookIcon";
 import { InstagramIcon } from "@/components/icons/InstagramIcon";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { YouTubeIcon } from "@/components/icons/YouTubeIcon";
@@ -18,6 +19,8 @@ import {
   INSTAGRAM_HANDLE,
   YOUTUBE_URL,
   YOUTUBE_HANDLE,
+  FACEBOOK_URL,
+  FACEBOOK_HANDLE,
   whatsappGeneralLink,
 } from "@/lib/contact";
 import { Input } from "@/components/ui/input";
@@ -61,6 +64,14 @@ const contactInfo: {
     value: YOUTUBE_HANDLE,
     href: YOUTUBE_URL,
     iconBg: "bg-[#FF0000]",
+    iconColor: "text-white",
+  },
+  {
+    icon: FacebookIcon,
+    label: "Facebook",
+    value: FACEBOOK_HANDLE,
+    href: FACEBOOK_URL,
+    iconBg: "bg-[#1877F2]",
     iconColor: "text-white",
   },
   { icon: Clock, label: "Hours", value: "Mon-Fri: 11AM - 9PM · Sat-Sun: 11AM - 10PM" },

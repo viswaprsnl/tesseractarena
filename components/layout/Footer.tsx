@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MapPin, Phone, Mail, Clock } from "lucide-react";
+import { FacebookIcon } from "@/components/icons/FacebookIcon";
 import { InstagramIcon } from "@/components/icons/InstagramIcon";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { YouTubeIcon } from "@/components/icons/YouTubeIcon";
@@ -11,6 +12,8 @@ import {
   INSTAGRAM_HANDLE,
   YOUTUBE_URL,
   YOUTUBE_HANDLE,
+  FACEBOOK_URL,
+  FACEBOOK_HANDLE,
   whatsappGeneralLink,
 } from "@/lib/contact";
 
@@ -76,6 +79,16 @@ export function Footer() {
               >
                 <YouTubeIcon size={16} />
                 YouTube
+              </a>
+              <a
+                href={FACEBOOK_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Facebook ${FACEBOOK_HANDLE}`}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1877F2] hover:bg-[#166FE5] text-white text-sm font-medium transition-colors"
+              >
+                <FacebookIcon size={16} />
+                Facebook
               </a>
             </div>
           </div>
