@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CheckCircle2, Circle, Loader2, Gamepad2 } from "lucide-react";
+import { CheckCircle2, Loader2, Gamepad2 } from "lucide-react";
 
 // Right-hand rail on the check-in page. Polls the single-booking
 // waiver endpoint every few seconds while the customers scan the QR
@@ -94,18 +94,31 @@ export function WaiverProgress({
         </p>
       </div>
 
+      {/* Per-player status circles. Previously these were empty / check
+          icons with no number, which read as decorative dots at a glance.
+          Numbered circles ("1", "2", …) make it obvious each one maps to
+          one player; the number swaps to a check once their waiver lands.
+          "Players" caption above anchors the whole row. */}
+      <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
+        Players
+      </p>
       <div className="flex flex-wrap gap-2 mb-6">
         {slots.map((filled, i) => (
           <div
             key={i}
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+            className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold border transition-colors ${
               filled
-                ? "bg-green-500/20 text-green-400"
-                : "bg-secondary/60 text-muted-foreground"
+                ? "bg-green-500/20 text-green-400 border-green-500/40"
+                : "bg-secondary/60 text-muted-foreground border-white/10"
             }`}
-            aria-label={filled ? `Player ${i + 1} signed` : `Player ${i + 1} pending`}
+            aria-label={
+              filled ? `Player ${i + 1} signed` : `Player ${i + 1} pending`
+            }
+            title={
+              filled ? `Player ${i + 1} — signed` : `Player ${i + 1} — pending`
+            }
           >
-            {filled ? <CheckCircle2 size={18} /> : <Circle size={18} />}
+            {filled ? <CheckCircle2 size={18} /> : i + 1}
           </div>
         ))}
       </div>
@@ -123,7 +136,11 @@ export function WaiverProgress({
 }
 
 function formatGamePreference(id: string): string {
-  if (id === "decide-at-venue") return "Decide at venue";
+  // The sentinel "decide-at-venue" means the customer deferred their
+  // game choice at booking time. On the kiosk check-in page they're
+  // visibly here, so "Staff pick" matches the kiosk booking-form copy
+  // and reads as a cue to the counter team.
+  if (id === "decide-at-venue") return "Staff pick";
   // Fallback — id will look like a slug (city-z, station-zarya, birthday
   // labels like "Birthday: Aria (age 8)" fall through and print as-is).
   if (id.includes(" ")) return id;
