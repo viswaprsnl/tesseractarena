@@ -78,6 +78,42 @@ export function BookingWizard({
     };
   }, []);
 
+  // Kiosk-only shortcut: once today's slots have loaded, auto-pick
+  // the earliest available one and jump straight to step 3 (Package).
+  // A walk-in customer at the counter almost always wants the nearest
+  // slot — this collapses what would otherwise be two taps (pick date
+  // → pick time) into zero. If NO slots are available today the
+  // effect no-ops and leaves the customer on step 1 so staff can
+  // either pick another date or send them away.
+  //
+  // Guarded by state.step <= 2 so we only auto-advance from the
+  // Date & Time step — if a kiosk customer manually went Back to
+  // step 1 to change their time, the slots re-fetch would re-trigger
+  // this effect and we'd fight them, so we only run it before they've
+  // moved past step 2.
+  //
+  // didKioskAutoAdvanceRef locks it to once-per-mount — once we've
+  // jumped, subsequent slot refetches don't re-advance.
+  const didKioskAutoAdvanceRef = useRef(false);
+  useEffect(() => {
+    if (!state.isKiosk) return;
+    if (didKioskAutoAdvanceRef.current) return;
+    if (state.step > 2) return;
+    if (state.availableSlots.length === 0) return;
+    const earliest = state.availableSlots.find(
+      (s) => s.status === "available"
+    );
+    if (!earliest) return;
+    didKioskAutoAdvanceRef.current = true;
+    dispatch({
+      type: "SET_SLOT",
+      slot: earliest.time,
+      displayTime: earliest.displayTime,
+    });
+    dispatch({ type: "GO_TO_STEP", step: 3 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.isKiosk, state.availableSlots, state.step]);
+
   // Fetch slots when date is selected
   const fetchSlots = async (date: string) => {
     dispatch({ type: "SET_LOADING", loading: true });
