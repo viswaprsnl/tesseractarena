@@ -243,6 +243,10 @@ export function BookingWizard({
           ...(turnstileTokenRef.current
             ? { turnstileToken: turnstileTokenRef.current }
             : {}),
+          // Marks a kiosk/counter booking so the server exempts it
+          // from the no-advance rewrite — a walk-in who taps "Pay
+          // Online" at the counter actually wants Razorpay to open.
+          ...(state.isKiosk ? { isKiosk: true } : {}),
         }),
       });
 
@@ -363,6 +367,7 @@ export function BookingWizard({
           ...(turnstileTokenRef.current
             ? { turnstileToken: turnstileTokenRef.current }
             : {}),
+          ...(state.isKiosk ? { isKiosk: true } : {}),
         }),
       });
       const bookingData = await bookingRes.json();

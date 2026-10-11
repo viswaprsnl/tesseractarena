@@ -45,6 +45,15 @@ const bookingSchema = z
     paymentMethod: z.enum(["razorpay", "pay_at_center"]),
     specialRequests: z.string().max(500).optional(),
     arenaId: z.string().optional().default("arena-1"),
+    // Client-set signal that this booking came via the kiosk flow
+    // (/book?kiosk=1 on the counter QR). Used only to EXEMPT the
+    // booking from the no-advance-rewrite — a kiosk customer who picks
+    // "Pay Online" on their phone genuinely wants to pay the full
+    // amount via Razorpay right there and shouldn't be silently flipped
+    // to pay-at-center. Not trusted for security-sensitive decisions
+    // (Turnstile + per-contact quota still apply) because the client
+    // is unauthenticated.
+    isKiosk: z.boolean().optional().default(false),
     // Optional coupon code the customer entered in the booking flow. When
     // set, pickActiveDiscount considers coupon-gated campaigns matching
     // this code — otherwise only auto-apply campaigns are considered.
@@ -123,15 +132,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Admin toggle (Settings sheet) — when advance_required=false, any
-    // online booking that asked for razorpay gets quietly rewritten
+    // ONLINE booking that asked for razorpay gets quietly rewritten
     // to pay_at_center server-side. This prevents a stale client (or
     // a tampered request) from short-circuiting the experiment and
     // still collecting an advance when staff explicitly turned it off.
-    // Autotest flows aren't affected — they always bypass Razorpay
-    // via a different code path.
+    //
+    // Kiosk bookings are EXEMPT from the rewrite. The experiment is
+    // about "don't charge an advance to a customer booking from home" —
+    // but a walk-in customer at the counter who taps "Pay Online"
+    // actively wants to pay the full amount via Razorpay right there,
+    // and silently flipping them to pay-at-center would break that
+    // button's UX. Autotest flows also bypass via a different path.
     const advanceRequired = isAutotest ? true : await getAdvanceRequired();
     const effectivePaymentMethod =
-      !advanceRequired && data.paymentMethod === "razorpay"
+      !advanceRequired && !data.isKiosk && data.paymentMethod === "razorpay"
         ? ("pay_at_center" as const)
         : data.paymentMethod;
 
