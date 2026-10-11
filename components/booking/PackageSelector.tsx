@@ -366,9 +366,13 @@ export function PackageSelector({
                   <Gamepad2 size={18} className="text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold">Decide at venue</p>
+                  <p className="text-sm font-semibold">
+                    {isKiosk ? "Ask the staff to recommend" : "Decide at venue"}
+                  </p>
                   <p className="text-[11px] text-muted-foreground leading-snug">
-                    Choose or change your game at the arena on the day.{" "}
+                    {isKiosk
+                      ? "Not sure what to play? Pick with the counter staff before you head in."
+                      : "Choose or change your game at the arena on the day."}{" "}
                     {minAvailablePrice > 0 && maxAvailablePrice > minAvailablePrice && (
                       <span className="text-primary/80">
                         ₹{minAvailablePrice.toLocaleString("en-IN")}–₹
@@ -453,8 +457,13 @@ export function PackageSelector({
         {isDecideAtVenue && (
           <div className="glass-card p-3 mt-3 border-primary/20">
             <p className="text-[11px] text-muted-foreground">
-              <span className="text-primary font-medium">Decide at venue</span> —{" "}
-              {advanceRequired
+              <span className="text-primary font-medium">
+                {isKiosk ? "Staff pick" : "Decide at venue"}
+              </span>{" "}
+              —{" "}
+              {isKiosk
+                ? "the counter team will suggest a game that fits your group. Final price is locked once you pick."
+                : advanceRequired
                 ? "you pay just the ₹500/head advance now; final price is locked at the counter based on the title you pick."
                 : "no advance now; final price is locked at the counter based on the title you pick."}
             </p>
