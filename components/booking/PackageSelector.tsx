@@ -51,6 +51,11 @@ interface PackageSelectorProps {
   // center" split in the pricing card — a walk-in customer pays the
   // whole thing at the counter, not an online advance.
   isKiosk?: boolean;
+  // When false (admin Settings toggle), the regular online flow ALSO
+  // drops the advance/balance split and shows just the total — the
+  // customer settles the full amount at the arena. Mirrors the same
+  // flag the PaymentStep reads so step 3 and step 5 stay consistent.
+  advanceRequired?: boolean;
 }
 
 const packages = [
@@ -86,6 +91,7 @@ export function PackageSelector({
   onDiscountChange,
   onCouponChange,
   isKiosk = false,
+  advanceRequired = true,
 }: PackageSelectorProps) {
   const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [gameStatuses, setGameStatuses] = useState<Record<string, { status: string; hidden?: boolean }>>({});
@@ -448,8 +454,9 @@ export function PackageSelector({
           <div className="glass-card p-3 mt-3 border-primary/20">
             <p className="text-[11px] text-muted-foreground">
               <span className="text-primary font-medium">Decide at venue</span> —{" "}
-              you pay just the ₹500/head advance now; final price is locked
-              at the counter based on the title you pick.
+              {advanceRequired
+                ? "you pay just the ₹500/head advance now; final price is locked at the counter based on the title you pick."
+                : "no advance now; final price is locked at the counter based on the title you pick."}
             </p>
           </div>
         )}
@@ -657,10 +664,13 @@ export function PackageSelector({
           </div>
         )}
 
-        {isKiosk ? (
-          /* Counter / walk-in flow: whole amount is paid at the counter
-             after this form is submitted. No advance / balance split,
-             no "pay 500 per person" line (misleading at the till). */
+        {isKiosk || !advanceRequired ? (
+          /* Kiosk OR regular flow with the admin's no-advance toggle
+             on. In both cases the customer owes the full amount at
+             the counter and there's no online advance split to show.
+             The copy differs slightly between the two modes so a
+             counter walk-in and an online customer each read the right
+             next-step instructions. */
           <div className="border-t border-border pt-4 space-y-2">
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium">
@@ -671,8 +681,9 @@ export function PackageSelector({
               </span>
             </div>
             <p className="text-[11px] text-muted-foreground/70 pt-1">
-              Pay in cash, UPI or card at the counter after you&apos;ve
-              confirmed your details on the next step.
+              {isKiosk
+                ? "Pay in cash, UPI or card at the counter after you've confirmed your details on the next step."
+                : "No advance now. Pay in cash, UPI or card when you arrive at the arena."}
             </p>
           </div>
         ) : (

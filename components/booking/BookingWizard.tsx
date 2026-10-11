@@ -444,6 +444,7 @@ export function BookingWizard({
                     dispatch({ type: "SET_COUPON_CODE", code })
                   }
                   isKiosk={state.isKiosk}
+                  advanceRequired={advanceRequired}
                 />
                 <div className="flex flex-col items-center gap-2 mt-6">
                   <button
