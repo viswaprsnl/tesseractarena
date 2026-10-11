@@ -26,7 +26,8 @@ type DetailsForm = z.infer<typeof detailsSchema>;
 interface PersonalDetailsFormProps {
   // Submit now takes the Turnstile token too so the wizard can
   // forward it to /api/bookings. undefined is only ever passed in
-  // local dev where NEXT_PUBLIC_TURNSTILE_SITEKEY isn't set.
+  // local dev where NEXT_PUBLIC_TURNSTILE_SITEKEY isn't set, OR on
+  // kiosk flows where the widget is intentionally skipped.
   onSubmit: (data: DetailsForm, turnstileToken: string | undefined) => void;
   initialValues?: DetailsForm | null;
   // Drives the submit-button copy on step 4. When the admin's no-
@@ -34,6 +35,13 @@ interface PersonalDetailsFormProps {
   // because the next step isn't collecting any money — it's just a
   // final confirmation. Swap to "Continue to Review" in that case.
   advanceRequired?: boolean;
+  // Kiosk / counter walk-in flow. The widget is skipped entirely
+  // because the counter tablet + customer phones all share one
+  // arena WiFi IP — Cloudflare would start challenging that IP after
+  // a few bookings in a row and gum up the walk-in UX. Server also
+  // skips Turnstile verify for isKiosk requests; the per-contact
+  // quota + physical staff presence are the mitigations there.
+  isKiosk?: boolean;
 }
 
 // Cloudflare Turnstile sitekey — only present when the admin has
@@ -47,7 +55,11 @@ export function PersonalDetailsForm({
   onSubmit,
   initialValues,
   advanceRequired = true,
+  isKiosk = false,
 }: PersonalDetailsFormProps) {
+  // Turnstile is only used in the public online flow. Kiosk walk-ins
+  // skip it (see comment on isKiosk prop above).
+  const useTurnstile = !isKiosk && !!TURNSTILE_SITEKEY;
   // Turnstile token lives in local state because it's short-lived
   // (Cloudflare tokens expire after a few minutes); storing it in
   // the wizard reducer would risk a stale token being sent to the
@@ -130,12 +142,13 @@ export function PersonalDetailsForm({
           />
         </div>
 
-        {/* Turnstile — only renders when a sitekey is configured.
-            Mode "managed" lets Cloudflare pick between an invisible
-            challenge and an interactive tap based on their heuristics.
-            theme=dark matches the booking page's dark surface. The
-            widget auto-sizes to the container width. */}
-        {TURNSTILE_SITEKEY && (
+        {/* Turnstile — only renders when a sitekey is configured
+            AND this isn't a kiosk flow (walk-ins skip the check,
+            see useTurnstile comment above). Mode "managed" lets
+            Cloudflare pick between an invisible challenge and an
+            interactive tap based on their heuristics. theme=dark
+            matches the booking page's dark surface. */}
+        {useTurnstile && TURNSTILE_SITEKEY && (
           <div className="flex items-center justify-center pt-1">
             <Turnstile
               ref={turnstileRef}
@@ -150,10 +163,10 @@ export function PersonalDetailsForm({
 
         <Button
           type="submit"
-          // Disable submit until Turnstile has issued a token. Local
-          // dev (no sitekey configured) skips this gate so the form
-          // works without Cloudflare.
-          disabled={!!TURNSTILE_SITEKEY && !turnstileToken}
+          // Disable submit until Turnstile has issued a token. Kiosk
+          // flows and local dev (no sitekey configured) skip this
+          // gate so the form works without a Cloudflare round-trip.
+          disabled={useTurnstile && !turnstileToken}
           className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
         >
           {advanceRequired ? "Continue to Payment" : "Continue to Review"}

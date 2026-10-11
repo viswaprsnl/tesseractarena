@@ -107,11 +107,20 @@ export async function POST(request: NextRequest) {
 
     // Cloudflare Turnstile bot-check — runs BEFORE any sheet reads so
     // a flood of fake bookings doesn't eat our Google Sheets quota.
-    // Autotest requests skip the check (the AUTOTEST_TOKEN header is
-    // its own, stronger authentication). Local dev without
-    // TURNSTILE_SECRET configured also skips, so I can run the full
-    // booking flow against localhost without a Cloudflare account.
-    if (!isAutotest) {
+    //
+    // Skipped for:
+    //   • autotest requests (AUTOTEST_TOKEN header is its own, stronger
+    //     authentication)
+    //   • kiosk bookings (counter walk-ins all share the arena WiFi IP;
+    //     Cloudflare would start challenging the counter tablet after
+    //     a few bookings in a row, breaking the walk-in flow. The
+    //     per-contact quota + physical staff presence are the
+    //     mitigations here instead.)
+    //
+    // Local dev without TURNSTILE_SECRET configured also skips via the
+    // helper's dev-mode fallback, so booking works against localhost
+    // without a Cloudflare account.
+    if (!isAutotest && !data.isKiosk) {
       const verdict = await verifyTurnstileToken(
         data.turnstileToken,
         getClientIp(request)

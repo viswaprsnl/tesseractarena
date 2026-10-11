@@ -502,6 +502,7 @@ export function BookingWizard({
                     : null
                 }
                 advanceRequired={advanceRequired}
+                isKiosk={state.isKiosk}
               />
             )}
             {state.step === 5 && (
