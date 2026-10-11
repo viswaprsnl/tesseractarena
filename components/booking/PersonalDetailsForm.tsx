@@ -24,11 +24,17 @@ type DetailsForm = z.infer<typeof detailsSchema>;
 interface PersonalDetailsFormProps {
   onSubmit: (data: DetailsForm) => void;
   initialValues?: DetailsForm | null;
+  // Drives the submit-button copy on step 4. When the admin's no-
+  // advance toggle is on, "Continue to Payment" is misleading
+  // because the next step isn't collecting any money — it's just a
+  // final confirmation. Swap to "Continue to Review" in that case.
+  advanceRequired?: boolean;
 }
 
 export function PersonalDetailsForm({
   onSubmit,
   initialValues,
+  advanceRequired = true,
 }: PersonalDetailsFormProps) {
   const {
     register,
@@ -106,7 +112,7 @@ export function PersonalDetailsForm({
           type="submit"
           className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
         >
-          Continue to Payment
+          {advanceRequired ? "Continue to Payment" : "Continue to Review"}
         </Button>
       </form>
     </motion.div>

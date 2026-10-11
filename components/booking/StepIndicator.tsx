@@ -8,14 +8,29 @@ import { Check } from "lucide-react";
 // indicator because step 1 handles both Date and Time together.
 // A booking that reaches state.step === 2 (rare, old url) just
 // falls through to the "Date & Time" chip here.
-const steps = [
-  { num: 1, label: "Date & Time" },
-  { num: 3, label: "Package" },
-  { num: 4, label: "Details" },
-  { num: 5, label: "Payment" },
-];
+//
+// Step 5's label depends on the no-advance toggle. When advance is
+// required (default) the step collects the Razorpay payment, so
+// "Payment" is accurate. When the admin has turned advance off, the
+// same screen is a review/confirm — no money changes hands — so
+// "Confirm" reads more honestly to the customer at a glance.
+function buildSteps(advanceRequired: boolean) {
+  return [
+    { num: 1, label: "Date & Time" },
+    { num: 3, label: "Package" },
+    { num: 4, label: "Details" },
+    { num: 5, label: advanceRequired ? "Payment" : "Confirm" },
+  ];
+}
 
-export function StepIndicator({ currentStep }: { currentStep: number }) {
+export function StepIndicator({
+  currentStep,
+  advanceRequired = true,
+}: {
+  currentStep: number;
+  advanceRequired?: boolean;
+}) {
+  const steps = buildSteps(advanceRequired);
   return (
     <div className="flex items-center justify-center gap-1 sm:gap-2 mb-10">
       {steps.map((step, i) => (

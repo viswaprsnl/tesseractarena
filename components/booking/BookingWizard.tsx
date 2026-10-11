@@ -368,7 +368,7 @@ export function BookingWizard({
 
   return (
     <div className="max-w-4xl mx-auto">
-      <StepIndicator currentStep={state.step} />
+      <StepIndicator currentStep={state.step} advanceRequired={advanceRequired} />
 
       {/* Back button. In kiosk mode we skip step 1 (date is forced to
           today), so "Back" from step 2 would land on an empty date
@@ -476,6 +476,7 @@ export function BookingWizard({
                       }
                     : null
                 }
+                advanceRequired={advanceRequired}
               />
             )}
             {state.step === 5 && (
