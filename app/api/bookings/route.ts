@@ -22,6 +22,7 @@ import {
 import type { BookingRow, PerPersonPackageType } from "@/lib/booking-types";
 import { allGames, availableGames, getGamePlayerRange } from "@/data/games";
 import { AUTOTEST_MARKER, isAutotestRequest } from "@/lib/autotest";
+import { getAdvanceRequired } from "@/lib/settings-sheets";
 
 // Sentinel game id used by the /book wizard when the customer opts to
 // pick their title at the counter instead of committing up front. When
@@ -90,6 +91,19 @@ export async function POST(request: NextRequest) {
     //   • no confirmation email fires — we don't want to spam ourselves
     const isAutotest = isAutotestRequest(request);
 
+    // Admin toggle (Settings sheet) — when advance_required=false, any
+    // online booking that asked for razorpay gets quietly rewritten
+    // to pay_at_center server-side. This prevents a stale client (or
+    // a tampered request) from short-circuiting the experiment and
+    // still collecting an advance when staff explicitly turned it off.
+    // Autotest flows aren't affected — they always bypass Razorpay
+    // via a different code path.
+    const advanceRequired = isAutotest ? true : await getAdvanceRequired();
+    const effectivePaymentMethod =
+      !advanceRequired && data.paymentMethod === "razorpay"
+        ? ("pay_at_center" as const)
+        : data.paymentMethod;
+
     // Verify date is bookable
     if (!isDateBookable(data.date)) {
       return NextResponse.json(
@@ -135,7 +149,15 @@ export async function POST(request: NextRequest) {
     if (!isAutotest) {
       const activeBookings = await getActiveBookingsByContact(data.email, data.phone);
       const activePayAtCenter = activeBookings.filter(b => b.paymentMethod === "pay_at_center");
-      if (activePayAtCenter.length >= 2 && data.paymentMethod === "pay_at_center") {
+      // Only enforce the pay-at-center quota when it's actually
+      // optional. When the admin has turned advance OFF everyone's
+      // technically pay-at-center, so the quota would block
+      // legitimate second bookings.
+      if (
+        advanceRequired &&
+        activePayAtCenter.length >= 2 &&
+        effectivePaymentMethod === "pay_at_center"
+      ) {
         return NextResponse.json(
           { error: "You already have 2 active bookings with Pay at Center. Please pay online or cancel an existing booking first." },
           { status: 429 }
@@ -223,7 +245,7 @@ export async function POST(request: NextRequest) {
     // internally consistent to any downstream reporting query.
     const paymentStatus = isAutotest
       ? "paid"
-      : data.paymentMethod === "pay_at_center"
+      : effectivePaymentMethod === "pay_at_center"
       ? "pay_at_center"
       : "pending";
 
@@ -247,7 +269,7 @@ export async function POST(request: NextRequest) {
       package: data.package,
       gamePreference: data.gamePreference,
       paymentStatus,
-      paymentMethod: data.paymentMethod,
+      paymentMethod: effectivePaymentMethod,
       razorpayOrderId: isAutotest ? "autotest-order" : "",
       razorpayPaymentId: isAutotest ? "autotest-payment" : "",
       amount,
@@ -277,7 +299,7 @@ export async function POST(request: NextRequest) {
     //     Both guard on paymentStatus !== "paid" so we avoid double-
     //     sending in the common case where both signals arrive.
     let emailError: string | null = null;
-    if (!isAutotest && data.paymentMethod === "pay_at_center") {
+    if (!isAutotest && effectivePaymentMethod === "pay_at_center") {
       emailError = await sendBookingEmailsFromRow(booking);
     }
 
@@ -292,7 +314,7 @@ export async function POST(request: NextRequest) {
         package: data.package,
         amount,
         paymentStatus,
-        paymentMethod: data.paymentMethod,
+        paymentMethod: effectivePaymentMethod,
       },
       emailError,
     });

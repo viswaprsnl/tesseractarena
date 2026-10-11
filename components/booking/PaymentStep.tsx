@@ -27,12 +27,20 @@ interface PaymentStepProps {
   state: BookingState;
   onPayOnline: () => Promise<void>;
   onPayAtCenter?: () => Promise<void>;
+  // When false (admin toggle in Settings sheet), the ₹500/head advance
+  // requirement is lifted — customers can confirm a booking without
+  // paying anything up front, and settle the full amount at the arena.
+  // The regular flow then shows ONLY the "Pay at Center" option, no
+  // Razorpay button, with copy that makes the deferred payment clear.
+  // Kiosk flow is unaffected (customer is already at the counter).
+  advanceRequired?: boolean;
 }
 
 export function PaymentStep({
   state,
   onPayOnline,
   onPayAtCenter,
+  advanceRequired = true,
 }: PaymentStepProps) {
   const [processing, setProcessing] = useState(false);
 
@@ -83,16 +91,24 @@ export function PaymentStep({
       />
 
       <h3 className="font-heading text-lg font-bold text-center mb-2">
-        {state.isKiosk ? "How would you like to pay?" : "Reserve Your Slot"}
+        {state.isKiosk
+          ? "How would you like to pay?"
+          : advanceRequired
+          ? "Reserve Your Slot"
+          : "Confirm Your Booking"}
       </h3>
       <p className="text-sm text-muted-foreground text-center mb-6">
         {state.isKiosk ? (
           <>
             Total <span className="text-primary font-bold">₹{totalWithGST.toLocaleString("en-IN")}</span> (incl. GST). Pay online now or at the counter.
           </>
-        ) : (
+        ) : advanceRequired ? (
           <>
             Pay <span className="text-primary font-bold">₹{advanceWithGST.toLocaleString("en-IN")}</span> advance (incl. GST) to confirm
+          </>
+        ) : (
+          <>
+            No advance needed. Pay <span className="text-primary font-bold">₹{totalWithGST.toLocaleString("en-IN")}</span> at the arena when you arrive.
           </>
         )}
       </p>
@@ -137,7 +153,9 @@ export function PaymentStep({
           <span className="text-muted-foreground">Total (incl. GST)</span>
           <span className="font-semibold">₹{totalWithGST.toLocaleString("en-IN")}</span>
         </div>
-        {state.isKiosk ? (
+        {state.isKiosk || !advanceRequired ? (
+          /* Kiosk or no-advance mode: no advance/balance split — the
+             customer owes the full amount at the counter either way. */
           <div className="flex justify-between font-bold text-primary pt-2 border-t border-white/10">
             <span>Pay at counter</span>
             <span>₹{totalWithGST.toLocaleString("en-IN")}</span>
@@ -195,7 +213,9 @@ export function PaymentStep({
             </div>
           </Button>
         </div>
-      ) : (
+      ) : advanceRequired ? (
+        /* Regular flow with advance required — single big Razorpay
+           button for the advance. */
         <Button
           onClick={handlePayOnline}
           disabled={processing}
@@ -211,6 +231,29 @@ export function PaymentStep({
             <div className="text-xs opacity-80">Incl. GST · UPI, Cards, Net Banking · Balance at center</div>
           </div>
         </Button>
+      ) : (
+        /* No-advance experiment — route straight to pay_at_center.
+           onPayAtCenter is always wired by the booking wizard when
+           the toggle is off; the ?? fallback to onPayOnline is a
+           belt-and-braces guard so a wizard that forgot to pass the
+           prop still gets to a working submit path. */
+        <Button
+          onClick={onPayAtCenter ? handlePayAtCenter : handlePayOnline}
+          disabled={processing}
+          className="w-full h-auto py-4 bg-primary hover:bg-primary/90 text-primary-foreground glow-violet"
+        >
+          {processing ? (
+            <Loader2 className="animate-spin mr-2" size={18} />
+          ) : null}
+          <div className="text-left">
+            <div className="font-semibold">
+              Confirm booking · pay ₹{totalWithGST.toLocaleString("en-IN")} at arena
+            </div>
+            <div className="text-xs opacity-80">
+              No advance now · UPI / cash / card accepted at the counter
+            </div>
+          </div>
+        </Button>
       )}
 
       {/* Cancellation policy — specific to the selected date */}
@@ -224,10 +267,16 @@ export function PaymentStep({
         </p>
       </div>
 
-      <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mt-4">
-        <Shield size={12} className="text-primary" />
-        Online payments secured by Razorpay
-      </p>
+      {/* Razorpay trust badge — only shown when the flow actually
+          involves an online payment. With advance OFF and the regular
+          flow, no online payment happens here, so the badge would be
+          misleading. */}
+      {(state.isKiosk || advanceRequired) && (
+        <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mt-4">
+          <Shield size={12} className="text-primary" />
+          Online payments secured by Razorpay
+        </p>
+      )}
     </motion.div>
   );
 }

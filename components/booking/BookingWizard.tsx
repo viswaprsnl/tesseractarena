@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft } from "lucide-react";
@@ -55,6 +55,27 @@ export function BookingWizard({
     dispatch({ type: "SET_DATE", date: today });
     fetchSlots(today);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Public settings — currently just the advance_required flag that
+  // controls whether the Razorpay advance is enforced on online
+  // bookings. Default to true (historical behaviour) if the fetch
+  // fails so a transient settings-sheet outage never silently
+  // flips the pricing experience to "no advance".
+  const [advanceRequired, setAdvanceRequired] = useState<boolean>(true);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/settings", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled && typeof data.advanceRequired === "boolean") {
+          setAdvanceRequired(data.advanceRequired);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Fetch slots when date is selected
@@ -462,6 +483,7 @@ export function BookingWizard({
                 state={state}
                 onPayOnline={handlePayOnline}
                 onPayAtCenter={handlePayAtCenter}
+                advanceRequired={advanceRequired}
               />
             )}
           </AnimatePresence>

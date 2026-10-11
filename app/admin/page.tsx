@@ -39,6 +39,7 @@ import { RevenueTab } from "@/components/admin/RevenueTab";
 import { WalkinLogger } from "@/components/admin/WalkinLogger";
 import { DiscountModal } from "@/components/admin/DiscountModal";
 import { CallbacksTab } from "@/components/admin/CallbacksTab";
+import { SettingsTab } from "@/components/admin/SettingsTab";
 
 type GameStatus = "available" | "unavailable" | "coming_soon" | "maintenance";
 
@@ -394,7 +395,7 @@ export default function AdminPage() {
   const [discountModal, setDiscountModal] = useState<BookingRow | null>(null);
   const [error, setError] = useState("");
   const [waiverCheck, setWaiverCheck] = useState<Record<string, boolean | null>>({});
-  const [activeTab, setActiveTab] = useState<"bookings" | "games" | "services" | "schedule" | "discounts" | "revenue" | "callbacks">("bookings");
+  const [activeTab, setActiveTab] = useState<"bookings" | "games" | "services" | "schedule" | "discounts" | "revenue" | "callbacks" | "settings">("bookings");
   const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [discountBusy, setDiscountBusy] = useState<string | null>(null);
   const [showDiscountForm, setShowDiscountForm] = useState(false);
@@ -840,7 +841,20 @@ export default function AdminPage() {
             Revenue
             {!ownerAuthed && <Lock size={11} className="opacity-60" />}
           </button>
+          <button
+            onClick={() => setActiveTab("settings")}
+            className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+              activeTab === "settings"
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Settings size={16} />
+            Settings
+          </button>
         </div>
+
+        {activeTab === "settings" && <SettingsTab pin={pin} />}
 
         {activeTab === "revenue" && (
           ownerAuthed ? (
