@@ -163,9 +163,26 @@ export async function POST(request: NextRequest) {
           { status: 429 }
         );
       }
-      if (activeBookings.length >= 4) {
+      // When advance is required: 4 active bookings per contact is
+      // lenient but defensible because each one has a ₹500/head
+      // commitment behind it.
+      //
+      // When advance is OFF: no money is on the line, so 4 bookings
+      // under one phone/email is a spam ladder. Tighten to 1 active
+      // booking per contact. A customer who's shown up and finished
+      // one session can book the next one; a spammer with one fake
+      // phone can only block one slot at a time.
+      //
+      // getActiveBookingsByContact matches on email OR phone, so both
+      // identifiers are protected by the same check.
+      const quota = advanceRequired ? 4 : 1;
+      if (activeBookings.length >= quota) {
         return NextResponse.json(
-          { error: "Maximum 4 active bookings allowed per person. Please cancel an existing booking first." },
+          {
+            error: advanceRequired
+              ? "Maximum 4 active bookings allowed per person. Please cancel an existing booking first."
+              : "You already have an active booking under this phone or email. Please cancel it before booking another slot, or contact us if you need multiple sessions.",
+          },
           { status: 429 }
         );
       }
