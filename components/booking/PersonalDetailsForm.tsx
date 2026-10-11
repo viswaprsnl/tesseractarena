@@ -1,9 +1,11 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +24,10 @@ const detailsSchema = z.object({
 type DetailsForm = z.infer<typeof detailsSchema>;
 
 interface PersonalDetailsFormProps {
-  onSubmit: (data: DetailsForm) => void;
+  // Submit now takes the Turnstile token too so the wizard can
+  // forward it to /api/bookings. undefined is only ever passed in
+  // local dev where NEXT_PUBLIC_TURNSTILE_SITEKEY isn't set.
+  onSubmit: (data: DetailsForm, turnstileToken: string | undefined) => void;
   initialValues?: DetailsForm | null;
   // Drives the submit-button copy on step 4. When the admin's no-
   // advance toggle is on, "Continue to Payment" is misleading
@@ -31,11 +36,25 @@ interface PersonalDetailsFormProps {
   advanceRequired?: boolean;
 }
 
+// Cloudflare Turnstile sitekey — only present when the admin has
+// configured the integration. When undefined (local dev without env
+// vars), the widget doesn't render and submit works unguarded; the
+// server still rejects with 403 if TURNSTILE_SECRET is set but the
+// token is missing, so a tampered client can't skip the check.
+const TURNSTILE_SITEKEY = process.env.NEXT_PUBLIC_TURNSTILE_SITEKEY;
+
 export function PersonalDetailsForm({
   onSubmit,
   initialValues,
   advanceRequired = true,
 }: PersonalDetailsFormProps) {
+  // Turnstile token lives in local state because it's short-lived
+  // (Cloudflare tokens expire after a few minutes); storing it in
+  // the wizard reducer would risk a stale token being sent to the
+  // API. The widget's onSuccess updates this; onExpire clears it so
+  // the submit button disables correctly.
+  const [turnstileToken, setTurnstileToken] = useState<string | undefined>();
+  const turnstileRef = useRef<TurnstileInstance | null>(null);
   const {
     register,
     handleSubmit,
@@ -55,7 +74,10 @@ export function PersonalDetailsForm({
         Your Details
       </h3>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form
+        onSubmit={handleSubmit((data) => onSubmit(data, turnstileToken))}
+        className="space-y-4"
+      >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
@@ -108,8 +130,30 @@ export function PersonalDetailsForm({
           />
         </div>
 
+        {/* Turnstile — only renders when a sitekey is configured.
+            Mode "managed" lets Cloudflare pick between an invisible
+            challenge and an interactive tap based on their heuristics.
+            theme=dark matches the booking page's dark surface. The
+            widget auto-sizes to the container width. */}
+        {TURNSTILE_SITEKEY && (
+          <div className="flex items-center justify-center pt-1">
+            <Turnstile
+              ref={turnstileRef}
+              siteKey={TURNSTILE_SITEKEY}
+              options={{ theme: "dark", size: "flexible" }}
+              onSuccess={(token) => setTurnstileToken(token)}
+              onExpire={() => setTurnstileToken(undefined)}
+              onError={() => setTurnstileToken(undefined)}
+            />
+          </div>
+        )}
+
         <Button
           type="submit"
+          // Disable submit until Turnstile has issued a token. Local
+          // dev (no sitekey configured) skips this gate so the form
+          // works without Cloudflare.
+          disabled={!!TURNSTILE_SITEKEY && !turnstileToken}
           className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
         >
           {advanceRequired ? "Continue to Payment" : "Continue to Review"}

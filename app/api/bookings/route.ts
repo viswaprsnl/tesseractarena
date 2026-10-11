@@ -23,6 +23,7 @@ import type { BookingRow, PerPersonPackageType } from "@/lib/booking-types";
 import { allGames, availableGames, getGamePlayerRange } from "@/data/games";
 import { AUTOTEST_MARKER, isAutotestRequest } from "@/lib/autotest";
 import { getAdvanceRequired } from "@/lib/settings-sheets";
+import { getClientIp, verifyTurnstileToken } from "@/lib/turnstile";
 
 // Sentinel game id used by the /book wizard when the customer opts to
 // pick their title at the counter instead of committing up front. When
@@ -52,6 +53,10 @@ const bookingSchema = z
       .max(24)
       .regex(/^[A-Za-z0-9_-]*$/)
       .optional(),
+    // Cloudflare Turnstile token. Optional at the schema level because
+    // autotest requests + local dev (no secret configured) don't send
+    // one; the server-side verify handles both those cases cleanly.
+    turnstileToken: z.string().max(2048).optional(),
   })
   .refine(
     (data) => {
@@ -90,6 +95,32 @@ export async function POST(request: NextRequest) {
     //     trip, but belt-and-braces)
     //   • no confirmation email fires — we don't want to spam ourselves
     const isAutotest = isAutotestRequest(request);
+
+    // Cloudflare Turnstile bot-check — runs BEFORE any sheet reads so
+    // a flood of fake bookings doesn't eat our Google Sheets quota.
+    // Autotest requests skip the check (the AUTOTEST_TOKEN header is
+    // its own, stronger authentication). Local dev without
+    // TURNSTILE_SECRET configured also skips, so I can run the full
+    // booking flow against localhost without a Cloudflare account.
+    if (!isAutotest) {
+      const verdict = await verifyTurnstileToken(
+        data.turnstileToken,
+        getClientIp(request)
+      );
+      if (!verdict.ok) {
+        console.warn(
+          "Turnstile verification failed:",
+          verdict.errorCodes?.join(",") || "unknown"
+        );
+        return NextResponse.json(
+          {
+            error:
+              "We couldn't verify this request. Please refresh the page and try again.",
+          },
+          { status: 403 }
+        );
+      }
+    }
 
     // Admin toggle (Settings sheet) — when advance_required=false, any
     // online booking that asked for razorpay gets quietly rewritten

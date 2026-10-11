@@ -172,12 +172,23 @@ export function BookingWizard({
   // Step 4: Details submitted. gamePreference is not a form field anymore —
   // it comes from state.selectedGame (picked in step 3) and gets injected
   // here so the downstream POST body still carries it.
-  const handleDetailsSubmit = (details: {
-    name: string;
-    email: string;
-    phone: string;
-    specialRequests?: string;
-  }) => {
+  //
+  // turnstileToken: Cloudflare bot-check token issued by the widget on
+  // the Details form. Stashed here so the eventual /api/bookings POST
+  // can forward it to the server-side siteverify check. Tokens expire
+  // in a few minutes, so this gets re-captured on each submit rather
+  // than cached in the wizard reducer.
+  const turnstileTokenRef = useRef<string | undefined>(undefined);
+  const handleDetailsSubmit = (
+    details: {
+      name: string;
+      email: string;
+      phone: string;
+      specialRequests?: string;
+    },
+    turnstileToken?: string
+  ) => {
+    turnstileTokenRef.current = turnstileToken;
     dispatch({
       type: "SET_DETAILS",
       details: {
@@ -226,6 +237,12 @@ export function BookingWizard({
           // Only sent when the customer redeemed a coupon that actually
           // beat the auto-apply pool. Server re-validates independently.
           ...(state.couponCode ? { couponCode: state.couponCode } : {}),
+          // Cloudflare Turnstile bot-check token issued on the Details
+          // step. The server runs it through siteverify; a missing or
+          // invalid token returns 403 in production.
+          ...(turnstileTokenRef.current
+            ? { turnstileToken: turnstileTokenRef.current }
+            : {}),
         }),
       });
 
@@ -343,6 +360,9 @@ export function BookingWizard({
           paymentMethod: "pay_at_center",
           specialRequests: state.personalDetails.specialRequests,
           ...(state.couponCode ? { couponCode: state.couponCode } : {}),
+          ...(turnstileTokenRef.current
+            ? { turnstileToken: turnstileTokenRef.current }
+            : {}),
         }),
       });
       const bookingData = await bookingRes.json();
