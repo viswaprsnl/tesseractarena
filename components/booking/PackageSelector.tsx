@@ -56,6 +56,12 @@ interface PackageSelectorProps {
   // customer settles the full amount at the arena. Mirrors the same
   // flag the PaymentStep reads so step 3 and step 5 stay consistent.
   advanceRequired?: boolean;
+  // Deep-link preselect: when the customer clicked "Book this game"
+  // on the home-page game card, the URL carries ?game=<id> and we
+  // skip the full game grid in favour of the one game card they
+  // already committed to. A "Change game" link reveals the grid if
+  // they want to swap, so they're never trapped.
+  preselectedGame?: string;
 }
 
 const packages = [
@@ -92,9 +98,16 @@ export function PackageSelector({
   onCouponChange,
   isKiosk = false,
   advanceRequired = true,
+  preselectedGame,
 }: PackageSelectorProps) {
   const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [gameStatuses, setGameStatuses] = useState<Record<string, { status: string; hidden?: boolean }>>({});
+  // When the customer deep-linked from a specific game's "Book this
+  // game" button, we initially render ONLY their picked game in the
+  // grid so the step reads as "confirm your choice" instead of
+  // "pick again from 20 options". Clicking "Change game" expands
+  // the grid to the full bookable list.
+  const [gameGridExpanded, setGameGridExpanded] = useState(false);
 
   // Coupon flow state — separate from `discounts` (which is only the auto-
   // apply pool the public /api/discounts endpoint returned) because a
@@ -332,12 +345,28 @@ export function PackageSelector({
       {/* Game picker — a visual card strip beats a native <select> here,
           both because parents / groups shop games by looking at them, and
           because it lets us surface the per-person price prominently on
-          each card. Selection drives the pricing on the tier cards below. */}
+          each card. Selection drives the pricing on the tier cards below.
+          Deep-link mode (preselectedGame set, grid not expanded) shows
+          ONLY the chosen game so the step reads as "confirm" rather than
+          "pick again"; the "Change game" link below the grid reveals the
+          full list when the customer wants to swap. */}
+      {(() => {
+        // Re-eval each render so a game that becomes unavailable
+        // after preselection falls back to the full grid gracefully.
+        const isDeepLinked =
+          !!preselectedGame &&
+          !gameGridExpanded &&
+          bookableGames.some((g) => g.id === preselectedGame);
+        const visibleGames = isDeepLinked
+          ? bookableGames.filter((g) => g.id === preselectedGame)
+          : bookableGames;
+        const showDecideAtVenueTile = !isDeepLinked;
+        return (
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <label className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-2">
             <Gamepad2 size={12} className="text-primary" />
-            Choose your game
+            {isDeepLinked ? "Your game" : "Choose your game"}
           </label>
           {!selectedGame && (
             <span className="text-[10px] text-muted-foreground">
@@ -350,8 +379,10 @@ export function PackageSelector({
         >
           {/* "Decide at venue" tile — mirrors Enter Totem's flow. Spans the
               full row width, distinct primary-tinted style, sits above the
-              real games so it reads as the "pick nothing specific yet" out. */}
-          {(() => {
+              real games so it reads as the "pick nothing specific yet" out.
+              Hidden in deep-link mode because a customer who clicked a
+              specific game card has already decided. */}
+          {showDecideAtVenueTile && (() => {
             const isSelected = selectedGame === DECIDE_AT_VENUE_ID;
             return (
               <button
@@ -389,7 +420,7 @@ export function PackageSelector({
               </button>
             );
           })()}
-          {bookableGames.map((g) => {
+          {visibleGames.map((g) => {
             const isSelected = selectedGame === g.id;
             return (
               <button
@@ -446,6 +477,21 @@ export function PackageSelector({
             );
           })}
         </div>
+        {/* Change-game escape hatch — only shown in collapsed deep-link
+            mode. Expanding is one-way for this session; once the
+            customer opens the full grid we assume they want to keep
+            browsing freely. */}
+        {isDeepLinked && (
+          <div className="mt-3 flex justify-center">
+            <button
+              type="button"
+              onClick={() => setGameGridExpanded(true)}
+              className="text-xs text-primary hover:text-primary/80 underline underline-offset-4 decoration-primary/40 hover:decoration-primary transition-colors"
+            >
+              Change game — show all titles
+            </button>
+          </div>
+        )}
         {game && (
           <div className="glass-card p-3 mt-3">
             <p className="text-[11px] text-muted-foreground">
@@ -470,6 +516,8 @@ export function PackageSelector({
           </div>
         )}
       </div>
+        );
+      })()}
 
       {/* Party size stepper */}
       <div className="flex flex-col items-center gap-2 mb-8">

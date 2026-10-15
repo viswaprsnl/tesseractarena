@@ -506,6 +506,7 @@ export function BookingWizard({
                   }
                   isKiosk={state.isKiosk}
                   advanceRequired={advanceRequired}
+                  preselectedGame={preselectedGame}
                 />
                 <div className="flex flex-col items-center gap-2 mt-6">
                   <button
