@@ -27,6 +27,7 @@ import {
   TrendingUp,
   Lock,
   PhoneCall,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -744,18 +745,34 @@ export default function AdminPage() {
   return (
     <div className="pt-20 pb-16 px-4">
       <div className="max-w-5xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold">
-            <span className="gradient-text">Admin Panel</span>
-          </h1>
+        {/* Admin toolbar — groups the Admin Panel title and Logout
+            action in a glass card so they read as a cohesive header
+            instead of two orphans floating at opposite edges of a
+            wide centered container (the original flex-between put
+            them so far apart that Logout looked unrelated to the
+            page title, especially next to the site navbar's "Book
+            Now" button sitting directly above it). */}
+        <div className="glass-card px-4 sm:px-5 py-3 mb-6 flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-lg sm:text-xl font-bold leading-none">
+              <span className="gradient-text">Admin Panel</span>
+            </h1>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              {ownerAuthed
+                ? "Signed in as owner — full access"
+                : "Signed in as staff"}
+            </p>
+          </div>
           <Button
             variant="outline"
+            size="sm"
             onClick={() => {
               setAuthenticated(false);
               setPin("");
             }}
-            className="border-white/20 text-sm"
+            className="border-white/20 text-xs shrink-0"
           >
+            <LogOut size={14} className="mr-1.5" />
             Logout
           </Button>
         </div>
