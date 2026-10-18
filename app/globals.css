@@ -135,6 +135,18 @@
   html {
     @apply scroll-smooth;
   }
+  /* Anchor-jump headroom. The fixed offer bar (40px) + navbar (64px)
+     stack on top of every page, so #corporate / #faq / #games etc.
+     anchor jumps land with the section headline hidden BEHIND them.
+     scroll-margin-top on each section pushes the landing position
+     down by that chrome height + a bit of breathing room. 108px =
+     40 + 64 + 4px gap. The var(--offer-bar-h) could zero out when
+     the offer bar auto-hides past Nov 1, so we subtract that from
+     the baseline — on days with no offer bar, headroom is 68px
+     (just the navbar). */
+  section[id] {
+    scroll-margin-top: calc(68px + var(--offer-bar-h, 40px));
+  }
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading tracking-wider;
   }
