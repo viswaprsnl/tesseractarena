@@ -11,20 +11,19 @@ import {
 import { faqItems, FAQ_CATEGORIES, type FAQCategory } from "@/data/faq";
 import { fadeInUp, staggerContainer } from "@/lib/animations";
 
-// Filter pills — "all" plus one per category, in a horizontally
-// scrollable row so a 4th or 5th category added later still fits
-// on a 375px phone without wrapping or truncating.
-type FilterId = "all" | FAQCategory;
+// One pill per category — the "All" pill was dropped because 10
+// questions in a flat list defeats the point of the filter. The
+// first category is pre-selected so the section is never empty.
+type FilterId = FAQCategory;
 
 export function FAQ() {
-  const [filter, setFilter] = useState<FilterId>("all");
+  const [filter, setFilter] = useState<FilterId>(FAQ_CATEGORIES[0].id);
 
-  // Precompute counts per filter so the pills can show them. Memo
+  // Precompute per-category counts so the pills can show them. Memo
   // because faqItems is static but we're re-rendering on filter
   // change — doing the reduce in render would recount every click.
   const counts = useMemo(() => {
     const c: Record<FilterId, number> = {
-      all: faqItems.length,
       experience: 0,
       groups: 0,
       booking: 0,
@@ -34,17 +33,14 @@ export function FAQ() {
   }, []);
 
   const visibleItems = useMemo(
-    () =>
-      filter === "all"
-        ? faqItems
-        : faqItems.filter((it) => it.category === filter),
+    () => faqItems.filter((it) => it.category === filter),
     [filter]
   );
 
-  const pills: { id: FilterId; label: string }[] = [
-    { id: "all", label: "All" },
-    ...FAQ_CATEGORIES.map((c) => ({ id: c.id as FilterId, label: c.label })),
-  ];
+  const pills: { id: FilterId; label: string }[] = FAQ_CATEGORIES.map((c) => ({
+    id: c.id,
+    label: c.label,
+  }));
 
   return (
     <section id="faq" className="py-12 sm:py-24 px-4">
