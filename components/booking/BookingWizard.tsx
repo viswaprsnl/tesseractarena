@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft } from "lucide-react";
@@ -12,15 +13,38 @@ import {
   formatTimeDisplay,
 } from "@/lib/booking-config";
 import type { PerPersonPackageType } from "@/lib/booking-types";
+import { DECIDE_AT_VENUE_ID } from "@/lib/booking-types";
 import { allGames, availableGames } from "@/data/games";
-import { DECIDE_AT_VENUE_ID } from "./PackageSelector";
 import { StepIndicator } from "./StepIndicator";
 import { DatePicker } from "./DatePicker";
 import { TimeSlotGrid } from "./TimeSlotGrid";
-import { PackageSelector } from "./PackageSelector";
-import { PersonalDetailsForm } from "./PersonalDetailsForm";
-import { PaymentStep } from "./PaymentStep";
-import { BookingSummary } from "./BookingSummary";
+
+// Heavy per-step panels are code-split: only the step currently on
+// screen pulls down its JS. Shaved roughly half the initial /book
+// bundle (and the Razorpay/Turnstile sub-scripts load only once the
+// user actually reaches those steps). ssr: false is fine — the whole
+// wizard is already a client component. Fallbacks are minimal because
+// each panel renders inside the wizard's existing animated frame; a
+// 1-tick skeleton beats a layout shift.
+const StepPanelFallback = () => (
+  <div className="h-48 rounded-xl bg-secondary/30 animate-pulse" />
+);
+const PackageSelector = dynamic(
+  () => import("./PackageSelector").then((m) => m.PackageSelector),
+  { loading: StepPanelFallback, ssr: false }
+);
+const PersonalDetailsForm = dynamic(
+  () => import("./PersonalDetailsForm").then((m) => m.PersonalDetailsForm),
+  { loading: StepPanelFallback, ssr: false }
+);
+const PaymentStep = dynamic(
+  () => import("./PaymentStep").then((m) => m.PaymentStep),
+  { loading: StepPanelFallback, ssr: false }
+);
+const BookingSummary = dynamic(
+  () => import("./BookingSummary").then((m) => m.BookingSummary),
+  { loading: StepPanelFallback, ssr: false }
+);
 
 export function BookingWizard({
   preselectedGame,

@@ -12,7 +12,7 @@ import {
 import type { PerPersonPackageType } from "@/lib/booking-types";
 import type { BookingState } from "@/hooks/use-booking";
 import { allGames, availableGames } from "@/data/games";
-import { DECIDE_AT_VENUE_ID } from "./PackageSelector";
+import { DECIDE_AT_VENUE_ID } from "@/lib/booking-types";
 
 export function BookingSummary({ state }: { state: BookingState }) {
   if (state.step < 3) return null;

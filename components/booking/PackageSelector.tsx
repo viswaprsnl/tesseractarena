@@ -27,12 +27,11 @@ import type { ActiveDiscount } from "@/hooks/use-booking";
 import { availableGames, getGamePlayerRange } from "@/data/games";
 import { whatsappCorporateLink } from "@/lib/contact";
 
-// Sentinel game id for "I'll decide when I arrive". Not a real game in
-// data/games.ts; treated specially throughout the booking flow so the
-// customer can hold the slot without picking a specific title. Server
-// treats this as "use the max-priced game as the ceiling" — actual
-// price is adjusted at the counter based on what they finally play.
-export const DECIDE_AT_VENUE_ID = "decide-at-venue";
+// DECIDE_AT_VENUE_ID now lives in lib/booking-types.ts so the wizard
+// can import it without eagerly pulling PackageSelector (which is
+// dynamic-loaded for bundle-size reasons).
+import { DECIDE_AT_VENUE_ID } from "@/lib/booking-types";
+export { DECIDE_AT_VENUE_ID };
 
 interface PackageSelectorProps {
   partySize: number;

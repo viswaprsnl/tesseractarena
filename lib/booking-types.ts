@@ -1,3 +1,14 @@
+// Sentinel game id for "I'll decide when I arrive". Not a real game in
+// data/games.ts; treated specially throughout the booking flow so the
+// customer can hold the slot without picking a specific title. Server
+// treats this as "use the max-priced game as the ceiling" — actual
+// price is adjusted at the counter based on what they finally play.
+// Lives here (and not in PackageSelector where it logically "belongs")
+// so BookingWizard + BookingSummary can import it without pulling
+// PackageSelector eagerly — PackageSelector is dynamic-imported for
+// its code-splitting weight.
+export const DECIDE_AT_VENUE_ID = "decide-at-venue";
+
 // Per-person session packages — priced per player, one 30-min VR session.
 export type PerPersonPackageType = "solo" | "squad" | "party";
 
