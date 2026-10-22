@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { fadeInUp, staggerContainer } from "@/lib/animations";
+import { trackEvent } from "@/lib/analytics";
 import { ReviewsMarquee } from "@/components/sections/ReviewsMarquee";
 
 const ParticleField = dynamic(
@@ -162,6 +163,7 @@ export function Hero() {
         >
           <Link
             href="/book"
+            onClick={() => trackEvent("cta_hero_book_now")}
             className={cn(
               buttonVariants({ size: "lg" }),
               "bg-primary hover:bg-primary/90 text-primary-foreground text-base px-8 glow-violet"

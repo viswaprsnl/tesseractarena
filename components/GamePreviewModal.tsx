@@ -8,6 +8,7 @@ import { X, Users, Clock, Swords, Play } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import { trackEvent } from "@/lib/analytics";
 import type { Game } from "@/data/games";
 
 interface GamePreviewModalProps {
@@ -229,7 +230,15 @@ export function GamePreviewModal({
               {!isUnavailable ? (
                 <Link
                   href={`/book?game=${game.id}`}
-                  onClick={onClose}
+                  onClick={() => {
+                    // Analytics: deep-link-to-booking from a specific
+                    // game. If this intent event vastly outnumbers
+                    // funnel_pay_online_clicked for the same game_id,
+                    // we're losing people between landing on /book
+                    // and finishing — the deep link isn't the problem.
+                    trackEvent("cta_book_this_game", { game_id: game.id });
+                    onClose();
+                  }}
                   className={cn(
                     buttonVariants(),
                     "w-full justify-center bg-primary hover:bg-primary/90 text-primary-foreground glow-violet text-base py-3"

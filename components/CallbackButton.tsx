@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Phone, X, CheckCircle2, Loader2, Gamepad2 } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
 
 export function CallbackButton() {
   const [open, setOpen] = useState(false);
@@ -30,6 +31,11 @@ export function CallbackButton() {
       const data = await res.json();
       if (data.success) {
         setStatus("done");
+        // Analytics: a callback request is a near-booking signal —
+        // someone who wants a human. Track as a high-value CTA so we
+        // can measure WHEN people prefer this over the booking form
+        // (and whether specific pages drive more of them).
+        trackEvent("cta_callback_requested");
       } else {
         setError(data.error || "Something went wrong");
         setStatus("error");

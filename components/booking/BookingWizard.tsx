@@ -15,6 +15,7 @@ import {
 import type { PerPersonPackageType } from "@/lib/booking-types";
 import { DECIDE_AT_VENUE_ID } from "@/lib/booking-types";
 import { allGames, availableGames } from "@/data/games";
+import { trackEvent, partySizeBucket } from "@/lib/analytics";
 import { StepIndicator } from "./StepIndicator";
 import { DatePicker } from "./DatePicker";
 import { TimeSlotGrid } from "./TimeSlotGrid";
@@ -74,6 +75,12 @@ export function BookingWizard({
   // no slots the TimeSlotGrid shows its empty-state message and the
   // user picks another date, same as before.
   useEffect(() => {
+    // Fire the funnel entry event regardless of pre-selection — this
+    // is the "visitor landed on /book" counter and the denominator for
+    // every downstream rate. is_kiosk lets us slice walk-ins vs
+    // genuine online traffic (kiosk sessions should NOT be counted
+    // against the online conversion rate).
+    trackEvent("funnel_landed_book", { is_kiosk: isKiosk });
     if (state.selectedDate) return;
     const today = getTodayISTString();
     dispatch({ type: "SET_DATE", date: today });
@@ -163,6 +170,9 @@ export function BookingWizard({
   const handleDateSelect = (date: string) => {
     dispatch({ type: "SET_DATE", date });
     fetchSlots(date);
+    // Analytics: user explicitly picked a date (not the mount-time
+    // auto-select — that one doesn't go through this handler).
+    trackEvent("funnel_date_picked", { is_kiosk: state.isKiosk });
     // No NEXT_STEP here — we stay on step 1 so the time grid appears
     // beside the calendar.
   };
@@ -205,6 +215,7 @@ export function BookingWizard({
   const handleSlotSelect = (time: string, displayTime: string) => {
     dispatch({ type: "SET_SLOT", slot: time, displayTime });
     dispatch({ type: "GO_TO_STEP", step: 3 });
+    trackEvent("funnel_slot_picked", { is_kiosk: state.isKiosk });
   };
 
   // Step 3: Package confirmed (auto-advance via button)
@@ -227,6 +238,18 @@ export function BookingWizard({
     const amount = state.discount ? base - state.discount.amountOff : base;
     dispatch({ type: "SET_AMOUNT", amount });
     dispatch({ type: "NEXT_STEP" });
+    // Analytics: step 3 → 4 means the user accepted the price. Carry
+    // enough context to see where the drop is — party size bucket,
+    // whether they picked a specific game or deferred, whether a
+    // discount applied.
+    trackEvent("funnel_package_confirmed", {
+      party_size: partySizeBucket(state.partySize),
+      package: state.packageType,
+      decide_at_venue: isDecideAtVenue,
+      has_discount: !!state.discount,
+      amount_bucket:
+        amount < 2000 ? "lt_2k" : amount < 5000 ? "2k_5k" : amount < 10000 ? "5k_10k" : "gt_10k",
+    });
   };
 
   // Step 4: Details submitted. gamePreference is not a form field anymore —
@@ -271,11 +294,26 @@ export function BookingWizard({
     const amount = state.discount ? base - state.discount.amountOff : base;
     dispatch({ type: "SET_AMOUNT", amount });
     dispatch({ type: "NEXT_STEP" });
+    // Analytics: user got past the Turnstile + personal details.
+    // This is usually the step with the highest drop in the funnel —
+    // Turnstile fails, form validation errors, people change their
+    // mind at "I need to type my email." Carries no PII; just the
+    // fact that it happened.
+    trackEvent("funnel_details_submitted", {
+      is_kiosk: state.isKiosk,
+      has_special_requests: !!details.specialRequests?.trim(),
+    });
   };
 
   // Step 5: Pay advance online via Razorpay
   const handlePayOnline = async () => {
     if (!state.personalDetails || !state.selectedDate || !state.selectedSlot) return;
+
+    // Analytics: fires the moment the user chooses "Pay Online" —
+    // BEFORE the booking POST, so if the server rejects (quota,
+    // Turnstile, slot grab) we still see intent. The booking_created
+    // event below is what counts as a confirmed online booking.
+    trackEvent("funnel_pay_online_clicked", { is_kiosk: state.isKiosk });
 
     dispatch({ type: "SET_LOADING", loading: true });
     try {
@@ -322,6 +360,16 @@ export function BookingWizard({
       // Razorpay actually charges is derived server-side from bookingId, so
       // no amount is sent here to keep the client tamper-proof.
       const amount = bookingData.booking.amount;
+
+      // Analytics: the sheet row exists now. For online payment this
+      // isn't the finish line (verify is), but it's a critical
+      // milestone — a visitor who got this far committed real
+      // information. If funnel_pay_online_clicked >> funnel_booking_created
+      // the loss is in the /api/bookings guard (quota, Turnstile).
+      trackEvent("funnel_booking_created", {
+        payment_method: "razorpay",
+        is_kiosk: state.isKiosk,
+      });
 
       // 2. Create Razorpay order. In kiosk mode we charge the full
       // ticket (customer is already at the counter — the advance /
@@ -377,6 +425,12 @@ export function BookingWizard({
               const advancePaid = state.isKiosk
                 ? amount
                 : Math.min(500 * state.partySize, amount);
+              // Analytics: the money cleared. This is the TRUE
+              // conversion event for the online funnel.
+              trackEvent("funnel_payment_verified", {
+                is_kiosk: state.isKiosk,
+                party_size: partySizeBucket(state.partySize),
+              });
               router.push(`/book/confirmation?id=${bookingId}&amount=${amount}&date=${state.selectedDate}&time=${state.selectedSlotDisplay}&players=${state.partySize}&package=${state.packageType}&payment=paid&advance=${advancePaid}`);
             } else {
               dispatch({ type: "SET_ERROR", error: "Payment verification failed" });
@@ -387,6 +441,11 @@ export function BookingWizard({
         },
         modal: {
           ondismiss: () => {
+            // Analytics: user opened Razorpay but closed without
+            // paying. If this is a big chunk of pay_online_clicked
+            // the Razorpay sheet itself is where we lose them —
+            // worth A/B'ing the "pay at center" fallback copy.
+            trackEvent("funnel_payment_cancelled");
             dispatch({ type: "SET_ERROR", error: "Payment cancelled. Your slot is reserved — you can try again or pay at the center." });
           },
         },
@@ -407,6 +466,11 @@ export function BookingWizard({
   // path is final the moment the sheet write returns.
   const handlePayAtCenter = async () => {
     if (!state.personalDetails || !state.selectedDate || !state.selectedSlot) return;
+    // Analytics: a user who picks "Pay at Counter" over Razorpay
+    // tells us something structural — low trust in online payment,
+    // small group deciding on the fly, or walk-in intent. Worth
+    // watching the ratio against pay_online_clicked.
+    trackEvent("funnel_pay_at_center_clicked", { is_kiosk: state.isKiosk });
     dispatch({ type: "SET_LOADING", loading: true });
     try {
       const bookingRes = await fetch("/api/bookings", {
@@ -441,6 +505,12 @@ export function BookingWizard({
       }
       const bookingId = bookingData.booking.bookingId;
       const amount = bookingData.booking.amount;
+      // Analytics: pay-at-center bookings finish here — no Razorpay
+      // verify step. This IS the terminal conversion for that path.
+      trackEvent("funnel_booking_created", {
+        payment_method: "pay_at_center",
+        is_kiosk: state.isKiosk,
+      });
       const timeDisplay = state.selectedSlotDisplay || formatTimeDisplay(state.selectedSlot);
       router.push(
         `/book/confirmation?id=${bookingId}&amount=${amount}&date=${state.selectedDate}&time=${encodeURIComponent(timeDisplay)}&players=${state.partySize}&package=${state.packageType}&payment=pay_at_center&advance=0`
@@ -519,9 +589,19 @@ export function BookingWizard({
                   onPackageChange={(pkg) =>
                     dispatch({ type: "SET_PACKAGE", pkg })
                   }
-                  onGameChange={(gameId) =>
-                    dispatch({ type: "SET_GAME", gameId })
-                  }
+                  onGameChange={(gameId) => {
+                    dispatch({ type: "SET_GAME", gameId });
+                    // Analytics: fires on EVERY game change in the
+                    // grid, including deselect (null) and the
+                    // "Decide at venue" sentinel. Dedup/last-click
+                    // behavior is handled in the dashboard — raw
+                    // events give us insight into "picked, changed
+                    // their mind, changed again."
+                    trackEvent("funnel_game_picked", {
+                      game_id: gameId || "cleared",
+                      decide_at_venue: gameId === DECIDE_AT_VENUE_ID,
+                    });
+                  }}
                   onDiscountChange={(discount) =>
                     dispatch({ type: "SET_DISCOUNT", discount })
                   }
