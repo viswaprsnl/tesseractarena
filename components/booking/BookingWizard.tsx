@@ -88,6 +88,22 @@ export function BookingWizard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Toggles a body class while the mobile sticky-Continue bar is
+  // showing (step 3, game picked). The global Call-me-back FAB
+  // normally lives at bottom-right with z-50 and would otherwise
+  // overlap the right side of the sticky bar's Continue button on
+  // phone-width viewports. The CSS rule in globals.css hides the
+  // FAB only when this class is on body, so the FAB stays available
+  // everywhere else. Cleaner than cross-component coordination.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const show = state.step === 3 && !!state.selectedGame;
+    document.body.classList.toggle("has-booking-sticky-cta", show);
+    return () => {
+      document.body.classList.remove("has-booking-sticky-cta");
+    };
+  }, [state.step, state.selectedGame]);
+
   // Public settings — currently just the advance_required flag that
   // controls whether the Razorpay advance is enforced on online
   // bookings. Default to true (historical behaviour) if the fetch
@@ -601,6 +617,28 @@ export function BookingWizard({
                       game_id: gameId || "cleared",
                       decide_at_venue: gameId === DECIDE_AT_VENUE_ID,
                     });
+                    // Mobile feedback: a game pick currently gives
+                    // the user no visible confirmation (the Continue
+                    // button sits ~1250px below the fold). Scroll
+                    // the Players stepper into view so they see
+                    // forward progress; the mobile sticky bar below
+                    // then gives them a one-tap route to Continue.
+                    // Desktop sidebar summary already updates in
+                    // place so the scroll is phone-only.
+                    if (gameId && typeof window !== "undefined" &&
+                        !window.matchMedia("(min-width: 1024px)").matches) {
+                      requestAnimationFrame(() => {
+                        const stepper = document.querySelector(
+                          "[data-players-stepper]"
+                        );
+                        if (stepper) {
+                          const top =
+                            stepper.getBoundingClientRect().top +
+                            window.scrollY - 100;
+                          window.scrollTo({ top, behavior: "smooth" });
+                        }
+                      });
+                    }
                   }}
                   onDiscountChange={(discount) =>
                     dispatch({ type: "SET_DISCOUNT", discount })
@@ -612,7 +650,11 @@ export function BookingWizard({
                   advanceRequired={advanceRequired}
                   preselectedGame={preselectedGame}
                 />
-                <div className="flex flex-col items-center gap-2 mt-6">
+                <div className="flex flex-col items-center gap-2 mt-6 pb-24 lg:pb-0">
+                  {/* pb-24 on mobile reserves room for the sticky
+                      Continue bar so it never covers THIS inline
+                      Continue button on short scrolls. Desktop
+                      doesn't render the sticky bar so no padding. */}
                   <button
                     onClick={handlePackageConfirm}
                     disabled={!state.selectedGame}
@@ -663,6 +705,55 @@ export function BookingWizard({
           <BookingSummary state={state} />
         </div>
       </div>
+
+      {/* Mobile sticky Continue bar — step 3 only, after a game is
+          picked. The actual Continue button on step 3 sits ~1250px
+          below the fold on mobile because the game grid + stepper +
+          package cards + pricing card + coupon field all stack
+          above it. GA4 confirmed users were picking games but not
+          scrolling to Continue; this bar makes that unnecessary.
+          lg:hidden because the desktop sidebar summary + inline
+          Continue button already work on wider screens. */}
+      {state.step === 3 && state.selectedGame && (() => {
+        const isDecideAtVenue = state.selectedGame === DECIDE_AT_VENUE_ID;
+        const game = allGames.find((g) => g.id === state.selectedGame);
+        const perPersonPkg = state.packageType as PerPersonPackageType;
+        const priceBasis = isDecideAtVenue
+          ? Math.max(...availableGames.map((g) => g.pricePerPerson))
+          : game?.pricePerPerson;
+        const base = priceBasis
+          ? calculateSessionPrice(priceBasis, perPersonPkg, state.partySize)
+          : calculatePrice(state.packageType, state.partySize);
+        const subtotal = state.discount ? base - state.discount.amountOff : base;
+        // Mirror the GST display logic in PackageSelector — all
+        // ticket amounts stored are ex-GST, customer-facing total
+        // adds 18%.
+        const total = Math.round(subtotal * 1.18);
+        const label = isDecideAtVenue
+          ? "Decide at venue"
+          : game?.title || "Your game";
+        return (
+          <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-white/10 bg-background/95 backdrop-blur-md px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex items-center gap-3 shadow-[0_-8px_24px_rgba(0,0,0,0.35)]">
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground/80">
+                {label}
+              </p>
+              <p className="text-base font-semibold tabular-nums">
+                ₹{total.toLocaleString("en-IN")}
+                <span className="text-[11px] text-muted-foreground font-normal ml-1">
+                  total
+                </span>
+              </p>
+            </div>
+            <button
+              onClick={handlePackageConfirm}
+              className="shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground px-5 h-11 rounded-lg font-medium transition-colors glow-violet"
+            >
+              Continue →
+            </button>
+          </div>
+        );
+      })()}
     </div>
   );
 }

@@ -518,8 +518,12 @@ export function PackageSelector({
         );
       })()}
 
-      {/* Party size stepper */}
-      <div className="flex flex-col items-center gap-2 mb-8">
+      {/* Party size stepper. data-players-stepper is the scroll
+          anchor used by BookingWizard when the user picks a game on
+          mobile — jumps them below the game grid so they see forward
+          progress instead of staring at the game card they just
+          tapped. */}
+      <div data-players-stepper className="flex flex-col items-center gap-2 mb-8 scroll-mt-24">
         <div className="flex items-center justify-center gap-6">
           <span className="text-sm text-muted-foreground flex items-center gap-2">
             <Users size={16} className="text-primary" />

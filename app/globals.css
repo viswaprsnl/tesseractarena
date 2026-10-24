@@ -147,6 +147,19 @@
   section[id] {
     scroll-margin-top: calc(68px + var(--offer-bar-h, 40px));
   }
+  /* Hide the global Call-me-back FAB while the booking wizard's
+     mobile sticky Continue bar is on screen (step 3 with a game
+     picked). Both are bottom-fixed on phones and the FAB sits
+     exactly where the Continue button lands. BookingWizard
+     toggles this class via useEffect. lg: and up never show the
+     sticky bar, so leave the FAB visible there. !important is
+     needed because the FAB's Tailwind `flex` utility would
+     otherwise beat this layer-base rule in the cascade. */
+  @media (max-width: 1023px) {
+    body.has-booking-sticky-cta button[aria-label="Request a callback"] {
+      display: none !important;
+    }
+  }
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading tracking-wider;
   }
