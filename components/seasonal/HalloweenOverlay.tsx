@@ -83,6 +83,13 @@ export function HalloweenOverlay() {
       {/* Flying ghost — desktop only. One slow pass every ~22s. */}
       <FlyingGhost />
 
+      {/* Witch on a broomstick with a trailing message. Flies
+          right-to-left so she doesn't share a lane with the ghost
+          (which goes left-to-right). Visible on all breakpoints
+          because the message is the main CTA — hiding it on mobile
+          would waste the whole feature. */}
+      <WitchWithMessage />
+
       {/* Pumpkins — anchored to bottom corners. The right pumpkin
           sits a bit lower so the pair isn't symmetrical. */}
       <Pumpkin cornerRight bottomPx={16} />
@@ -174,6 +181,104 @@ function FlyingGhost() {
 }
 
 // ─────────────────────────────────────────────────────────────────
+// Witch on a broomstick + trailing scary message. The witch SVG
+// faces LEFT (she's flying right-to-left), the message trails on
+// her right side so it enters the viewport first and gives readers
+// a chance to catch the words before she sweeps off-screen. 28s per
+// pass with a staggered start so witch and ghost don't ever cross.
+// On a 375px phone the whole package is 280px wide which fits
+// comfortably without horizontal scroll. The copy intentionally
+// uses ellipses + lowercase "haunting" to feel ominous rather than
+// shouty.
+// ─────────────────────────────────────────────────────────────────
+function WitchWithMessage() {
+  return (
+    <div
+      className="absolute halloween-witch-fly"
+      style={{ top: "14%", right: 0 }}
+    >
+      {/* Flex row: message on LEFT (trailing side of a right-to-left
+          traveler), witch SVG on RIGHT (leading side). The subtle
+          bob is applied to the inner container so transform:translateX
+          from the parent animation isn't fighting a Y oscillation on
+          the same element. */}
+      <div className="flex items-center gap-3 halloween-witch-bob">
+        {/* Scary message — orange text with a soft glow + letter
+            spacing. Shadow stack creates the "cursed sign" look
+            without needing a background image. drop-shadow keeps
+            it legible on any hero backdrop behind. */}
+        <div
+          className="text-right whitespace-nowrap"
+          style={{
+            fontFamily: "serif",
+            textShadow:
+              "0 0 12px rgba(255,107,0,0.65), 0 0 2px rgba(0,0,0,0.9)",
+          }}
+        >
+          <p className="text-[10px] sm:text-xs uppercase tracking-[0.3em] text-orange-300/80 mb-0.5">
+            Beware...
+          </p>
+          <p className="text-sm sm:text-lg font-bold text-orange-100 italic leading-tight">
+            A Halloween haunting
+            <br />
+            is coming to Tesseract Arena
+          </p>
+        </div>
+
+        {/* Witch SVG — silhouette style for the "scary" vibe. Pointy
+            hat with brim, cloak flowing back, broom extending to the
+            right. All in near-black with orange rim-light so she
+            reads against the dark site background. */}
+        <svg
+          viewBox="0 0 140 80"
+          width={120}
+          height={70}
+          className="shrink-0 drop-shadow-[0_6px_16px_rgba(255,107,0,0.35)]"
+          style={{ transform: "scaleX(-1)" /* face left (direction of travel) */ }}
+        >
+          {/* Broomstick — long rod extending back */}
+          <rect x="10" y="52" width="90" height="3" rx="1.5" fill="#5a3a1a" />
+          {/* Broom bristles — fan shape at the back */}
+          <path
+            d="M100 42 L132 36 L132 68 L100 62 Z"
+            fill="#c47524"
+          />
+          <path
+            d="M100 44 L130 40 M100 48 L132 46 M100 52 L132 52 M100 56 L132 58 M100 60 L130 64"
+            stroke="#8a4a12"
+            strokeWidth="1"
+            fill="none"
+          />
+          {/* Cloak flowing back (dark trailing drape) */}
+          <path
+            d="M30 32 L60 44 L52 60 L22 56 Z"
+            fill="#1a0b2e"
+            opacity="0.85"
+          />
+          {/* Body / head silhouette */}
+          <circle cx="55" cy="34" r="10" fill="#1a0b2e" />
+          <path
+            d="M45 42 Q 50 60, 70 52 L 70 44 Q 60 48, 48 44 Z"
+            fill="#1a0b2e"
+          />
+          {/* Witch hat — triangle + brim */}
+          <path
+            d="M48 26 L 55 6 L 62 26 Z"
+            fill="#1a0b2e"
+          />
+          <ellipse cx="55" cy="26" rx="12" ry="2" fill="#1a0b2e" />
+          {/* Hat buckle — small orange detail for color pop */}
+          <rect x="52" y="20" width="6" height="3" fill="#ff9933" rx="0.5" />
+          {/* Glowing eye — single pinprick of orange so she reads
+              as menacing, not cute */}
+          <circle cx="51" cy="34" r="1.2" fill="#ff6b00" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
 // Pumpkin — bottom corner anchor. SVG with inner glow that
 // flickers via opacity keyframe. cornerRight flips to the right
 // edge; otherwise sticks to the left.
@@ -247,6 +352,29 @@ const HALLOWEEN_KEYFRAMES = `
   .halloween-fly {
     animation: halloween-fly 22s linear infinite;
   }
+  /* Witch flies right-to-left: start just off the right edge,
+     drift across, exit left. Delay staggers her against the
+     left-to-right ghost so they never cross on screen. */
+  @keyframes halloween-witch-fly {
+    0% { transform: translate3d(15vw, 0, 0); opacity: 0; }
+    7% { opacity: 1; }
+    93% { opacity: 1; }
+    100% { transform: translate3d(-115vw, 0, 0); opacity: 0; }
+  }
+  .halloween-witch-fly {
+    animation: halloween-witch-fly 28s linear infinite;
+    animation-delay: 10s;
+  }
+  /* Subtle vertical bob on the inner element so the broomstick
+     feels alive rather than mechanical. Applied separately from
+     the fly transform so they compose cleanly. */
+  @keyframes halloween-witch-bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  .halloween-witch-bob {
+    animation: halloween-witch-bob 2.4s ease-in-out infinite;
+  }
   @keyframes halloween-flicker {
     0%, 100% { opacity: 0.5; }
     42% { opacity: 0.85; }
@@ -270,8 +398,16 @@ const HALLOWEEN_KEYFRAMES = `
     .halloween-swing,
     .halloween-fly,
     .halloween-flicker,
-    .halloween-lightning {
+    .halloween-lightning,
+    .halloween-witch-fly,
+    .halloween-witch-bob {
       animation: none !important;
+    }
+    /* Park the witch mid-flight so the message is still readable
+       for users who disabled motion. */
+    .halloween-witch-fly {
+      transform: translate3d(-10vw, 0, 0);
+      opacity: 1;
     }
   }
 `;
