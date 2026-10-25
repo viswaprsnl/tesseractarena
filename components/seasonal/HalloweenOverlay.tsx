@@ -99,14 +99,6 @@ export function HalloweenOverlay() {
           would waste the whole feature. */}
       <WitchWithMessage />
 
-      {/* Walking skeleton — a full-body SVG skeleton that strolls
-          across the bottom third of the viewport. Legs and arms
-          alternate on a 0.6s step cycle so the walk reads as a
-          proper gait, not a sliding sprite. One instance only; a
-          crowd of skeletons would compete with the witch's message
-          for attention and dilute both. */}
-      <WalkingSkeleton />
-
       {/* Pumpkins — anchored to bottom corners. The right pumpkin
           sits a bit lower so the pair isn't symmetrical. */}
       <Pumpkin cornerRight bottomPx={16} />
@@ -415,214 +407,6 @@ function LightningBolt({
   );
 }
 
-// ─────────────────────────────────────────────────────────────────
-// Walking skeleton — full-body SVG that strolls left-to-right
-// across the bottom third of the viewport over 30s. The outer
-// element handles the horizontal translation + a subtle vertical
-// bob (walking gait rhythm). Inside, limbs are grouped so the
-// LEFT leg / RIGHT arm swing forward on even beats and the RIGHT
-// leg / LEFT arm swing forward on odd beats — the classic alternate
-// gait. Each limb rotates around a joint anchor set via SVG
-// transform-origin on the group. Keyframes are 0.6s per step cycle
-// which matches a brisk human walking cadence.
-//
-// Why a single skeleton instead of a crowd: the witch's message is
-// already the attention anchor; a parade of skeletons would compete
-// and dilute both. One is a focal, memorable encounter.
-// ─────────────────────────────────────────────────────────────────
-function WalkingSkeleton() {
-  // Warm off-white reads as "aged bone" rather than plastic.
-  // Dark fills inside sockets and between rib pairs give the
-  // skeleton perceived depth at small render sizes.
-  const BONE = "#f3ede1";
-  const BONE_SHADE = "#c9c0a9"; // 1-tone darker for shading knob edges
-  const SOCKET = "#0a0510";
-  return (
-    <div
-      className="absolute halloween-skeleton-walk"
-      style={{ bottom: "20%", left: 0, opacity: 0 }}
-    >
-      <div className="halloween-skeleton-bob">
-        <svg
-          viewBox="0 0 120 260"
-          width={96}
-          height={208}
-          className="drop-shadow-[0_6px_18px_rgba(0,0,0,0.5)]"
-        >
-          {/* ═════════════ SKULL ═════════════
-              Cranium with distinct jaw (mandible) separated by a
-              hairline bone line, cheekbones defined by two slight
-              inward curves. The jaw hangs just below the cranium
-              rather than merging with it — a real skull has a
-              visible articulation here. */}
-          {/* Cranium */}
-          <path
-            d="M60 6 C 40 6, 30 22, 30 42 C 30 54, 32 62, 36 68 L 44 70 L 44 74 L 76 74 L 76 70 L 84 68 C 88 62, 90 54, 90 42 C 90 22, 80 6, 60 6 Z"
-            fill={BONE}
-          />
-          {/* Cheekbones — subtle shadow curves under the eyes */}
-          <path
-            d="M34 46 Q 42 54, 46 48"
-            fill="none"
-            stroke={BONE_SHADE}
-            strokeWidth="1"
-          />
-          <path
-            d="M86 46 Q 78 54, 74 48"
-            fill="none"
-            stroke={BONE_SHADE}
-            strokeWidth="1"
-          />
-          {/* Eye sockets — deep ovals with the red glow pinprick */}
-          <ellipse cx="46" cy="40" rx="6" ry="7.5" fill={SOCKET} />
-          <ellipse cx="74" cy="40" rx="6" ry="7.5" fill={SOCKET} />
-          <circle cx="46" cy="40" r="1.5" fill="#ff3030" opacity="0.95" />
-          <circle cx="74" cy="40" r="1.5" fill="#ff3030" opacity="0.95" />
-          {/* Nasal cavity — upside-down heart / inverted triangle */}
-          <path d="M60 50 L 55 62 Q 60 65, 65 62 Z" fill={SOCKET} />
-          {/* Jaw (mandible) — a separate chunk below the cranium */}
-          <path
-            d="M44 74 L 44 78 Q 60 90, 76 78 L 76 74 Z"
-            fill={BONE}
-          />
-          {/* Teeth — a row across the jaw */}
-          <path
-            d="M46 76 L 46 80 M50 76 L 50 80 M54 76 L 54 80 M58 76 L 58 80 M62 76 L 62 80 M66 76 L 66 80 M70 76 L 70 80 M74 76 L 74 80"
-            stroke={SOCKET}
-            strokeWidth="1.2"
-          />
-
-          {/* ═════════════ CERVICAL SPINE ═════════════ */}
-          {/* Three stacked vertebrae discs */}
-          <circle cx="60" cy="86" r="2.5" fill={BONE} stroke={BONE_SHADE} strokeWidth="0.5" />
-          <circle cx="60" cy="91" r="2.5" fill={BONE} stroke={BONE_SHADE} strokeWidth="0.5" />
-          <circle cx="60" cy="96" r="2.5" fill={BONE} stroke={BONE_SHADE} strokeWidth="0.5" />
-
-          {/* ═════════════ CLAVICLES ═════════════
-              Two curved collarbones that fan down from the neck
-              base to the shoulder joint knobs. */}
-          <path d="M60 98 Q 42 102, 32 108" fill="none" stroke={BONE} strokeWidth="3" strokeLinecap="round" />
-          <path d="M60 98 Q 78 102, 88 108" fill="none" stroke={BONE} strokeWidth="3" strokeLinecap="round" />
-
-          {/* ═════════════ RIBCAGE ═════════════
-              Dark negative-space fill behind curved rib pairs so
-              the ribs read as curling AROUND the chest, not just
-              drawn on top. Six rib pairs connecting to a central
-              sternum. */}
-          {/* Negative-space thorax shadow */}
-          <path
-            d="M38 108 Q 60 104, 82 108 L 82 148 Q 60 156, 38 148 Z"
-            fill="rgba(10,5,16,0.4)"
-          />
-          {/* Rib pairs — each is a curved stroke from spine side out,
-              with its mirror on the opposite side. Six pairs. */}
-          {[112, 120, 128, 136, 144, 152].map((y) => (
-            <g key={y}>
-              <path d={`M60 ${y} Q 50 ${y + 2}, 38 ${y - 2}`} fill="none" stroke={BONE} strokeWidth="2.2" strokeLinecap="round" />
-              <path d={`M60 ${y} Q 70 ${y + 2}, 82 ${y - 2}`} fill="none" stroke={BONE} strokeWidth="2.2" strokeLinecap="round" />
-            </g>
-          ))}
-          {/* Sternum — the breastbone running down the middle */}
-          <rect x="58.5" y="108" width="3" height="42" fill={BONE} rx="1" />
-
-          {/* ═════════════ LUMBAR SPINE ═════════════
-              Three vertebrae between the ribcage and pelvis so
-              the torso doesn't look floating. */}
-          <circle cx="60" cy="156" r="2.5" fill={BONE} stroke={BONE_SHADE} strokeWidth="0.5" />
-          <circle cx="60" cy="161" r="2.5" fill={BONE} stroke={BONE_SHADE} strokeWidth="0.5" />
-          <circle cx="60" cy="166" r="2.5" fill={BONE} stroke={BONE_SHADE} strokeWidth="0.5" />
-
-          {/* ═════════════ PELVIS ═════════════
-              Butterfly/mask shape — two iliac wings flaring up and
-              out, hip sockets as dark circles where the femurs
-              attach, pubic symphysis as a notch at the bottom. */}
-          <path
-            d="M38 170 Q 36 180, 44 188 L 54 192 L 56 184 Q 60 182, 64 184 L 66 192 L 76 188 Q 84 180, 82 170 Q 60 174, 38 170 Z"
-            fill={BONE}
-          />
-          {/* Hip sockets (acetabula) */}
-          <circle cx="46" cy="182" r="3" fill={SOCKET} />
-          <circle cx="74" cy="182" r="3" fill={SOCKET} />
-
-          {/* ═════════════ LEFT ARM (viewer's left) ═════════════
-              Shoulder knob → humerus (upper arm) → elbow knob →
-              radius+ulna (two parallel forearm bones) → wrist →
-              hand (palm block + three finger strokes). */}
-          <g
-            className="halloween-skeleton-arm-l"
-            style={{ transformOrigin: "32px 108px" }}
-          >
-            {/* Shoulder joint knob */}
-            <circle cx="32" cy="108" r="4" fill={BONE} stroke={BONE_SHADE} strokeWidth="0.6" />
-            {/* Humerus */}
-            <path d="M32 112 L 30 138" stroke={BONE} strokeWidth="4.5" strokeLinecap="round" />
-            {/* Elbow knob */}
-            <circle cx="30" cy="140" r="3.2" fill={BONE} stroke={BONE_SHADE} strokeWidth="0.6" />
-            {/* Radius + ulna — two parallel forearm bones */}
-            <path d="M28 142 L 26 168" stroke={BONE} strokeWidth="2.2" strokeLinecap="round" />
-            <path d="M32 142 L 30 168" stroke={BONE} strokeWidth="2.2" strokeLinecap="round" />
-            {/* Wrist knob */}
-            <circle cx="28" cy="170" r="2.5" fill={BONE} />
-            {/* Hand — palm + 3 finger strokes */}
-            <path d="M25 173 Q 24 180, 26 182" stroke={BONE} strokeWidth="1.5" strokeLinecap="round" fill="none" />
-            <path d="M28 173 Q 28 181, 30 183" stroke={BONE} strokeWidth="1.5" strokeLinecap="round" fill="none" />
-            <path d="M30 173 Q 32 180, 33 182" stroke={BONE} strokeWidth="1.5" strokeLinecap="round" fill="none" />
-          </g>
-
-          {/* ═════════════ RIGHT ARM (viewer's right) ═════════════ */}
-          <g
-            className="halloween-skeleton-arm-r"
-            style={{ transformOrigin: "88px 108px" }}
-          >
-            <circle cx="88" cy="108" r="4" fill={BONE} stroke={BONE_SHADE} strokeWidth="0.6" />
-            <path d="M88 112 L 90 138" stroke={BONE} strokeWidth="4.5" strokeLinecap="round" />
-            <circle cx="90" cy="140" r="3.2" fill={BONE} stroke={BONE_SHADE} strokeWidth="0.6" />
-            <path d="M88 142 L 90 168" stroke={BONE} strokeWidth="2.2" strokeLinecap="round" />
-            <path d="M92 142 L 94 168" stroke={BONE} strokeWidth="2.2" strokeLinecap="round" />
-            <circle cx="92" cy="170" r="2.5" fill={BONE} />
-            <path d="M89 173 Q 88 180, 90 182" stroke={BONE} strokeWidth="1.5" strokeLinecap="round" fill="none" />
-            <path d="M92 173 Q 92 181, 94 183" stroke={BONE} strokeWidth="1.5" strokeLinecap="round" fill="none" />
-            <path d="M95 173 Q 96 180, 97 182" stroke={BONE} strokeWidth="1.5" strokeLinecap="round" fill="none" />
-          </g>
-
-          {/* ═════════════ LEFT LEG (viewer's left) ═════════════
-              Hip knob → femur (thigh) → knee knob (patella) →
-              tibia+fibula (shin pair) → ankle → foot plate. */}
-          <g
-            className="halloween-skeleton-leg-l"
-            style={{ transformOrigin: "46px 184px" }}
-          >
-            {/* Femur — thick thigh bone */}
-            <path d="M46 186 L 42 212" stroke={BONE} strokeWidth="6" strokeLinecap="round" />
-            {/* Knee cap (patella) */}
-            <circle cx="42" cy="214" r="3.8" fill={BONE} stroke={BONE_SHADE} strokeWidth="0.6" />
-            {/* Tibia + fibula */}
-            <path d="M40 216 L 38 244" stroke={BONE} strokeWidth="2.5" strokeLinecap="round" />
-            <path d="M44 216 L 42 244" stroke={BONE} strokeWidth="2.5" strokeLinecap="round" />
-            {/* Ankle */}
-            <circle cx="40" cy="246" r="2.8" fill={BONE} />
-            {/* Foot — curved profile with heel + toes */}
-            <path d="M34 250 Q 32 254, 36 256 L 48 256 L 50 252 L 42 248 Z" fill={BONE} />
-          </g>
-
-          {/* ═════════════ RIGHT LEG (viewer's right) ═════════════ */}
-          <g
-            className="halloween-skeleton-leg-r"
-            style={{ transformOrigin: "74px 184px" }}
-          >
-            <path d="M74 186 L 78 212" stroke={BONE} strokeWidth="6" strokeLinecap="round" />
-            <circle cx="78" cy="214" r="3.8" fill={BONE} stroke={BONE_SHADE} strokeWidth="0.6" />
-            <path d="M76 216 L 78 244" stroke={BONE} strokeWidth="2.5" strokeLinecap="round" />
-            <path d="M80 216 L 82 244" stroke={BONE} strokeWidth="2.5" strokeLinecap="round" />
-            <circle cx="80" cy="246" r="2.8" fill={BONE} />
-            <path d="M72 250 Q 70 254, 74 256 L 86 256 L 88 252 L 80 248 Z" fill={BONE} />
-          </g>
-        </svg>
-      </div>
-    </div>
-  );
-}
-
 // Keyframes injected via <style> rather than globals.css so the whole
 // Halloween feature is self-contained in this one file — removing
 // seasonal/HalloweenOverlay.tsx takes the keyframes with it. If any
@@ -701,68 +485,6 @@ const HALLOWEEN_KEYFRAMES = `
   .halloween-bolt {
     animation: halloween-bolt 18s ease-in-out infinite;
   }
-  /* Walking skeleton — strolls left-to-right across the bottom
-     third of the viewport over 30s. The inner wrapper also bobs
-     ±4px to mimic the walking gait rise and fall. */
-  @keyframes halloween-skeleton-walk {
-    0% { transform: translate3d(-15vw, 0, 0); opacity: 0; }
-    6% { opacity: 1; }
-    94% { opacity: 1; }
-    100% { transform: translate3d(115vw, 0, 0); opacity: 0; }
-  }
-  .halloween-skeleton-walk {
-    animation: halloween-skeleton-walk 30s linear infinite;
-    animation-delay: 4s;
-  }
-  @keyframes halloween-skeleton-bob {
-    0%, 100% { transform: translateY(0); }
-    25% { transform: translateY(-4px); }
-    50% { transform: translateY(0); }
-    75% { transform: translateY(-4px); }
-  }
-  .halloween-skeleton-bob {
-    animation: halloween-skeleton-bob 0.6s ease-in-out infinite;
-  }
-  /* Limb swings — classic alternate gait: left leg + right arm
-     forward on one beat, right leg + left arm forward on the
-     next. 0.6s cycle matches the bob so each foot plants in
-     sync with the body dip. ±18° on legs, ±14° on arms.
-     SVG transform-origin on the <g> wrappers (set inline) is
-     the hip/shoulder joint. */
-  @keyframes halloween-skeleton-leg-forward {
-    0%, 100% { transform: rotate(-18deg); }
-    50% { transform: rotate(18deg); }
-  }
-  @keyframes halloween-skeleton-leg-back {
-    0%, 100% { transform: rotate(18deg); }
-    50% { transform: rotate(-18deg); }
-  }
-  @keyframes halloween-skeleton-arm-forward {
-    0%, 100% { transform: rotate(14deg); }
-    50% { transform: rotate(-14deg); }
-  }
-  @keyframes halloween-skeleton-arm-back {
-    0%, 100% { transform: rotate(-14deg); }
-    50% { transform: rotate(14deg); }
-  }
-  /* Left leg forward in phase with right arm back, and vice
-     versa (humans walk this way — contralateral swing). */
-  .halloween-skeleton-leg-l {
-    animation: halloween-skeleton-leg-forward 0.6s ease-in-out infinite;
-    transform-box: fill-box;
-  }
-  .halloween-skeleton-leg-r {
-    animation: halloween-skeleton-leg-back 0.6s ease-in-out infinite;
-    transform-box: fill-box;
-  }
-  .halloween-skeleton-arm-l {
-    animation: halloween-skeleton-arm-back 0.6s ease-in-out infinite;
-    transform-box: fill-box;
-  }
-  .halloween-skeleton-arm-r {
-    animation: halloween-skeleton-arm-forward 0.6s ease-in-out infinite;
-    transform-box: fill-box;
-  }
   @media (prefers-reduced-motion: reduce) {
     .halloween-swing,
     .halloween-fly,
@@ -770,13 +492,7 @@ const HALLOWEEN_KEYFRAMES = `
     .halloween-lightning,
     .halloween-bolt,
     .halloween-witch-fly,
-    .halloween-witch-bob,
-    .halloween-skeleton-walk,
-    .halloween-skeleton-bob,
-    .halloween-skeleton-leg-l,
-    .halloween-skeleton-leg-r,
-    .halloween-skeleton-arm-l,
-    .halloween-skeleton-arm-r {
+    .halloween-witch-bob {
       animation: none !important;
     }
     /* Park moving elements mid-flight so they stay visible for
@@ -784,10 +500,6 @@ const HALLOWEEN_KEYFRAMES = `
        a persistent static bolt would look broken, not creepy. */
     .halloween-witch-fly {
       transform: translate3d(-10vw, 0, 0);
-      opacity: 1;
-    }
-    .halloween-skeleton-walk {
-      transform: translate3d(30vw, 0, 0);
       opacity: 1;
     }
     .halloween-bolt {
