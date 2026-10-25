@@ -431,103 +431,191 @@ function LightningBolt({
 // and dilute both. One is a focal, memorable encounter.
 // ─────────────────────────────────────────────────────────────────
 function WalkingSkeleton() {
-  const BONE = "#f3ede1"; // slightly warm bone-white — reads as "old bone", not plastic
+  // Warm off-white reads as "aged bone" rather than plastic.
+  // Dark fills inside sockets and between rib pairs give the
+  // skeleton perceived depth at small render sizes.
+  const BONE = "#f3ede1";
+  const BONE_SHADE = "#c9c0a9"; // 1-tone darker for shading knob edges
   const SOCKET = "#0a0510";
   return (
     <div
       className="absolute halloween-skeleton-walk"
-      style={{ bottom: "22%", left: 0, opacity: 0 }}
+      style={{ bottom: "20%", left: 0, opacity: 0 }}
     >
-      {/* Inner wrapper gets the walking bob so the horizontal
-          translation (on the outer parent) composes cleanly with
-          the small vertical oscillation of a walking gait. */}
       <div className="halloween-skeleton-bob">
         <svg
-          viewBox="0 0 100 180"
-          width={88}
-          height={158}
-          className="drop-shadow-[0_6px_18px_rgba(255,255,255,0.18)]"
+          viewBox="0 0 120 260"
+          width={96}
+          height={208}
+          className="drop-shadow-[0_6px_18px_rgba(0,0,0,0.5)]"
         >
-          {/* ───── Skull ───── */}
+          {/* ═════════════ SKULL ═════════════
+              Cranium with distinct jaw (mandible) separated by a
+              hairline bone line, cheekbones defined by two slight
+              inward curves. The jaw hangs just below the cranium
+              rather than merging with it — a real skull has a
+              visible articulation here. */}
+          {/* Cranium */}
           <path
-            d="M50 6 C 32 6, 24 20, 24 36 L 24 48 C 24 52, 26 54, 30 54 L 36 54 L 36 60 C 36 62, 38 64, 40 64 L 60 64 C 62 64, 64 62, 64 60 L 64 54 L 70 54 C 74 54, 76 52, 76 48 L 76 36 C 76 20, 68 6, 50 6 Z"
+            d="M60 6 C 40 6, 30 22, 30 42 C 30 54, 32 62, 36 68 L 44 70 L 44 74 L 76 74 L 76 70 L 84 68 C 88 62, 90 54, 90 42 C 90 22, 80 6, 60 6 Z"
             fill={BONE}
           />
-          {/* Eye sockets with red pinprick glow */}
-          <ellipse cx="40" cy="32" rx="5" ry="6.5" fill={SOCKET} />
-          <ellipse cx="60" cy="32" rx="5" ry="6.5" fill={SOCKET} />
-          <circle cx="40" cy="32" r="1.3" fill="#ff3030" opacity="0.9" />
-          <circle cx="60" cy="32" r="1.3" fill="#ff3030" opacity="0.9" />
-          {/* Nasal cavity + jaw gap */}
-          <path d="M50 40 L 46 48 Q 50 50, 54 48 Z" fill={SOCKET} />
-          <rect x="42" y="56" width="2" height="6" fill={SOCKET} />
-          <rect x="49" y="56" width="2" height="6" fill={SOCKET} />
-          <rect x="56" y="56" width="2" height="6" fill={SOCKET} />
-
-          {/* ───── Neck + spine ───── */}
-          <rect x="48" y="64" width="4" height="8" fill={BONE} />
-
-          {/* ───── Ribcage ───── */}
-          {/* Outer rib arc */}
+          {/* Cheekbones — subtle shadow curves under the eyes */}
           <path
-            d="M34 76 Q 50 72, 66 76 L 66 110 Q 50 114, 34 110 Z"
+            d="M34 46 Q 42 54, 46 48"
             fill="none"
-            stroke={BONE}
-            strokeWidth="2"
+            stroke={BONE_SHADE}
+            strokeWidth="1"
           />
-          {/* Horizontal ribs — three pairs */}
-          <path d="M34 82 Q 50 86, 66 82" fill="none" stroke={BONE} strokeWidth="2" />
-          <path d="M34 92 Q 50 96, 66 92" fill="none" stroke={BONE} strokeWidth="2" />
-          <path d="M34 102 Q 50 106, 66 102" fill="none" stroke={BONE} strokeWidth="2" />
-          {/* Sternum down the middle */}
-          <rect x="49" y="76" width="2" height="34" fill={BONE} />
-
-          {/* ───── Pelvis ───── */}
           <path
-            d="M34 112 L 66 112 L 60 124 L 54 124 L 50 120 L 46 124 L 40 124 Z"
+            d="M86 46 Q 78 54, 74 48"
+            fill="none"
+            stroke={BONE_SHADE}
+            strokeWidth="1"
+          />
+          {/* Eye sockets — deep ovals with the red glow pinprick */}
+          <ellipse cx="46" cy="40" rx="6" ry="7.5" fill={SOCKET} />
+          <ellipse cx="74" cy="40" rx="6" ry="7.5" fill={SOCKET} />
+          <circle cx="46" cy="40" r="1.5" fill="#ff3030" opacity="0.95" />
+          <circle cx="74" cy="40" r="1.5" fill="#ff3030" opacity="0.95" />
+          {/* Nasal cavity — upside-down heart / inverted triangle */}
+          <path d="M60 50 L 55 62 Q 60 65, 65 62 Z" fill={SOCKET} />
+          {/* Jaw (mandible) — a separate chunk below the cranium */}
+          <path
+            d="M44 74 L 44 78 Q 60 90, 76 78 L 76 74 Z"
             fill={BONE}
           />
+          {/* Teeth — a row across the jaw */}
+          <path
+            d="M46 76 L 46 80 M50 76 L 50 80 M54 76 L 54 80 M58 76 L 58 80 M62 76 L 62 80 M66 76 L 66 80 M70 76 L 70 80 M74 76 L 74 80"
+            stroke={SOCKET}
+            strokeWidth="1.2"
+          />
 
-          {/* ───── LEFT arm (viewer's left, skeleton's right).
-              Swings OPPOSITE to the left leg — classic human gait. */}
+          {/* ═════════════ CERVICAL SPINE ═════════════ */}
+          {/* Three stacked vertebrae discs */}
+          <circle cx="60" cy="86" r="2.5" fill={BONE} stroke={BONE_SHADE} strokeWidth="0.5" />
+          <circle cx="60" cy="91" r="2.5" fill={BONE} stroke={BONE_SHADE} strokeWidth="0.5" />
+          <circle cx="60" cy="96" r="2.5" fill={BONE} stroke={BONE_SHADE} strokeWidth="0.5" />
+
+          {/* ═════════════ CLAVICLES ═════════════
+              Two curved collarbones that fan down from the neck
+              base to the shoulder joint knobs. */}
+          <path d="M60 98 Q 42 102, 32 108" fill="none" stroke={BONE} strokeWidth="3" strokeLinecap="round" />
+          <path d="M60 98 Q 78 102, 88 108" fill="none" stroke={BONE} strokeWidth="3" strokeLinecap="round" />
+
+          {/* ═════════════ RIBCAGE ═════════════
+              Dark negative-space fill behind curved rib pairs so
+              the ribs read as curling AROUND the chest, not just
+              drawn on top. Six rib pairs connecting to a central
+              sternum. */}
+          {/* Negative-space thorax shadow */}
+          <path
+            d="M38 108 Q 60 104, 82 108 L 82 148 Q 60 156, 38 148 Z"
+            fill="rgba(10,5,16,0.4)"
+          />
+          {/* Rib pairs — each is a curved stroke from spine side out,
+              with its mirror on the opposite side. Six pairs. */}
+          {[112, 120, 128, 136, 144, 152].map((y) => (
+            <g key={y}>
+              <path d={`M60 ${y} Q 50 ${y + 2}, 38 ${y - 2}`} fill="none" stroke={BONE} strokeWidth="2.2" strokeLinecap="round" />
+              <path d={`M60 ${y} Q 70 ${y + 2}, 82 ${y - 2}`} fill="none" stroke={BONE} strokeWidth="2.2" strokeLinecap="round" />
+            </g>
+          ))}
+          {/* Sternum — the breastbone running down the middle */}
+          <rect x="58.5" y="108" width="3" height="42" fill={BONE} rx="1" />
+
+          {/* ═════════════ LUMBAR SPINE ═════════════
+              Three vertebrae between the ribcage and pelvis so
+              the torso doesn't look floating. */}
+          <circle cx="60" cy="156" r="2.5" fill={BONE} stroke={BONE_SHADE} strokeWidth="0.5" />
+          <circle cx="60" cy="161" r="2.5" fill={BONE} stroke={BONE_SHADE} strokeWidth="0.5" />
+          <circle cx="60" cy="166" r="2.5" fill={BONE} stroke={BONE_SHADE} strokeWidth="0.5" />
+
+          {/* ═════════════ PELVIS ═════════════
+              Butterfly/mask shape — two iliac wings flaring up and
+              out, hip sockets as dark circles where the femurs
+              attach, pubic symphysis as a notch at the bottom. */}
+          <path
+            d="M38 170 Q 36 180, 44 188 L 54 192 L 56 184 Q 60 182, 64 184 L 66 192 L 76 188 Q 84 180, 82 170 Q 60 174, 38 170 Z"
+            fill={BONE}
+          />
+          {/* Hip sockets (acetabula) */}
+          <circle cx="46" cy="182" r="3" fill={SOCKET} />
+          <circle cx="74" cy="182" r="3" fill={SOCKET} />
+
+          {/* ═════════════ LEFT ARM (viewer's left) ═════════════
+              Shoulder knob → humerus (upper arm) → elbow knob →
+              radius+ulna (two parallel forearm bones) → wrist →
+              hand (palm block + three finger strokes). */}
           <g
             className="halloween-skeleton-arm-l"
-            style={{ transformOrigin: "34px 78px" }}
+            style={{ transformOrigin: "32px 108px" }}
           >
-            <rect x="30" y="78" width="4" height="22" fill={BONE} rx="1" />
-            <rect x="30" y="98" width="4" height="22" fill={BONE} rx="1" />
-            <circle cx="32" cy="124" r="3" fill={BONE} />
+            {/* Shoulder joint knob */}
+            <circle cx="32" cy="108" r="4" fill={BONE} stroke={BONE_SHADE} strokeWidth="0.6" />
+            {/* Humerus */}
+            <path d="M32 112 L 30 138" stroke={BONE} strokeWidth="4.5" strokeLinecap="round" />
+            {/* Elbow knob */}
+            <circle cx="30" cy="140" r="3.2" fill={BONE} stroke={BONE_SHADE} strokeWidth="0.6" />
+            {/* Radius + ulna — two parallel forearm bones */}
+            <path d="M28 142 L 26 168" stroke={BONE} strokeWidth="2.2" strokeLinecap="round" />
+            <path d="M32 142 L 30 168" stroke={BONE} strokeWidth="2.2" strokeLinecap="round" />
+            {/* Wrist knob */}
+            <circle cx="28" cy="170" r="2.5" fill={BONE} />
+            {/* Hand — palm + 3 finger strokes */}
+            <path d="M25 173 Q 24 180, 26 182" stroke={BONE} strokeWidth="1.5" strokeLinecap="round" fill="none" />
+            <path d="M28 173 Q 28 181, 30 183" stroke={BONE} strokeWidth="1.5" strokeLinecap="round" fill="none" />
+            <path d="M30 173 Q 32 180, 33 182" stroke={BONE} strokeWidth="1.5" strokeLinecap="round" fill="none" />
           </g>
 
-          {/* ───── RIGHT arm (viewer's right, skeleton's left) */}
+          {/* ═════════════ RIGHT ARM (viewer's right) ═════════════ */}
           <g
             className="halloween-skeleton-arm-r"
-            style={{ transformOrigin: "66px 78px" }}
+            style={{ transformOrigin: "88px 108px" }}
           >
-            <rect x="66" y="78" width="4" height="22" fill={BONE} rx="1" />
-            <rect x="66" y="98" width="4" height="22" fill={BONE} rx="1" />
-            <circle cx="68" cy="124" r="3" fill={BONE} />
+            <circle cx="88" cy="108" r="4" fill={BONE} stroke={BONE_SHADE} strokeWidth="0.6" />
+            <path d="M88 112 L 90 138" stroke={BONE} strokeWidth="4.5" strokeLinecap="round" />
+            <circle cx="90" cy="140" r="3.2" fill={BONE} stroke={BONE_SHADE} strokeWidth="0.6" />
+            <path d="M88 142 L 90 168" stroke={BONE} strokeWidth="2.2" strokeLinecap="round" />
+            <path d="M92 142 L 94 168" stroke={BONE} strokeWidth="2.2" strokeLinecap="round" />
+            <circle cx="92" cy="170" r="2.5" fill={BONE} />
+            <path d="M89 173 Q 88 180, 90 182" stroke={BONE} strokeWidth="1.5" strokeLinecap="round" fill="none" />
+            <path d="M92 173 Q 92 181, 94 183" stroke={BONE} strokeWidth="1.5" strokeLinecap="round" fill="none" />
+            <path d="M95 173 Q 96 180, 97 182" stroke={BONE} strokeWidth="1.5" strokeLinecap="round" fill="none" />
           </g>
 
-          {/* ───── LEFT leg (viewer's left) */}
+          {/* ═════════════ LEFT LEG (viewer's left) ═════════════
+              Hip knob → femur (thigh) → knee knob (patella) →
+              tibia+fibula (shin pair) → ankle → foot plate. */}
           <g
             className="halloween-skeleton-leg-l"
-            style={{ transformOrigin: "42px 124px" }}
+            style={{ transformOrigin: "46px 184px" }}
           >
-            <rect x="40" y="124" width="5" height="24" fill={BONE} rx="1" />
-            <rect x="40" y="146" width="5" height="24" fill={BONE} rx="1" />
-            {/* Foot */}
-            <path d="M38 170 L 50 170 L 50 174 L 38 174 Z" fill={BONE} />
+            {/* Femur — thick thigh bone */}
+            <path d="M46 186 L 42 212" stroke={BONE} strokeWidth="6" strokeLinecap="round" />
+            {/* Knee cap (patella) */}
+            <circle cx="42" cy="214" r="3.8" fill={BONE} stroke={BONE_SHADE} strokeWidth="0.6" />
+            {/* Tibia + fibula */}
+            <path d="M40 216 L 38 244" stroke={BONE} strokeWidth="2.5" strokeLinecap="round" />
+            <path d="M44 216 L 42 244" stroke={BONE} strokeWidth="2.5" strokeLinecap="round" />
+            {/* Ankle */}
+            <circle cx="40" cy="246" r="2.8" fill={BONE} />
+            {/* Foot — curved profile with heel + toes */}
+            <path d="M34 250 Q 32 254, 36 256 L 48 256 L 50 252 L 42 248 Z" fill={BONE} />
           </g>
 
-          {/* ───── RIGHT leg (viewer's right) */}
+          {/* ═════════════ RIGHT LEG (viewer's right) ═════════════ */}
           <g
             className="halloween-skeleton-leg-r"
-            style={{ transformOrigin: "58px 124px" }}
+            style={{ transformOrigin: "74px 184px" }}
           >
-            <rect x="55" y="124" width="5" height="24" fill={BONE} rx="1" />
-            <rect x="55" y="146" width="5" height="24" fill={BONE} rx="1" />
-            <path d="M50 170 L 62 170 L 62 174 L 50 174 Z" fill={BONE} />
+            <path d="M74 186 L 78 212" stroke={BONE} strokeWidth="6" strokeLinecap="round" />
+            <circle cx="78" cy="214" r="3.8" fill={BONE} stroke={BONE_SHADE} strokeWidth="0.6" />
+            <path d="M76 216 L 78 244" stroke={BONE} strokeWidth="2.5" strokeLinecap="round" />
+            <path d="M80 216 L 82 244" stroke={BONE} strokeWidth="2.5" strokeLinecap="round" />
+            <circle cx="80" cy="246" r="2.8" fill={BONE} />
+            <path d="M72 250 Q 70 254, 74 256 L 86 256 L 88 252 L 80 248 Z" fill={BONE} />
           </g>
         </svg>
       </div>
