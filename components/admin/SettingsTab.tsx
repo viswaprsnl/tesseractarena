@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, Check, Loader2, Settings as SettingsIcon } from "lucide-react";
+import { AlertTriangle, Check, Ghost, Loader2, Settings as SettingsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // Admin controls for app-level flags (not per-booking settings — those
@@ -24,6 +24,7 @@ interface SettingsResponse {
   }>;
   resolved: {
     advanceRequired: boolean;
+    halloweenMode: boolean;
   };
 }
 
@@ -54,14 +55,17 @@ export function SettingsTab({ pin }: SettingsTabProps) {
     load();
   }, [load]);
 
-  const toggleAdvance = async (next: boolean) => {
+  // Generic PATCH — same shape for every flag, just a different
+  // payload key. Avoids repeating the fetch + error + saved-pulse
+  // dance per setting.
+  const patchSetting = async (payload: Record<string, boolean>) => {
     setSaving(true);
     setError(null);
     try {
       const res = await fetch(`/api/admin/settings?pin=${encodeURIComponent(pin)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ advanceRequired: next }),
+        body: JSON.stringify(payload),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Save failed");
@@ -76,6 +80,11 @@ export function SettingsTab({ pin }: SettingsTabProps) {
       setSaving(false);
     }
   };
+
+  const toggleAdvance = (next: boolean) =>
+    patchSetting({ advanceRequired: next });
+  const toggleHalloween = (next: boolean) =>
+    patchSetting({ halloweenMode: next });
 
   if (loading) {
     return (
@@ -98,7 +107,9 @@ export function SettingsTab({ pin }: SettingsTabProps) {
   }
 
   const advanceRequired = data?.resolved.advanceRequired ?? true;
+  const halloweenMode = data?.resolved.halloweenMode ?? false;
   const advanceRow = data?.rows.find((r) => r.key === "advance_required");
+  const halloweenRow = data?.rows.find((r) => r.key === "halloween_mode");
 
   return (
     <div className="space-y-5">
@@ -191,6 +202,66 @@ export function SettingsTab({ pin }: SettingsTabProps) {
             </div>
           </div>
         )}
+      </div>
+
+      {/* halloween_mode toggle — seasonal decorations overlay the
+          customer site when ON. Default OFF. Changes propagate
+          within ~60s like every other flag. */}
+      <div className="glass-card p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-sm flex items-center gap-2">
+              <Ghost size={14} className="text-orange-400" />
+              Halloween decorations
+            </p>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              When ON, the public site layers on hanging ghosts, a
+              flying ghost, pumpkins, and a distant-lightning flash.
+              Decorations only — booking, pricing and admin flows are
+              untouched.
+            </p>
+            {halloweenRow && (
+              <p className="text-[11px] text-muted-foreground/70 mt-2 font-mono">
+                Last changed:{" "}
+                {new Date(halloweenRow.updatedAt).toLocaleString("en-IN", {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                })}{" "}
+                · by {halloweenRow.updatedBy}
+              </p>
+            )}
+          </div>
+
+          <button
+            onClick={() => toggleHalloween(!halloweenMode)}
+            disabled={saving}
+            aria-pressed={halloweenMode}
+            className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full transition-colors ${
+              halloweenMode ? "bg-orange-500" : "bg-muted"
+            } ${saving ? "opacity-60 cursor-not-allowed" : ""}`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                halloweenMode ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </div>
+
+        <div className="mt-4 flex items-center gap-2 pt-4 border-t border-white/5">
+          <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
+            Current state:
+          </span>
+          <span
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+              halloweenMode
+                ? "bg-orange-500/15 text-orange-400 border border-orange-500/30"
+                : "bg-muted/40 text-muted-foreground border border-white/10"
+            }`}
+          >
+            {halloweenMode ? "Halloween mode ON" : "Off"}
+          </span>
+        </div>
       </div>
 
       {error && (

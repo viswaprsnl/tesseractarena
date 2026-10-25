@@ -4,6 +4,7 @@ import {
   getSetting,
   listSettings,
   setAdvanceRequired,
+  setHalloweenMode,
   SETTING_KEYS,
 } from "@/lib/settings-sheets";
 
@@ -31,10 +32,16 @@ export async function GET(request: NextRequest) {
     // applied, so the admin UI doesn't need to re-implement the
     // defaulting logic that lives in lib/settings-sheets.ts.
     const advanceRow = all.find((r) => r.key === SETTING_KEYS.ADVANCE_REQUIRED);
+    const halloweenRow = all.find((r) => r.key === SETTING_KEYS.HALLOWEEN_MODE);
+    const isFalsy = (v: string) => /^(false|0|no|off)$/i.test(v.trim());
+    const isTruthy = (v: string) => /^(true|1|yes|on)$/i.test(v.trim());
     return NextResponse.json({
       rows: all,
       resolved: {
-        advanceRequired: !advanceRow || !/^(false|0|no|off)$/i.test(advanceRow.value.trim()),
+        // advance defaults to true (missing row = required)
+        advanceRequired: !advanceRow || !isFalsy(advanceRow.value),
+        // halloween defaults to false (missing row = off)
+        halloweenMode: !!halloweenRow && isTruthy(halloweenRow.value),
       },
     });
   } catch (error) {
@@ -48,6 +55,7 @@ export async function GET(request: NextRequest) {
 
 const patchSchema = z.object({
   advanceRequired: z.boolean().optional(),
+  halloweenMode: z.boolean().optional(),
 });
 
 export async function PATCH(request: NextRequest) {
@@ -74,16 +82,23 @@ export async function PATCH(request: NextRequest) {
       await setAdvanceRequired(parsed.data.advanceRequired, label);
       updates.push(SETTING_KEYS.ADVANCE_REQUIRED);
     }
+    if (parsed.data.halloweenMode !== undefined) {
+      await setHalloweenMode(parsed.data.halloweenMode, label);
+      updates.push(SETTING_KEYS.HALLOWEEN_MODE);
+    }
 
-    const row = await getSetting(SETTING_KEYS.ADVANCE_REQUIRED);
+    const [advanceRow, halloweenRow] = await Promise.all([
+      getSetting(SETTING_KEYS.ADVANCE_REQUIRED),
+      getSetting(SETTING_KEYS.HALLOWEEN_MODE),
+    ]);
     return NextResponse.json({
       success: true,
       updated: updates,
       current: {
         advanceRequired:
-          !row || !/^(false|0|no|off)$/i.test(row.value.trim()),
-        updatedAt: row?.updatedAt,
-        updatedBy: row?.updatedBy,
+          !advanceRow || !/^(false|0|no|off)$/i.test(advanceRow.value.trim()),
+        halloweenMode:
+          !!halloweenRow && /^(true|1|yes|on)$/i.test(halloweenRow.value.trim()),
       },
     });
   } catch (error) {

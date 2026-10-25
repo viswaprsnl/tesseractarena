@@ -160,16 +160,26 @@ export async function setSetting(
 
 export const SETTING_KEYS = {
   ADVANCE_REQUIRED: "advance_required",
+  HALLOWEEN_MODE: "halloween_mode",
 } as const;
+
+// Shared truthy/falsy parser so new flags added below all read the same
+// permissive syntax ("true"/"1"/"yes"/"on" vs "false"/"0"/"no"/"off"),
+// which matters because the sheet is also hand-editable.
+function parseBool(value: string, fallback: boolean): boolean {
+  const v = value.trim().toLowerCase();
+  if (!v) return fallback;
+  if (v === "false" || v === "0" || v === "no" || v === "off") return false;
+  if (v === "true" || v === "1" || v === "yes" || v === "on") return true;
+  return fallback;
+}
 
 // advance_required defaults to true — i.e. the historical behavior
 // (collect ₹500/head at booking). Flipping the sheet value to "false"
 // opts into the no-advance experiment.
 export async function getAdvanceRequired(): Promise<boolean> {
   const row = await getSetting(SETTING_KEYS.ADVANCE_REQUIRED);
-  if (!row) return true;
-  const v = row.value.trim().toLowerCase();
-  return v !== "false" && v !== "0" && v !== "no" && v !== "off";
+  return parseBool(row?.value || "", true);
 }
 
 // Call this ONLY from an admin-authenticated endpoint — the write
@@ -179,4 +189,20 @@ export async function setAdvanceRequired(
   updatedBy: string
 ): Promise<void> {
   await setSetting(SETTING_KEYS.ADVANCE_REQUIRED, String(value), updatedBy);
+}
+
+// halloween_mode defaults to false — the seasonal overlay (hanging
+// ghosts, flying ghost, pumpkins, lightning) is OFF unless the admin
+// explicitly flips it on from the Settings tab. Seasonal decorations
+// are off-brand year-round, so false is the only safe default.
+export async function getHalloweenMode(): Promise<boolean> {
+  const row = await getSetting(SETTING_KEYS.HALLOWEEN_MODE);
+  return parseBool(row?.value || "", false);
+}
+
+export async function setHalloweenMode(
+  value: boolean,
+  updatedBy: string
+): Promise<void> {
+  await setSetting(SETTING_KEYS.HALLOWEEN_MODE, String(value), updatedBy);
 }
