@@ -99,13 +99,13 @@ export function HalloweenOverlay() {
           would waste the whole feature. */}
       <WitchWithMessage />
 
-      {/* Floating skulls — drift diagonally with slight rotation.
-          Three on desktop, two on mobile. Each has a different
-          start position + animation duration so they feel chaotic
-          rather than choreographed. */}
-      <FloatingSkull topPct={38} leftPct={-10} delaySec={0} size={44} />
-      <FloatingSkull topPct={62} leftPct={-10} delaySec={6} size={52} className="hidden sm:block" />
-      <FloatingSkull topPct={48} leftPct={-10} delaySec={13} size={38} />
+      {/* Walking skeleton — a full-body SVG skeleton that strolls
+          across the bottom third of the viewport. Legs and arms
+          alternate on a 0.6s step cycle so the walk reads as a
+          proper gait, not a sliding sprite. One instance only; a
+          crowd of skeletons would compete with the witch's message
+          for attention and dilute both. */}
+      <WalkingSkeleton />
 
       {/* Pumpkins — anchored to bottom corners. The right pumpkin
           sits a bit lower so the pair isn't symmetrical. */}
@@ -348,11 +348,14 @@ function Pumpkin({
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Lightning bolt — a jagged white-blue SVG that flashes briefly in
-// sync with the full-screen lightning tint. Positioned absolutely
-// at `leftPct` from the top of the viewport, extending down ~45vh.
-// Two instances with different delays make it feel like a storm
-// across the sky rather than a single bolt in one spot.
+// Lightning bolt — Halloween-styled: a jagged orange-core bolt
+// wrapped in a purple occult glow instead of the usual blue-white
+// electric look. Flashes briefly in sync with the full-screen
+// lightning tint. The core is cursed-pumpkin orange, the outer
+// glow is deep witch-purple — reads as supernatural magic
+// cracking the sky, not a storm. Two instances with different
+// delays make it feel like strikes across the sky rather than a
+// single spot.
 // ─────────────────────────────────────────────────────────────────
 function LightningBolt({
   leftPct,
@@ -380,15 +383,31 @@ function LightningBolt({
         width={60}
         height="100%"
       >
-        {/* Jagged bolt path — a zig-zag from top to bottom. Fill is
-            near-white with a cyan tint, and drop-shadow filter
-            adds the characteristic blue-white electric glow. */}
+        {/* Outer purple halo — wider, softer path for the occult
+            aura. Stroked, not filled, so the glow reads as a
+            halo around the bolt rather than overlapping it. */}
         <path
           d="M30 0 L18 90 L34 90 L22 180 L40 180 L26 300 L46 160 L30 160 L42 70 L30 70 L36 0 Z"
-          fill="#f5fbff"
+          fill="none"
+          stroke="#a855f7"
+          strokeWidth="6"
+          strokeLinejoin="miter"
+          opacity="0.55"
           style={{
             filter:
-              "drop-shadow(0 0 8px #93d9ff) drop-shadow(0 0 24px #4ab2ff)",
+              "drop-shadow(0 0 12px #7c3aed) drop-shadow(0 0 28px #4c1d95)",
+          }}
+        />
+        {/* Core bolt — cursed-pumpkin orange with its own warm
+            glow stacked on top of the purple halo. Two drop-shadow
+            layers so the bright core punches out of the purple
+            without washing to white. */}
+        <path
+          d="M30 0 L18 90 L34 90 L22 180 L40 180 L26 300 L46 160 L30 160 L42 70 L30 70 L36 0 Z"
+          fill="#ffb24a"
+          style={{
+            filter:
+              "drop-shadow(0 0 6px #ff6b00) drop-shadow(0 0 14px #ff8800)",
           }}
         />
       </svg>
@@ -397,58 +416,119 @@ function LightningBolt({
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Floating skull — a small SVG skull that drifts diagonally
-// across the viewport while slowly rotating. Lightweight (no
-// per-tick JS) and visually distinct from the ghost (bone-white
-// vs ghost-sheet-white, rigid vs. flowing). Three instances at
-// different start positions create a "swarm" feel without any
-// one skull ever being close enough to another to look mechanical.
+// Walking skeleton — full-body SVG that strolls left-to-right
+// across the bottom third of the viewport over 30s. The outer
+// element handles the horizontal translation + a subtle vertical
+// bob (walking gait rhythm). Inside, limbs are grouped so the
+// LEFT leg / RIGHT arm swing forward on even beats and the RIGHT
+// leg / LEFT arm swing forward on odd beats — the classic alternate
+// gait. Each limb rotates around a joint anchor set via SVG
+// transform-origin on the group. Keyframes are 0.6s per step cycle
+// which matches a brisk human walking cadence.
+//
+// Why a single skeleton instead of a crowd: the witch's message is
+// already the attention anchor; a parade of skeletons would compete
+// and dilute both. One is a focal, memorable encounter.
 // ─────────────────────────────────────────────────────────────────
-function FloatingSkull({
-  topPct,
-  leftPct,
-  delaySec,
-  size,
-  className = "",
-}: {
-  topPct: number;
-  leftPct: number;
-  delaySec: number;
-  size: number;
-  className?: string;
-}) {
+function WalkingSkeleton() {
+  const BONE = "#f3ede1"; // slightly warm bone-white — reads as "old bone", not plastic
+  const SOCKET = "#0a0510";
   return (
     <div
-      className={`absolute halloween-skull-drift ${className}`}
-      style={{
-        top: `${topPct}%`,
-        left: `${leftPct}%`,
-        width: size,
-        height: size,
-        animationDelay: `${delaySec}s`,
-        opacity: 0,
-      }}
+      className="absolute halloween-skeleton-walk"
+      style={{ bottom: "22%", left: 0, opacity: 0 }}
     >
-      <div className="halloween-skull-spin w-full h-full">
-        <svg viewBox="0 0 64 64" width={size} height={size}>
-          {/* Cranium */}
+      {/* Inner wrapper gets the walking bob so the horizontal
+          translation (on the outer parent) composes cleanly with
+          the small vertical oscillation of a walking gait. */}
+      <div className="halloween-skeleton-bob">
+        <svg
+          viewBox="0 0 100 180"
+          width={88}
+          height={158}
+          className="drop-shadow-[0_6px_18px_rgba(255,255,255,0.18)]"
+        >
+          {/* ───── Skull ───── */}
           <path
-            d="M32 6 C 16 6, 10 20, 10 32 L 10 44 C 10 48, 12 50, 16 50 L 22 50 L 22 56 C 22 58, 24 60, 26 60 L 38 60 C 40 60, 42 58, 42 56 L 42 50 L 48 50 C 52 50, 54 48, 54 44 L 54 32 C 54 20, 48 6, 32 6 Z"
-            fill="#f0ebe3"
-            opacity="0.9"
+            d="M50 6 C 32 6, 24 20, 24 36 L 24 48 C 24 52, 26 54, 30 54 L 36 54 L 36 60 C 36 62, 38 64, 40 64 L 60 64 C 62 64, 64 62, 64 60 L 64 54 L 70 54 C 74 54, 76 52, 76 48 L 76 36 C 76 20, 68 6, 50 6 Z"
+            fill={BONE}
           />
-          {/* Eye sockets — dark, with a tiny red glow pinprick so
-              the skulls read as menacing rather than cartoony. */}
-          <ellipse cx="22" cy="30" rx="5" ry="6" fill="#0a0510" />
-          <ellipse cx="42" cy="30" rx="5" ry="6" fill="#0a0510" />
-          <circle cx="22" cy="30" r="1.2" fill="#ff3030" opacity="0.85" />
-          <circle cx="42" cy="30" r="1.2" fill="#ff3030" opacity="0.85" />
-          {/* Nasal cavity — upside-down heart */}
-          <path d="M32 36 L 29 42 Q 32 44, 35 42 Z" fill="#0a0510" />
-          {/* Teeth — three gaps */}
-          <rect x="24" y="50" width="2" height="6" fill="#0a0510" />
-          <rect x="30" y="50" width="2" height="6" fill="#0a0510" />
-          <rect x="36" y="50" width="2" height="6" fill="#0a0510" />
+          {/* Eye sockets with red pinprick glow */}
+          <ellipse cx="40" cy="32" rx="5" ry="6.5" fill={SOCKET} />
+          <ellipse cx="60" cy="32" rx="5" ry="6.5" fill={SOCKET} />
+          <circle cx="40" cy="32" r="1.3" fill="#ff3030" opacity="0.9" />
+          <circle cx="60" cy="32" r="1.3" fill="#ff3030" opacity="0.9" />
+          {/* Nasal cavity + jaw gap */}
+          <path d="M50 40 L 46 48 Q 50 50, 54 48 Z" fill={SOCKET} />
+          <rect x="42" y="56" width="2" height="6" fill={SOCKET} />
+          <rect x="49" y="56" width="2" height="6" fill={SOCKET} />
+          <rect x="56" y="56" width="2" height="6" fill={SOCKET} />
+
+          {/* ───── Neck + spine ───── */}
+          <rect x="48" y="64" width="4" height="8" fill={BONE} />
+
+          {/* ───── Ribcage ───── */}
+          {/* Outer rib arc */}
+          <path
+            d="M34 76 Q 50 72, 66 76 L 66 110 Q 50 114, 34 110 Z"
+            fill="none"
+            stroke={BONE}
+            strokeWidth="2"
+          />
+          {/* Horizontal ribs — three pairs */}
+          <path d="M34 82 Q 50 86, 66 82" fill="none" stroke={BONE} strokeWidth="2" />
+          <path d="M34 92 Q 50 96, 66 92" fill="none" stroke={BONE} strokeWidth="2" />
+          <path d="M34 102 Q 50 106, 66 102" fill="none" stroke={BONE} strokeWidth="2" />
+          {/* Sternum down the middle */}
+          <rect x="49" y="76" width="2" height="34" fill={BONE} />
+
+          {/* ───── Pelvis ───── */}
+          <path
+            d="M34 112 L 66 112 L 60 124 L 54 124 L 50 120 L 46 124 L 40 124 Z"
+            fill={BONE}
+          />
+
+          {/* ───── LEFT arm (viewer's left, skeleton's right).
+              Swings OPPOSITE to the left leg — classic human gait. */}
+          <g
+            className="halloween-skeleton-arm-l"
+            style={{ transformOrigin: "34px 78px" }}
+          >
+            <rect x="30" y="78" width="4" height="22" fill={BONE} rx="1" />
+            <rect x="30" y="98" width="4" height="22" fill={BONE} rx="1" />
+            <circle cx="32" cy="124" r="3" fill={BONE} />
+          </g>
+
+          {/* ───── RIGHT arm (viewer's right, skeleton's left) */}
+          <g
+            className="halloween-skeleton-arm-r"
+            style={{ transformOrigin: "66px 78px" }}
+          >
+            <rect x="66" y="78" width="4" height="22" fill={BONE} rx="1" />
+            <rect x="66" y="98" width="4" height="22" fill={BONE} rx="1" />
+            <circle cx="68" cy="124" r="3" fill={BONE} />
+          </g>
+
+          {/* ───── LEFT leg (viewer's left) */}
+          <g
+            className="halloween-skeleton-leg-l"
+            style={{ transformOrigin: "42px 124px" }}
+          >
+            <rect x="40" y="124" width="5" height="24" fill={BONE} rx="1" />
+            <rect x="40" y="146" width="5" height="24" fill={BONE} rx="1" />
+            {/* Foot */}
+            <path d="M38 170 L 50 170 L 50 174 L 38 174 Z" fill={BONE} />
+          </g>
+
+          {/* ───── RIGHT leg (viewer's right) */}
+          <g
+            className="halloween-skeleton-leg-r"
+            style={{ transformOrigin: "58px 124px" }}
+          >
+            <rect x="55" y="124" width="5" height="24" fill={BONE} rx="1" />
+            <rect x="55" y="146" width="5" height="24" fill={BONE} rx="1" />
+            <path d="M50 170 L 62 170 L 62 174 L 50 174 Z" fill={BONE} />
+          </g>
         </svg>
       </div>
     </div>
@@ -533,27 +613,67 @@ const HALLOWEEN_KEYFRAMES = `
   .halloween-bolt {
     animation: halloween-bolt 18s ease-in-out infinite;
   }
-  /* Floating skull — diagonal drift from off-screen left to
-     off-screen right while gaining then losing altitude. Combined
-     with halloween-skull-spin on the inner element for a slow
-     tumble so the skull doesn't feel like a rigid sprite. */
-  @keyframes halloween-skull-drift {
-    0% { transform: translate3d(0, 0, 0); opacity: 0; }
-    8% { opacity: 0.85; }
-    50% { transform: translate3d(55vw, -40px, 0); opacity: 0.85; }
-    92% { opacity: 0.85; }
-    100% { transform: translate3d(115vw, 20px, 0); opacity: 0; }
+  /* Walking skeleton — strolls left-to-right across the bottom
+     third of the viewport over 30s. The inner wrapper also bobs
+     ±4px to mimic the walking gait rise and fall. */
+  @keyframes halloween-skeleton-walk {
+    0% { transform: translate3d(-15vw, 0, 0); opacity: 0; }
+    6% { opacity: 1; }
+    94% { opacity: 1; }
+    100% { transform: translate3d(115vw, 0, 0); opacity: 0; }
   }
-  .halloween-skull-drift {
-    animation: halloween-skull-drift 24s linear infinite;
+  .halloween-skeleton-walk {
+    animation: halloween-skeleton-walk 30s linear infinite;
+    animation-delay: 4s;
   }
-  @keyframes halloween-skull-spin {
-    0% { transform: rotate(-12deg); }
-    50% { transform: rotate(12deg); }
-    100% { transform: rotate(-12deg); }
+  @keyframes halloween-skeleton-bob {
+    0%, 100% { transform: translateY(0); }
+    25% { transform: translateY(-4px); }
+    50% { transform: translateY(0); }
+    75% { transform: translateY(-4px); }
   }
-  .halloween-skull-spin {
-    animation: halloween-skull-spin 5s ease-in-out infinite;
+  .halloween-skeleton-bob {
+    animation: halloween-skeleton-bob 0.6s ease-in-out infinite;
+  }
+  /* Limb swings — classic alternate gait: left leg + right arm
+     forward on one beat, right leg + left arm forward on the
+     next. 0.6s cycle matches the bob so each foot plants in
+     sync with the body dip. ±18° on legs, ±14° on arms.
+     SVG transform-origin on the <g> wrappers (set inline) is
+     the hip/shoulder joint. */
+  @keyframes halloween-skeleton-leg-forward {
+    0%, 100% { transform: rotate(-18deg); }
+    50% { transform: rotate(18deg); }
+  }
+  @keyframes halloween-skeleton-leg-back {
+    0%, 100% { transform: rotate(18deg); }
+    50% { transform: rotate(-18deg); }
+  }
+  @keyframes halloween-skeleton-arm-forward {
+    0%, 100% { transform: rotate(14deg); }
+    50% { transform: rotate(-14deg); }
+  }
+  @keyframes halloween-skeleton-arm-back {
+    0%, 100% { transform: rotate(-14deg); }
+    50% { transform: rotate(14deg); }
+  }
+  /* Left leg forward in phase with right arm back, and vice
+     versa (humans walk this way — contralateral swing). */
+  .halloween-skeleton-leg-l {
+    animation: halloween-skeleton-leg-forward 0.6s ease-in-out infinite;
+    transform-box: fill-box;
+  }
+  .halloween-skeleton-leg-r {
+    animation: halloween-skeleton-leg-back 0.6s ease-in-out infinite;
+    transform-box: fill-box;
+  }
+  .halloween-skeleton-arm-l {
+    animation: halloween-skeleton-arm-back 0.6s ease-in-out infinite;
+    transform-box: fill-box;
+  }
+  .halloween-skeleton-arm-r {
+    animation: halloween-skeleton-arm-forward 0.6s ease-in-out infinite;
+    transform-box: fill-box;
   }
   @media (prefers-reduced-motion: reduce) {
     .halloween-swing,
@@ -563,8 +683,12 @@ const HALLOWEEN_KEYFRAMES = `
     .halloween-bolt,
     .halloween-witch-fly,
     .halloween-witch-bob,
-    .halloween-skull-drift,
-    .halloween-skull-spin {
+    .halloween-skeleton-walk,
+    .halloween-skeleton-bob,
+    .halloween-skeleton-leg-l,
+    .halloween-skeleton-leg-r,
+    .halloween-skeleton-arm-l,
+    .halloween-skeleton-arm-r {
       animation: none !important;
     }
     /* Park moving elements mid-flight so they stay visible for
@@ -574,9 +698,9 @@ const HALLOWEEN_KEYFRAMES = `
       transform: translate3d(-10vw, 0, 0);
       opacity: 1;
     }
-    .halloween-skull-drift {
-      transform: translate3d(40vw, -10px, 0);
-      opacity: 0.85;
+    .halloween-skeleton-walk {
+      transform: translate3d(30vw, 0, 0);
+      opacity: 1;
     }
     .halloween-bolt {
       opacity: 0;
