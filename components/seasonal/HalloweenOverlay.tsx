@@ -68,6 +68,15 @@ export function HalloweenOverlay() {
         style={{ mixBlendMode: "screen", opacity: 0 }}
       />
 
+      {/* Lightning bolt — a visible jagged SVG that appears for
+          ~0.4s synchronized with the flash above. Together they
+          read as a thunderstrike (bright flash + visible bolt)
+          rather than just a generic white pulse. Two bolts at
+          different horizontal positions so the storm feels like
+          it's happening across the sky rather than in one spot. */}
+      <LightningBolt leftPct={28} delaySec={0} />
+      <LightningBolt leftPct={72} delaySec={9} className="hidden sm:block" />
+
       {/* Hanging ghosts — top edge of the viewport. Each has a
           different horizontal position + swing phase so they don't
           move in lockstep. Mobile shows 2; desktop shows 3. */}
@@ -89,6 +98,14 @@ export function HalloweenOverlay() {
           because the message is the main CTA — hiding it on mobile
           would waste the whole feature. */}
       <WitchWithMessage />
+
+      {/* Floating skulls — drift diagonally with slight rotation.
+          Three on desktop, two on mobile. Each has a different
+          start position + animation duration so they feel chaotic
+          rather than choreographed. */}
+      <FloatingSkull topPct={38} leftPct={-10} delaySec={0} size={44} />
+      <FloatingSkull topPct={62} leftPct={-10} delaySec={6} size={52} className="hidden sm:block" />
+      <FloatingSkull topPct={48} leftPct={-10} delaySec={13} size={38} />
 
       {/* Pumpkins — anchored to bottom corners. The right pumpkin
           sits a bit lower so the pair isn't symmetrical. */}
@@ -330,6 +347,114 @@ function Pumpkin({
   );
 }
 
+// ─────────────────────────────────────────────────────────────────
+// Lightning bolt — a jagged white-blue SVG that flashes briefly in
+// sync with the full-screen lightning tint. Positioned absolutely
+// at `leftPct` from the top of the viewport, extending down ~45vh.
+// Two instances with different delays make it feel like a storm
+// across the sky rather than a single bolt in one spot.
+// ─────────────────────────────────────────────────────────────────
+function LightningBolt({
+  leftPct,
+  delaySec,
+  className = "",
+}: {
+  leftPct: number;
+  delaySec: number;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`absolute top-0 halloween-bolt ${className}`}
+      style={{
+        left: `${leftPct}%`,
+        width: 60,
+        height: "45vh",
+        animationDelay: `${delaySec}s`,
+        opacity: 0,
+      }}
+    >
+      <svg
+        viewBox="0 0 60 300"
+        preserveAspectRatio="none"
+        width={60}
+        height="100%"
+      >
+        {/* Jagged bolt path — a zig-zag from top to bottom. Fill is
+            near-white with a cyan tint, and drop-shadow filter
+            adds the characteristic blue-white electric glow. */}
+        <path
+          d="M30 0 L18 90 L34 90 L22 180 L40 180 L26 300 L46 160 L30 160 L42 70 L30 70 L36 0 Z"
+          fill="#f5fbff"
+          style={{
+            filter:
+              "drop-shadow(0 0 8px #93d9ff) drop-shadow(0 0 24px #4ab2ff)",
+          }}
+        />
+      </svg>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Floating skull — a small SVG skull that drifts diagonally
+// across the viewport while slowly rotating. Lightweight (no
+// per-tick JS) and visually distinct from the ghost (bone-white
+// vs ghost-sheet-white, rigid vs. flowing). Three instances at
+// different start positions create a "swarm" feel without any
+// one skull ever being close enough to another to look mechanical.
+// ─────────────────────────────────────────────────────────────────
+function FloatingSkull({
+  topPct,
+  leftPct,
+  delaySec,
+  size,
+  className = "",
+}: {
+  topPct: number;
+  leftPct: number;
+  delaySec: number;
+  size: number;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`absolute halloween-skull-drift ${className}`}
+      style={{
+        top: `${topPct}%`,
+        left: `${leftPct}%`,
+        width: size,
+        height: size,
+        animationDelay: `${delaySec}s`,
+        opacity: 0,
+      }}
+    >
+      <div className="halloween-skull-spin w-full h-full">
+        <svg viewBox="0 0 64 64" width={size} height={size}>
+          {/* Cranium */}
+          <path
+            d="M32 6 C 16 6, 10 20, 10 32 L 10 44 C 10 48, 12 50, 16 50 L 22 50 L 22 56 C 22 58, 24 60, 26 60 L 38 60 C 40 60, 42 58, 42 56 L 42 50 L 48 50 C 52 50, 54 48, 54 44 L 54 32 C 54 20, 48 6, 32 6 Z"
+            fill="#f0ebe3"
+            opacity="0.9"
+          />
+          {/* Eye sockets — dark, with a tiny red glow pinprick so
+              the skulls read as menacing rather than cartoony. */}
+          <ellipse cx="22" cy="30" rx="5" ry="6" fill="#0a0510" />
+          <ellipse cx="42" cy="30" rx="5" ry="6" fill="#0a0510" />
+          <circle cx="22" cy="30" r="1.2" fill="#ff3030" opacity="0.85" />
+          <circle cx="42" cy="30" r="1.2" fill="#ff3030" opacity="0.85" />
+          {/* Nasal cavity — upside-down heart */}
+          <path d="M32 36 L 29 42 Q 32 44, 35 42 Z" fill="#0a0510" />
+          {/* Teeth — three gaps */}
+          <rect x="24" y="50" width="2" height="6" fill="#0a0510" />
+          <rect x="30" y="50" width="2" height="6" fill="#0a0510" />
+          <rect x="36" y="50" width="2" height="6" fill="#0a0510" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
 // Keyframes injected via <style> rather than globals.css so the whole
 // Halloween feature is self-contained in this one file — removing
 // seasonal/HalloweenOverlay.tsx takes the keyframes with it. If any
@@ -394,20 +519,67 @@ const HALLOWEEN_KEYFRAMES = `
   .halloween-lightning {
     animation: halloween-lightning 18s ease-in-out infinite;
   }
+  /* Visible lightning bolt — synced to the white flash. The bolt
+     holds invisible for most of the cycle, snaps on bright for
+     ~80ms, fades off, and double-strikes briefly a beat later.
+     Matches halloween-lightning cadence (18s cycle). */
+  @keyframes halloween-bolt {
+    0%, 100% { opacity: 0; }
+    1.5% { opacity: 1; }
+    4% { opacity: 0; }
+    5.5% { opacity: 0.8; }
+    8% { opacity: 0; }
+  }
+  .halloween-bolt {
+    animation: halloween-bolt 18s ease-in-out infinite;
+  }
+  /* Floating skull — diagonal drift from off-screen left to
+     off-screen right while gaining then losing altitude. Combined
+     with halloween-skull-spin on the inner element for a slow
+     tumble so the skull doesn't feel like a rigid sprite. */
+  @keyframes halloween-skull-drift {
+    0% { transform: translate3d(0, 0, 0); opacity: 0; }
+    8% { opacity: 0.85; }
+    50% { transform: translate3d(55vw, -40px, 0); opacity: 0.85; }
+    92% { opacity: 0.85; }
+    100% { transform: translate3d(115vw, 20px, 0); opacity: 0; }
+  }
+  .halloween-skull-drift {
+    animation: halloween-skull-drift 24s linear infinite;
+  }
+  @keyframes halloween-skull-spin {
+    0% { transform: rotate(-12deg); }
+    50% { transform: rotate(12deg); }
+    100% { transform: rotate(-12deg); }
+  }
+  .halloween-skull-spin {
+    animation: halloween-skull-spin 5s ease-in-out infinite;
+  }
   @media (prefers-reduced-motion: reduce) {
     .halloween-swing,
     .halloween-fly,
     .halloween-flicker,
     .halloween-lightning,
+    .halloween-bolt,
     .halloween-witch-fly,
-    .halloween-witch-bob {
+    .halloween-witch-bob,
+    .halloween-skull-drift,
+    .halloween-skull-spin {
       animation: none !important;
     }
-    /* Park the witch mid-flight so the message is still readable
-       for users who disabled motion. */
+    /* Park moving elements mid-flight so they stay visible for
+       users who disabled motion. The lightning bolt stays hidden —
+       a persistent static bolt would look broken, not creepy. */
     .halloween-witch-fly {
       transform: translate3d(-10vw, 0, 0);
       opacity: 1;
+    }
+    .halloween-skull-drift {
+      transform: translate3d(40vw, -10px, 0);
+      opacity: 0.85;
+    }
+    .halloween-bolt {
+      opacity: 0;
     }
   }
 `;
