@@ -64,6 +64,49 @@ interface BirthdayState {
 // type) would fail TypeScript's "duplicate global augmentation" check on
 // production builds. We just consume it via that existing declaration.
 
+// Returns only the start-time slots that have `requiredRun` consecutive
+// available slots STARTING AT THEM (so a Party Plus asking for 2 slots
+// can actually be fulfilled at that start). Birthday packages block
+// slotsBlocked back-to-back one-hour slots; without this filter the UI
+// would offer a 9 PM start for a 2-slot package on a weeknight (last
+// slot 9 PM), the server would 400, and the parent would see a
+// confusing error at Razorpay.
+//
+// Logic: group all slots by minute-of-day, then for each "available"
+// slot check that the next (requiredRun - 1) one-hour intervals are
+// also in the available set. Non-available slots stay in the returned
+// list but tagged as "booked" so the TimeSlotGrid still shows them —
+// just not clickable.
+function filterBookableStartSlots(
+  slots: TimeSlot[],
+  requiredRun: number
+): TimeSlot[] {
+  if (requiredRun <= 1) return slots;
+  const availableSet = new Set(
+    slots.filter((s) => s.status === "available").map((s) => s.time)
+  );
+  const toMinutes = (hhmm: string): number => {
+    const [h, m] = hhmm.split(":").map(Number);
+    return h * 60 + m;
+  };
+  const toTime = (minutes: number): string => {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+  };
+  return slots.map((slot) => {
+    if (slot.status !== "available") return slot;
+    const startMin = toMinutes(slot.time);
+    // Need slots at startMin + 60, +120, ... up to +60*(requiredRun-1).
+    for (let i = 1; i < requiredRun; i++) {
+      if (!availableSet.has(toTime(startMin + 60 * i))) {
+        return { ...slot, status: "booked" as const };
+      }
+    }
+    return slot;
+  });
+}
+
 // Parses "extra-kid:2,custom-cake:1" → { "extra-kid": 2, "custom-cake": 1 }.
 // Unknown add-on IDs are ignored so URL-tampering can't inject phantom items.
 function parseAddonsParam(raw: string | null): Record<string, number> {
@@ -109,6 +152,19 @@ export function BirthdayWizard() {
   });
 
   const pkg = BIRTHDAY_PACKAGES.find((p) => p.id === state.packageId)!;
+
+  // Hide the global Call-me-back FAB throughout the birthday wizard.
+  // On the Details step (4) and slot grid (3) the FAB sits directly
+  // on top of the first add-on card / last slot pill. The booking
+  // wizard uses the same technique (body class + CSS gate in
+  // globals.css) so this reuses that rule instead of adding another.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.body.classList.add("has-booking-sticky-cta");
+    return () => {
+      document.body.classList.remove("has-booking-sticky-cta");
+    };
+  }, []);
 
   // Effective package price for the picked party date (falls back to "today"
   // when the customer hasn't picked a date yet, so the initial cards still
@@ -410,8 +466,18 @@ export function BirthdayWizard() {
           </motion.div>
         )}
 
-        {/* STEP 3 — Time slot */}
-        {state.step === 3 && state.selectedDate && (
+        {/* STEP 3 — Time slot. Filtered so only start times with
+            `pkg.slotsBlocked` consecutive available slots after
+            them survive — otherwise a parent could book Party Plus
+            at 9 PM, the server would fail because 9 PM + 10 PM
+            isn't bookable, and we'd lose them to a confusing error
+            at Razorpay. */}
+        {state.step === 3 && state.selectedDate && (() => {
+          const bookable = filterBookableStartSlots(
+            state.availableSlots,
+            pkg.slotsBlocked
+          );
+          return (
           <motion.div
             key="time"
             initial={{ opacity: 0, y: 20 }}
@@ -424,7 +490,7 @@ export function BirthdayWizard() {
             </p>
             <TimeSlotGrid
               date={state.selectedDate}
-              slots={state.availableSlots}
+              slots={bookable}
               selectedSlot={state.selectedSlot}
               isLoading={state.loadingSlots}
               onSelectSlot={(slot, displayTime) => {
@@ -437,7 +503,8 @@ export function BirthdayWizard() {
               }}
             />
           </motion.div>
-        )}
+          );
+        })()}
 
         {/* STEP 4 — Details + add-ons */}
         {state.step === 4 && (
@@ -657,7 +724,12 @@ export function BirthdayWizard() {
                 ) : (
                   <CreditCard size={16} className="mr-2" />
                 )}
-                Pay ₹{advance.toLocaleString("en-IN")} advance online
+                {/* Button amount must match what Razorpay actually
+                    charges, which is the GST-inclusive advance. The
+                    summary row above also shows withGST(advance), so
+                    using the raw ex-GST number here created a
+                    trust-killing surprise at the Razorpay sheet. */}
+                Pay ₹{withGST(advance).toLocaleString("en-IN")} advance online
               </Button>
               <a
                 href={whatsappBirthdayLink(pkg)}

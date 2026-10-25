@@ -33,15 +33,15 @@ export const BIRTHDAY_PACKAGES: BirthdayPackage[] = [
     name: "Party Essentials",
     price: 10999,
     maxKids: 8,
-    durationLabel: "90 min · 2 HeroZone rotations",
+    durationLabel: "90 min · 1 Anvio + 1 HeroZone",
     // 2 × 1-hour slots covers the 90-min experience + changeover time.
     // Dropped from 3 when slot duration moved from 40 min to 60 min.
     slotsBlocked: 2,
     tagline: "The clean fun one — full 8-player squad, back-to-back VR.",
     includes: [
       "Up to 8 kids in the arena",
-      "90 min · 2 × 30-min HeroZone rotations (same title)",
-      "Choice of any Available HeroZone game",
+      "90 min · 1 Anvio rotation + 1 HeroZone rotation per kid",
+      "Our host picks age-appropriate Anvio & HeroZone titles for the group",
       "Dedicated party host",
       "Basic table decor — balloons + banner at the party bay",
       "All safety gear + waiver assistance",
@@ -52,16 +52,16 @@ export const BIRTHDAY_PACKAGES: BirthdayPackage[] = [
     name: "Party Plus",
     price: 18999,
     maxKids: 12,
-    durationLabel: "2 hr · 2 HeroZone + 1 Anvio rotation per kid",
+    durationLabel: "2 hr · 1 Anvio + 1 HeroZone per kid",
     // 2 × 1-hour slots = the "2 hr" the label promises.
     // Dropped from 3 when slot duration moved from 40 min to 60 min.
     slotsBlocked: 2,
     popular: true,
-    tagline: "Our most-booked — mixed HeroZone + Anvio in a private lounge.",
+    tagline: "Our most-booked — Anvio + HeroZone in a private lounge.",
     includes: [
       "Up to 12 kids across 2 staggered waves",
-      "2 hr · each kid gets 2 HeroZone + 1 Anvio 30-min rotation",
-      "Two HeroZone titles + one Anvio title from the Available library",
+      "2 hr · each kid gets 1 Anvio rotation + 1 HeroZone rotation",
+      "Our host picks age-appropriate Anvio & HeroZone titles for the group",
       "Themed party decorations",
       "Private lounge access for cake-cutting",
       "Dedicated event host",
@@ -73,16 +73,16 @@ export const BIRTHDAY_PACKAGES: BirthdayPackage[] = [
     name: "Ultimate Party",
     price: 32999,
     maxKids: 16,
-    durationLabel: "3 hr morning buyout · 3 rotations per kid",
+    durationLabel: "3 hr morning buyout · 1 Anvio + 1 HeroZone per kid",
     // 1-hour slots × 3 = the "3 hr morning buyout" the label promises.
     // Dropped from 5 when slot duration moved from 40 min to 60 min.
     slotsBlocked: 3,
-    tagline: "The full experience — full-venue morning buyout, mixed lineup.",
+    tagline: "The full experience — full-venue morning buyout, Anvio + HeroZone.",
     includes: [
       "Up to 16 kids across 2 staggered waves",
       "3 hr morning buyout (11 AM-2 PM weekends) — no other bookings share the arena",
-      "3 rotations per kid across HeroZone + Anvio titles",
-      "Any 3 titles from the Available library",
+      "Each kid gets 1 Anvio rotation + 1 HeroZone rotation (longer rotations)",
+      "Our host picks age-appropriate Anvio & HeroZone titles for the group",
       "Premium themed decoration setup",
       "Private lounge for the entire booking",
       "Dedicated event host",
