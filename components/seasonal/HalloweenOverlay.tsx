@@ -12,11 +12,10 @@ import { useEffect, useState } from "react";
 //   2. Flying ghost    — one larger ghost drifts across the viewport,
 //      left to right, every ~22s. Desktop only; mobile skips it to
 //      preserve scroll performance.
-//   3. Pumpkins        — bottom-left and bottom-right corner SVGs,
+//   3. Witch + message — right-to-left broomstick pass with a scary
+//      floating banner, every ~28s.
+//   4. Pumpkins        — bottom-left and bottom-right corner SVGs,
 //      lit from within with a subtle flicker.
-//   4. Lightning flash — a full-viewport white overlay that briefly
-//      blooms every ~18s to mimic distant lightning. mix-blend-mode
-//      "screen" so it brightens the page without washing it out.
 //
 // All elements are `pointer-events: none` and `aria-hidden` so they
 // never catch taps or get read by screen readers. The whole overlay
@@ -54,28 +53,6 @@ export function HalloweenOverlay() {
       className="pointer-events-none fixed inset-0 z-30 overflow-hidden"
     >
       <style>{HALLOWEEN_KEYFRAMES}</style>
-
-      {/* Lightning flash — a full-viewport mix-blend overlay that
-          strobes briefly on a long cadence. The animation holds
-          black for most of the cycle (opacity 0) and only pulses
-          for ~0.4s, so visually it feels like a distant flash
-          rather than a strobe. prefers-reduced-motion handling is
-          in the <style> block below, so no motion-safe: Tailwind
-          prefix is needed (and wouldn't apply to the custom class
-          anyway). */}
-      <div
-        className="absolute inset-0 bg-white halloween-lightning"
-        style={{ mixBlendMode: "screen", opacity: 0 }}
-      />
-
-      {/* Lightning bolt — a visible jagged SVG that appears for
-          ~0.4s synchronized with the flash above. Together they
-          read as a thunderstrike (bright flash + visible bolt)
-          rather than just a generic white pulse. Two bolts at
-          different horizontal positions so the storm feels like
-          it's happening across the sky rather than in one spot. */}
-      <LightningBolt leftPct={28} delaySec={0} />
-      <LightningBolt leftPct={72} delaySec={9} className="hidden sm:block" />
 
       {/* Hanging ghosts — top edge of the viewport. Each has a
           different horizontal position + swing phase so they don't
@@ -339,74 +316,6 @@ function Pumpkin({
   );
 }
 
-// ─────────────────────────────────────────────────────────────────
-// Lightning bolt — Halloween-styled: a jagged orange-core bolt
-// wrapped in a purple occult glow instead of the usual blue-white
-// electric look. Flashes briefly in sync with the full-screen
-// lightning tint. The core is cursed-pumpkin orange, the outer
-// glow is deep witch-purple — reads as supernatural magic
-// cracking the sky, not a storm. Two instances with different
-// delays make it feel like strikes across the sky rather than a
-// single spot.
-// ─────────────────────────────────────────────────────────────────
-function LightningBolt({
-  leftPct,
-  delaySec,
-  className = "",
-}: {
-  leftPct: number;
-  delaySec: number;
-  className?: string;
-}) {
-  return (
-    <div
-      className={`absolute top-0 halloween-bolt ${className}`}
-      style={{
-        left: `${leftPct}%`,
-        width: 60,
-        height: "45vh",
-        animationDelay: `${delaySec}s`,
-        opacity: 0,
-      }}
-    >
-      <svg
-        viewBox="0 0 60 300"
-        preserveAspectRatio="none"
-        width={60}
-        height="100%"
-      >
-        {/* Outer purple halo — wider, softer path for the occult
-            aura. Stroked, not filled, so the glow reads as a
-            halo around the bolt rather than overlapping it. */}
-        <path
-          d="M30 0 L18 90 L34 90 L22 180 L40 180 L26 300 L46 160 L30 160 L42 70 L30 70 L36 0 Z"
-          fill="none"
-          stroke="#a855f7"
-          strokeWidth="6"
-          strokeLinejoin="miter"
-          opacity="0.55"
-          style={{
-            filter:
-              "drop-shadow(0 0 12px #7c3aed) drop-shadow(0 0 28px #4c1d95)",
-          }}
-        />
-        {/* Core bolt — cursed-pumpkin orange with its own warm
-            glow stacked on top of the purple halo. Two drop-shadow
-            layers so the bright core punches out of the purple
-            without washing to white. */}
-        <path
-          d="M30 0 L18 90 L34 90 L22 180 L40 180 L26 300 L46 160 L30 160 L42 70 L30 70 L36 0 Z"
-          fill="#ffb24a"
-          style={{
-            filter:
-              "drop-shadow(0 0 6px #ff6b00) drop-shadow(0 0 14px #ff8800)",
-          }}
-        />
-      </svg>
-    </div>
-  );
-}
-
 // Keyframes injected via <style> rather than globals.css so the whole
 // Halloween feature is self-contained in this one file — removing
 // seasonal/HalloweenOverlay.tsx takes the keyframes with it. If any
@@ -461,49 +370,19 @@ const HALLOWEEN_KEYFRAMES = `
   .halloween-flicker {
     animation: halloween-flicker 2.6s ease-in-out infinite;
   }
-  @keyframes halloween-lightning {
-    0%, 100% { opacity: 0; }
-    2% { opacity: 0.55; }
-    4% { opacity: 0; }
-    6% { opacity: 0.35; }
-    8% { opacity: 0; }
-  }
-  .halloween-lightning {
-    animation: halloween-lightning 18s ease-in-out infinite;
-  }
-  /* Visible lightning bolt — synced to the white flash. The bolt
-     holds invisible for most of the cycle, snaps on bright for
-     ~80ms, fades off, and double-strikes briefly a beat later.
-     Matches halloween-lightning cadence (18s cycle). */
-  @keyframes halloween-bolt {
-    0%, 100% { opacity: 0; }
-    1.5% { opacity: 1; }
-    4% { opacity: 0; }
-    5.5% { opacity: 0.8; }
-    8% { opacity: 0; }
-  }
-  .halloween-bolt {
-    animation: halloween-bolt 18s ease-in-out infinite;
-  }
   @media (prefers-reduced-motion: reduce) {
     .halloween-swing,
     .halloween-fly,
     .halloween-flicker,
-    .halloween-lightning,
-    .halloween-bolt,
     .halloween-witch-fly,
     .halloween-witch-bob {
       animation: none !important;
     }
-    /* Park moving elements mid-flight so they stay visible for
-       users who disabled motion. The lightning bolt stays hidden —
-       a persistent static bolt would look broken, not creepy. */
+    /* Park the witch mid-flight so the message stays readable for
+       users who disabled motion. */
     .halloween-witch-fly {
       transform: translate3d(-10vw, 0, 0);
       opacity: 1;
-    }
-    .halloween-bolt {
-      opacity: 0;
     }
   }
 `;
