@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, Check, Ghost, Loader2, Settings as SettingsIcon } from "lucide-react";
+import { AlertTriangle, Check, Ghost, Loader2, Settings as SettingsIcon, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // Admin controls for app-level flags (not per-booking settings — those
@@ -25,6 +25,7 @@ interface SettingsResponse {
   resolved: {
     advanceRequired: boolean;
     halloweenMode: boolean;
+    diwaliMode: boolean;
   };
 }
 
@@ -85,6 +86,8 @@ export function SettingsTab({ pin }: SettingsTabProps) {
     patchSetting({ advanceRequired: next });
   const toggleHalloween = (next: boolean) =>
     patchSetting({ halloweenMode: next });
+  const toggleDiwali = (next: boolean) =>
+    patchSetting({ diwaliMode: next });
 
   if (loading) {
     return (
@@ -108,8 +111,10 @@ export function SettingsTab({ pin }: SettingsTabProps) {
 
   const advanceRequired = data?.resolved.advanceRequired ?? true;
   const halloweenMode = data?.resolved.halloweenMode ?? false;
+  const diwaliMode = data?.resolved.diwaliMode ?? false;
   const advanceRow = data?.rows.find((r) => r.key === "advance_required");
   const halloweenRow = data?.rows.find((r) => r.key === "halloween_mode");
+  const diwaliRow = data?.rows.find((r) => r.key === "diwali_mode");
 
   return (
     <div className="space-y-5">
@@ -262,6 +267,82 @@ export function SettingsTab({ pin }: SettingsTabProps) {
             {halloweenMode ? "Halloween mode ON" : "Off"}
           </span>
         </div>
+      </div>
+
+      {/* diwali_mode toggle — Diwali seasonal overlay (diyas, marigold
+          garland, firework bursts, rangoli). Default OFF. Only one
+          seasonal overlay should be on at a time; nothing enforces it
+          in code, so staff should turn Halloween off first if it was
+          still active. */}
+      <div className="glass-card p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-sm flex items-center gap-2">
+              <Sparkles size={14} className="text-amber-400" />
+              Diwali decorations
+            </p>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              When ON, the public site layers on hanging diya lanterns,
+              a marigold garland at the top, firework bursts in the
+              background, and glowing rangoli at the corners.
+              Decorations only — booking, pricing and admin flows are
+              untouched.
+            </p>
+            {diwaliRow && (
+              <p className="text-[11px] text-muted-foreground/70 mt-2 font-mono">
+                Last changed:{" "}
+                {new Date(diwaliRow.updatedAt).toLocaleString("en-IN", {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                })}{" "}
+                · by {diwaliRow.updatedBy}
+              </p>
+            )}
+          </div>
+
+          <button
+            onClick={() => toggleDiwali(!diwaliMode)}
+            disabled={saving}
+            aria-pressed={diwaliMode}
+            className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full transition-colors ${
+              diwaliMode ? "bg-amber-500" : "bg-muted"
+            } ${saving ? "opacity-60 cursor-not-allowed" : ""}`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                diwaliMode ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </div>
+
+        <div className="mt-4 flex items-center gap-2 pt-4 border-t border-white/5">
+          <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
+            Current state:
+          </span>
+          <span
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+              diwaliMode
+                ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+                : "bg-muted/40 text-muted-foreground border border-white/10"
+            }`}
+          >
+            {diwaliMode ? "Diwali mode ON" : "Off"}
+          </span>
+        </div>
+
+        {halloweenMode && diwaliMode && (
+          <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-start gap-2">
+            <AlertTriangle
+              size={14}
+              className="text-amber-400 shrink-0 mt-0.5"
+            />
+            <div className="text-xs text-amber-200/90 leading-relaxed">
+              Halloween and Diwali are both ON — the site is layering
+              both overlays at once, which looks chaotic. Turn one off.
+            </div>
+          </div>
+        )}
       </div>
 
       {error && (

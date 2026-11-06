@@ -4,16 +4,22 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
 
-// Scrolling opening-offer announcement strip above the navbar. The
-// whole marquee is one <Link> so a tap anywhere routes to /book — no
-// dismiss button; the campaign is time-boxed and vanishes on its own
-// at month-end (date check below).
-
-// Hard dates for the October 2026 opening-offer campaign. The actual
-// discount comes from the Discounts sheet (admin created "Opening
-// Offer · 25% off · site-wide" with these exact dates); this bar
-// just announces it. If the campaign extends, update END_DATE_ISO.
-const END_DATE_ISO = "2026-11-01"; // first day the bar should disappear
+// Scrolling offer-announcement strip above the navbar. The whole
+// marquee is one <Link> so a tap anywhere routes to /book — no
+// dismiss button; the campaign is time-boxed via the date window
+// below and vanishes on its own when it ends.
+//
+// This bar only ANNOUNCES the promo; the actual discount applies
+// through a row in the Discounts sheet with matching dates and
+// code. Current campaign: Diwali 10% off site-wide. Admin should
+// have a row in Discounts:
+//   label: "Diwali offer", type: "percent", value: 10,
+//   appliesTo: "all", startsOn: 2026-11-05, endsOn: 2026-11-15,
+//   active: true, code: "" (blank = auto-apply)
+//
+// If the campaign extends, update END_DATE_ISO AND the sheet row
+// end date — they must stay in lockstep.
+const END_DATE_ISO = "2026-11-16"; // first day the bar should disappear
 
 // One repeating unit of the marquee. Rendered N times inside the track
 // (both for density and so the loop looks seamless when transform
@@ -22,16 +28,16 @@ const END_DATE_ISO = "2026-11-01"; // first day the bar should disappear
 function MessageSegment() {
   return (
     <span className="inline-flex items-center gap-3 sm:gap-4 whitespace-nowrap text-white px-6">
-      <Sparkles size={14} className="shrink-0 text-yellow-200 drop-shadow" aria-hidden="true" />
+      <Sparkles size={14} className="shrink-0 text-amber-200 drop-shadow" aria-hidden="true" />
       <span className="text-[11px] sm:text-xs font-semibold tracking-[0.15em] uppercase text-white/90">
-        Grand Opening
+        Happy Diwali
       </span>
       <span className="text-white/40" aria-hidden="true">·</span>
       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-white text-primary font-heading text-sm sm:text-base font-black tracking-wide shadow-sm">
-        FLAT 25% OFF
+        FLAT 10% OFF
       </span>
       <span className="text-white/40" aria-hidden="true">·</span>
-      <span className="text-[11px] sm:text-xs text-white/90">October only</span>
+      <span className="text-[11px] sm:text-xs text-white/90">Festive week</span>
       <span className="text-white/40" aria-hidden="true">·</span>
       <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-semibold tracking-wide uppercase text-white underline underline-offset-4 decoration-white/50">
         Book now
@@ -76,12 +82,15 @@ export function OpeningOfferBar() {
   return (
     <Link
       href="/book"
-      aria-label="Opening Offer — 25% off every booking in October. Book now."
+      aria-label="Diwali offer — 10% off every booking this festive week. Book now."
       className="fixed top-0 left-0 right-0 z-[60] block overflow-hidden"
       style={{
+        // Diwali-themed gradient: deep marigold → saffron → gold →
+        // back to marigold. Warmer than the launch bar's violet and
+        // reads festive against the dark site chrome.
         background:
-          "linear-gradient(90deg, #3B1E7A 0%, #6C3BFF 35%, #8B5CFF 50%, #6C3BFF 65%, #3B1E7A 100%)",
-        boxShadow: "0 2px 20px rgba(108, 59, 255, 0.35)",
+          "linear-gradient(90deg, #8B2500 0%, #D97706 30%, #F59E0B 50%, #D97706 70%, #8B2500 100%)",
+        boxShadow: "0 2px 20px rgba(217, 119, 6, 0.4)",
       }}
     >
       <div className="relative py-2 sm:py-2.5">

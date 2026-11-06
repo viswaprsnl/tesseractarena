@@ -5,6 +5,7 @@ import {
   listSettings,
   setAdvanceRequired,
   setHalloweenMode,
+  setDiwaliMode,
   SETTING_KEYS,
 } from "@/lib/settings-sheets";
 
@@ -33,6 +34,7 @@ export async function GET(request: NextRequest) {
     // defaulting logic that lives in lib/settings-sheets.ts.
     const advanceRow = all.find((r) => r.key === SETTING_KEYS.ADVANCE_REQUIRED);
     const halloweenRow = all.find((r) => r.key === SETTING_KEYS.HALLOWEEN_MODE);
+    const diwaliRow = all.find((r) => r.key === SETTING_KEYS.DIWALI_MODE);
     const isFalsy = (v: string) => /^(false|0|no|off)$/i.test(v.trim());
     const isTruthy = (v: string) => /^(true|1|yes|on)$/i.test(v.trim());
     return NextResponse.json({
@@ -40,8 +42,9 @@ export async function GET(request: NextRequest) {
       resolved: {
         // advance defaults to true (missing row = required)
         advanceRequired: !advanceRow || !isFalsy(advanceRow.value),
-        // halloween defaults to false (missing row = off)
+        // seasonal overlays default to false (missing row = off)
         halloweenMode: !!halloweenRow && isTruthy(halloweenRow.value),
+        diwaliMode: !!diwaliRow && isTruthy(diwaliRow.value),
       },
     });
   } catch (error) {
@@ -56,6 +59,7 @@ export async function GET(request: NextRequest) {
 const patchSchema = z.object({
   advanceRequired: z.boolean().optional(),
   halloweenMode: z.boolean().optional(),
+  diwaliMode: z.boolean().optional(),
 });
 
 export async function PATCH(request: NextRequest) {
@@ -86,10 +90,15 @@ export async function PATCH(request: NextRequest) {
       await setHalloweenMode(parsed.data.halloweenMode, label);
       updates.push(SETTING_KEYS.HALLOWEEN_MODE);
     }
+    if (parsed.data.diwaliMode !== undefined) {
+      await setDiwaliMode(parsed.data.diwaliMode, label);
+      updates.push(SETTING_KEYS.DIWALI_MODE);
+    }
 
-    const [advanceRow, halloweenRow] = await Promise.all([
+    const [advanceRow, halloweenRow, diwaliRow] = await Promise.all([
       getSetting(SETTING_KEYS.ADVANCE_REQUIRED),
       getSetting(SETTING_KEYS.HALLOWEEN_MODE),
+      getSetting(SETTING_KEYS.DIWALI_MODE),
     ]);
     return NextResponse.json({
       success: true,
@@ -99,6 +108,8 @@ export async function PATCH(request: NextRequest) {
           !advanceRow || !/^(false|0|no|off)$/i.test(advanceRow.value.trim()),
         halloweenMode:
           !!halloweenRow && /^(true|1|yes|on)$/i.test(halloweenRow.value.trim()),
+        diwaliMode:
+          !!diwaliRow && /^(true|1|yes|on)$/i.test(diwaliRow.value.trim()),
       },
     });
   } catch (error) {

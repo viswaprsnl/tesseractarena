@@ -161,6 +161,7 @@ export async function setSetting(
 export const SETTING_KEYS = {
   ADVANCE_REQUIRED: "advance_required",
   HALLOWEEN_MODE: "halloween_mode",
+  DIWALI_MODE: "diwali_mode",
 } as const;
 
 // Shared truthy/falsy parser so new flags added below all read the same
@@ -205,4 +206,21 @@ export async function setHalloweenMode(
   updatedBy: string
 ): Promise<void> {
   await setSetting(SETTING_KEYS.HALLOWEEN_MODE, String(value), updatedBy);
+}
+
+// diwali_mode mirrors halloween_mode — defaults OFF, admin flips it on
+// from the Settings tab for the festive window. Only one seasonal
+// overlay should be active at a time; the UI doesn't enforce mutual
+// exclusion (admin judgement), but running both at once would be
+// visually chaotic.
+export async function getDiwaliMode(): Promise<boolean> {
+  const row = await getSetting(SETTING_KEYS.DIWALI_MODE);
+  return parseBool(row?.value || "", false);
+}
+
+export async function setDiwaliMode(
+  value: boolean,
+  updatedBy: string
+): Promise<void> {
+  await setSetting(SETTING_KEYS.DIWALI_MODE, String(value), updatedBy);
 }

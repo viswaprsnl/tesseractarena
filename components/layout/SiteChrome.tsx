@@ -6,6 +6,7 @@ import { Footer } from "@/components/layout/Footer";
 import { CallbackButton } from "@/components/CallbackButton";
 import { OpeningOfferBar } from "@/components/layout/OpeningOfferBar";
 import { HalloweenOverlay } from "@/components/seasonal/HalloweenOverlay";
+import { DiwaliOverlay } from "@/components/seasonal/DiwaliOverlay";
 
 // Wraps every page's site chrome (top nav, footer, "call me back"
 // floating button) so we can suppress the whole set on a given route
@@ -39,11 +40,14 @@ export function SiteChrome({ children }: SiteChromeProps) {
       <main className="flex-1">{children}</main>
       <Footer />
       <CallbackButton />
-      {/* Seasonal decorations — self-gated on admin flag + /api/settings.
-          Renders null when halloween_mode is off, so there's no cost
-          to keeping this mounted year-round. Not shown on /kiosk
-          (that whole branch bypasses SiteChrome above). */}
+      {/* Seasonal decorations — each self-gated on its own admin flag
+          via /api/settings. Renders null when its flag is off, so
+          both can be kept mounted year-round with zero cost. Not
+          shown on /kiosk (that whole branch bypasses SiteChrome
+          above). Only one should be on at a time; the admin tab
+          warns when both are enabled. */}
       <HalloweenOverlay />
+      <DiwaliOverlay />
     </>
   );
 }

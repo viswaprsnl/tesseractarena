@@ -157,6 +157,27 @@ export function Hero() {
           inside the game.
         </motion.p>
 
+        {/* Price anchor chip. Visitors landing cold from Meta ads or
+            Google need to know what they're committing to before the
+            first click; without a number here they'd bounce before
+            reaching the pricing section further down. ₹899 is the
+            HeroZone floor — the ceiling (₹1,199 Anvio) is set on the
+            per-game cards on /book. "excl. GST" microcopy keeps the
+            final Razorpay number from feeling like a surprise. */}
+        <motion.div variants={fadeInUp} className="mb-6">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/8 border border-white/15 backdrop-blur-sm">
+            <span className="text-xs sm:text-sm text-white/80">
+              Games start at
+            </span>
+            <span className="text-sm sm:text-base font-bold text-white">
+              ₹899
+            </span>
+            <span className="text-[10px] sm:text-xs text-white/60">
+              / person · excl. GST
+            </span>
+          </span>
+        </motion.div>
+
         <motion.div
           variants={fadeInUp}
           className="flex flex-col sm:flex-row gap-4 justify-center"
