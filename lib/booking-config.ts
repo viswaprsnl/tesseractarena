@@ -1,6 +1,6 @@
 import { format, addDays, isAfter, isBefore, startOfDay, getDay } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
-import type { PackageType, PerPersonPackageType, TimeSlot } from "./booking-types";
+import type { PackageType, TimeSlot } from "./booking-types";
 import { isBirthdayPackage } from "./booking-types";
 
 const TIMEZONE = "Asia/Kolkata";
@@ -48,47 +48,16 @@ export function gstOn(exGSTAmount: number): number {
   return Math.round((exGSTAmount * GST_PERCENT) / 100);
 }
 
-// Legacy per-package pricing — kept as a fallback for admin walk-in logging
-// (RevenueTab / WalkinLogger). Customer-facing session pricing is now
-// per-GAME (see Game.pricePerPerson in data/games.ts) and scales by tier
-// (see PACKAGE_TIER_MULTIPLIER below).
-export const PRICING: Record<PackageType, number> = {
-  solo: 1499,
-  squad: 1199,
-  party: 999,
-  "birthday-essentials": 0,
-  "birthday-plus": 0,
-  "birthday-ultimate": 0,
-};
-
-// Session price = game.pricePerPerson × partySize × tier multiplier.
-// Larger groups get progressively better per-head pricing to reward
-// bookings that fill more seats. Party is 0.85 (15% off) rather than 0.80
-// because a Party booking already locks the venue — the extra 5% discount
-// left too much revenue on the table on 7-8 player bookings.
-export const PACKAGE_TIER_MULTIPLIER: Record<PerPersonPackageType, number> = {
-  solo: 1.0,
-  squad: 0.9,
-  party: 0.85,
-};
-
-// Per-head price at a given tier, rounded to whole rupees so nothing shown
-// to the customer ever ends in paise.
-export function perHeadAtTier(
-  gameBasePrice: number,
-  packageType: PerPersonPackageType
-): number {
-  return Math.round(gameBasePrice * PACKAGE_TIER_MULTIPLIER[packageType]);
-}
-
-// Full session price for the given game + tier + party size. Discounts
-// apply on top of this via pickActiveDiscount / applyDiscount.
+// Session price = game.pricePerPerson × partySize. The Solo / Squad /
+// Party tier discount system was retired on 2026-11-05 — customers now
+// see a single clean per-head rate per game regardless of group size
+// (Anvio ₹1,199, HeroZone ₹899 — see data/games.ts). Discounts (coupon
+// codes etc.) apply on top of this via pickActiveDiscount / applyDiscount.
 export function calculateSessionPrice(
   gameBasePrice: number,
-  packageType: PerPersonPackageType,
   partySize: number
 ): number {
-  return perHeadAtTier(gameBasePrice, packageType) * partySize;
+  return gameBasePrice * partySize;
 }
 
 // Advance amount for a per-person booking = ₹500 per player, capped at the
@@ -98,9 +67,9 @@ export function calculateAdvance(partySize: number, total: number): number {
   return Math.min(ADVANCE_PER_PERSON * partySize, total);
 }
 
-// True when the package needs the "per person × party size" pricing model.
-// Birthday packages are flat and follow a different code path.
-export function isPerPersonPackage(p: PackageType): p is PerPersonPackageType {
+// True when the package is NOT a birthday package — i.e. a regular
+// per-person booking. Birthday packages follow a different pricing path.
+export function isPerPersonPackage(p: PackageType): boolean {
   return !isBirthdayPackage(p);
 }
 
@@ -221,19 +190,6 @@ export function isDateBookable(dateStr: string): boolean {
   const maxDate = addDays(todayDate, 30);
   const maxDateStr = format(maxDate, "yyyy-MM-dd");
   return dateStr >= today && dateStr <= maxDateStr;
-}
-
-export function calculatePrice(
-  packageType: PackageType,
-  partySize: number
-): number {
-  return PRICING[packageType] * partySize;
-}
-
-export function getPackageForSize(partySize: number): PackageType {
-  if (partySize <= 1) return "solo";
-  if (partySize <= 5) return "squad";
-  return "party";
 }
 
 export function getBookableDates(): string[] {

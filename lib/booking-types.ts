@@ -9,24 +9,42 @@
 // its code-splitting weight.
 export const DECIDE_AT_VENUE_ID = "decide-at-venue";
 
-// Per-person session packages — priced per player, one 30-min VR session.
-export type PerPersonPackageType = "solo" | "squad" | "party";
+// Regular per-person bookings all share a single flat per-game rate now
+// (Anvio ₹1,199, HeroZone ₹899 — see data/games.ts). The historical Solo
+// / Squad / Party tier system was retired on 2026-11-05; the `package`
+// column on the sheet now writes "standard" for new regular bookings.
+// Old rows that still say solo/squad/party are legacy and still readable.
+export const STANDARD_PACKAGE = "standard" as const;
+export type StandardPackage = typeof STANDARD_PACKAGE;
 
 // Fixed-price birthday packages. Each blocks N consecutive slots and the
 // advance is a percentage (see BIRTHDAY_ADVANCE_PERCENT in data/birthday).
+// Birthday collapses to a single "birthday-standard" tier on 2026-11-05;
+// the three old IDs are kept here because legacy sheet rows still carry
+// them, and isBirthdayPackage() needs to recognize both shapes.
 export type BirthdayPackageType =
+  | "birthday-standard"
   | "birthday-essentials"
   | "birthday-plus"
   | "birthday-ultimate";
 
-export type PackageType = PerPersonPackageType | BirthdayPackageType;
+export type PackageType = StandardPackage | BirthdayPackageType;
 
 export function isBirthdayPackage(p: string): p is BirthdayPackageType {
   return (
+    p === "birthday-standard" ||
     p === "birthday-essentials" ||
     p === "birthday-plus" ||
     p === "birthday-ultimate"
   );
+}
+
+// True for any string that COULD have been written to the package column
+// in the sheet — current values or legacy ones. Readers that only care
+// about "is this a per-person booking or birthday" should use
+// isBirthdayPackage() directly and treat everything else as per-person.
+export function isLegacyTierPackage(p: string): boolean {
+  return p === "solo" || p === "squad" || p === "party";
 }
 export type PaymentMethod = "razorpay" | "pay_at_center";
 export type PaymentStatus = "pending" | "paid" | "pay_at_center";

@@ -13,7 +13,20 @@ const discountBodySchema = z.object({
   label: z.string().min(1).max(80),
   type: z.enum(["percent", "flat"]),
   value: z.number().positive(),
-  appliesTo: z.enum(["all", "solo", "squad", "party"]),
+  // "all" = site-wide. "standard" = regular per-person bookings only.
+  // The "birthday-*" ids scope to birthday packages. The old
+  // solo/squad/party tier scopes were retired on 2026-11-05; admin
+  // forms no longer offer them, but legacy sheet rows with those
+  // values stay readable (the discount-config DiscountScope no
+  // longer includes them so they're treated as inactive).
+  appliesTo: z.enum([
+    "all",
+    "standard",
+    "birthday-standard",
+    "birthday-essentials",
+    "birthday-plus",
+    "birthday-ultimate",
+  ]),
   startsOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   endsOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   active: z.boolean(),

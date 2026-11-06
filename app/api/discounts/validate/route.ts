@@ -13,7 +13,14 @@ import { normalizeCode } from "@/lib/discount-config";
 const bodySchema = z.object({
   code: z.string().min(1).max(24),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  package: z.enum(["solo", "squad", "party"]),
+  // Package scope sent by the client. The Solo/Squad/Party tiers were
+  // retired on 2026-11-05; "standard" is the current value for regular
+  // per-person bookings. Legacy values still accepted so a stale client
+  // doesn't 400 during rollout — they'll just read as a standard booking
+  // when matched against coupon scope.
+  package: z
+    .enum(["standard", "solo", "squad", "party"])
+    .default("standard"),
 });
 
 export async function POST(request: NextRequest) {
@@ -53,7 +60,17 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    if (match.appliesTo !== "all" && match.appliesTo !== parsed.data.package) {
+    // Normalise any legacy tier value to "standard" for scope comparison —
+    // a coupon still scoped to "squad" in the sheet (there shouldn't be
+    // any after the admin UI update, but defensive) counts as applying
+    // to today's "standard" bookings.
+    const effectivePackage: string =
+      parsed.data.package === "solo" ||
+      parsed.data.package === "squad" ||
+      parsed.data.package === "party"
+        ? "standard"
+        : parsed.data.package;
+    if (match.appliesTo !== "all" && match.appliesTo !== effectivePackage) {
       return NextResponse.json(
         {
           error: `This coupon only applies to the ${match.appliesTo} package`,

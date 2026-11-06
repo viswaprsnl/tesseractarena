@@ -55,7 +55,7 @@ export const faqItems: FAQItem[] = [
     category: "experience",
     question: "How long is a session?",
     answer:
-      "A standard Solo or Squad slot is 40 minutes: about 10 minutes for gear-up and safety briefing, followed by 30 minutes of active VR gameplay. Party packages (6-8 players) run across two back-to-back slots — about 80 minutes of arena time plus check-in and photos.",
+      "A standard Anvio session is 45 minutes of VR play plus 15 minutes for gear-up, safety briefing and changeover — one hour total at the arena. HeroZone titles are shorter (10-20 minutes each) so you can mix a couple of them in one slot. Larger groups and corporate events usually block two back-to-back slots for about 2 hours of arena time including photos.",
   },
   {
     category: "booking",

@@ -16,7 +16,19 @@ import {
   type PaymentMethod,
   type RevenueEntry,
 } from "@/lib/revenue-config";
-import { PRICING, getTodayISTString } from "@/lib/booking-config";
+import { getTodayISTString } from "@/lib/booking-config";
+
+// Walk-in auto-fill prices — ex-GST per head. Anvio and HeroZone are
+// the current options surfaced by WalkinLogger; the legacy tier names
+// are mapped to the Anvio rate because they predate the per-brand
+// split and that's the closer match for a 30-min session.
+const WALKIN_BASE_PRICE: Record<GroupType, number> = {
+  anvio: 1199,
+  herozone: 899,
+  solo: 1199,
+  squad: 1199,
+  party: 1199,
+};
 import { RevenueChart } from "./RevenueChart";
 
 type RangeKey = "7" | "30" | "90" | "180" | "365";
@@ -142,7 +154,7 @@ export function RevenueTab({ ownerPin }: { ownerPin: string }) {
   // just tap "Save". They can still overtype to record a promo / friend price.
   useEffect(() => {
     if (editingId) return; // Don't auto-fill while editing an existing row.
-    const perPerson = PRICING[formGroup];
+    const perPerson = WALKIN_BASE_PRICE[formGroup];
     setFormRevenue(String(perPerson * Math.max(1, formPlayers)));
   }, [formGroup, formPlayers, editingId]);
 

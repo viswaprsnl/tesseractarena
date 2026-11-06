@@ -12,14 +12,14 @@ import { listDiscounts } from "@/lib/discount-sheets";
 import { pickActiveDiscount, applyDiscount } from "@/lib/discount-config";
 import { sendBookingEmailsFromRow } from "@/lib/email";
 import {
-  calculatePrice,
   calculateSessionPrice,
   isDateBookable,
   getSlotsForDate,
   formatTimeDisplay,
   gstOn,
 } from "@/lib/booking-config";
-import type { BookingRow, PerPersonPackageType } from "@/lib/booking-types";
+import type { BookingRow } from "@/lib/booking-types";
+import { STANDARD_PACKAGE } from "@/lib/booking-types";
 import { allGames, availableGames, getGamePlayerRange } from "@/data/games";
 import { AUTOTEST_MARKER, isAutotestRequest } from "@/lib/autotest";
 import { getAdvanceRequired } from "@/lib/settings-sheets";
@@ -40,7 +40,12 @@ const bookingSchema = z
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     timeSlot: z.string().regex(/^\d{2}:\d{2}$/),
     partySize: z.number().int().min(1).max(8),
-    package: z.enum(["solo", "squad", "party"]),
+    // Solo/Squad/Party tiers retired on 2026-11-05. The wizard now sends
+    // "standard" for every regular booking. Keeping the legacy strings
+    // accepted so an old client that hasn't picked up the new bundle
+    // doesn't 400 mid-rollout — they still write to the sheet, just as
+    // legacy rows.
+    package: z.enum(["standard", "solo", "squad", "party"]).default("standard"),
     gamePreference: z.string().min(1),
     paymentMethod: z.enum(["razorpay", "pay_at_center"]),
     specialRequests: z.string().max(500).optional(),
@@ -270,13 +275,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate booking ID.
-    // Base price is derived server-side from the chosen game + tier + party
-    // size so the client cannot understate it. Falls back to the legacy
-    // package price if the gamePreference doesn't match a known game (e.g.
-    // custom admin-created games without a pricePerPerson value).
+    // Base price is derived server-side from game.pricePerPerson × partySize
+    // (flat per-game rate — Solo/Squad/Party tier multipliers retired on
+    // 2026-11-05) so a tampered client can't understate.
     const bookingId = `TA-${nanoid(6).toUpperCase()}`;
     const game = allGames.find((g) => g.id === data.gamePreference);
-    const perPersonPkg = data.package as PerPersonPackageType;
     // "Decide at venue" uses the highest Available ex-GST price as the
     // stored ceiling — the customer pays their ₹500/head advance now and
     // the balance is trued up at the counter when they pick a title.
@@ -284,15 +287,15 @@ export async function POST(request: NextRequest) {
       ? Math.max(...availableGames.map((g) => g.pricePerPerson))
       : game?.pricePerPerson;
     const basePrice = priceBasis
-      ? calculateSessionPrice(priceBasis, perPersonPkg, data.partySize)
-      : calculatePrice(data.package, data.partySize);
+      ? calculateSessionPrice(priceBasis, data.partySize)
+      : 0;
     let amount = basePrice;
     try {
       const discounts = await listDiscounts();
       const active = pickActiveDiscount(
         discounts,
         data.date,
-        data.package,
+        STANDARD_PACKAGE,
         basePrice,
         data.couponCode
       );
@@ -337,7 +340,10 @@ export async function POST(request: NextRequest) {
       date: data.date,
       timeSlot: data.timeSlot,
       partySize: data.partySize,
-      package: data.package,
+      // Normalise everything that isn't a birthday package to the single
+      // post-2026-11-05 "standard" value. Preserves legacy bookings that
+      // may still carry "solo"/"squad"/"party" if the client is stale.
+      package: STANDARD_PACKAGE,
       gamePreference: data.gamePreference,
       paymentStatus,
       paymentMethod: effectivePaymentMethod,

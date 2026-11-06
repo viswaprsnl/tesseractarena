@@ -18,10 +18,13 @@ export interface Game {
   // parents can comfortably book for younger groups (~8+).
   kidsFriendly?: boolean;
   tags: string[];
-  // Base per-person price at Solo tier. Squad and Party tiers derive from
-  // this using PACKAGE_TIER_MULTIPLIER in lib/booking-config.ts. Full 30-min
-  // Anvio (and Wayfinders) titles are ₹1,599; the short 10-12 min HeroZone
-  // library is ₹899.
+  // Flat per-person session price, ex-GST. Full 30-min Anvio (and
+  // Wayfinders) titles are ₹1,199; the short 10-12 min HeroZone library
+  // is ₹899. Group size no longer affects the per-head rate — the
+  // Solo / Squad / Party tier discount system was retired on 2026-11-05
+  // because customers were reading the tier labels as price pressure
+  // ("I need 6+ people for the good rate") and dropping off the
+  // booking flow before step 3. One clean price, one less decision.
   pricePerPerson: number;
 }
 
@@ -39,7 +42,7 @@ export const availableGames: Game[] = [
     difficulty: "Medium",
     image: "https://images.worldofescapes.com/uploads/quests/22973/large/anvio-city-z.jpg",
     featured: true,
-    pricePerPerson: 1599,
+    pricePerPerson: 1199,
     tags: ["action", "co-op", "horror", "free-roam"],
   },
   {
@@ -55,7 +58,7 @@ export const availableGames: Game[] = [
     difficulty: "Medium",
     image: "https://images.worldofescapes.com/uploads/quests/22974/large/anvio-station-zarya.jpg",
     featured: true,
-    pricePerPerson: 1599,
+    pricePerPerson: 1199,
     tags: ["sci-fi", "co-op", "action", "free-roam"],
   },
   {
@@ -71,7 +74,7 @@ export const availableGames: Game[] = [
     difficulty: "Medium",
     image: "https://static.tildacdn.com/tild3461-3235-4634-b931-616536383366/__2022-12-01__192405.png",
     featured: true,
-    pricePerPerson: 1599,
+    pricePerPerson: 1199,
     tags: ["pvp", "competitive", "action", "multiplayer"],
   },
   {
@@ -146,7 +149,7 @@ export const availableGames: Game[] = [
     duration: "30 min",
     difficulty: "Medium",
     image: "https://cdn.prod.website-files.com/69793cc1ea9bc10fbb44d6a5/6a4fbd845097819d0cd21a44_Wayfinders_Poster.avif",
-    pricePerPerson: 1599,
+    pricePerPerson: 1199,
     featured: true,
     tags: ["sci-fi", "adventure", "co-op", "cinematic"],
   },
@@ -180,7 +183,7 @@ export const comingSoonGames: Game[] = [
     duration: "30 min",
     difficulty: "Medium",
     image: "https://inoui-vr.fr/wp-content/uploads/2025/06/cityZ-survivors.png",
-    pricePerPerson: 1599,
+    pricePerPerson: 1199,
     tags: ["action", "co-op", "horror", "free-roam"],
   },
   {
@@ -195,7 +198,7 @@ export const comingSoonGames: Game[] = [
     duration: "30 min",
     difficulty: "Hard",
     image: "https://static.tildacdn.com/tild3864-3532-4465-b062-666130356135/image.png",
-    pricePerPerson: 1599,
+    pricePerPerson: 1199,
     tags: ["action", "co-op", "horror", "free-roam"],
   },
   {
@@ -210,7 +213,7 @@ export const comingSoonGames: Game[] = [
     duration: "30 min",
     difficulty: "Hard",
     image: "https://static.tildacdn.com/tild6563-3532-4032-b334-646135653933/image.png",
-    pricePerPerson: 1599,
+    pricePerPerson: 1199,
     tags: ["action", "co-op", "horror", "intense"],
   },
   {
@@ -225,7 +228,7 @@ export const comingSoonGames: Game[] = [
     duration: "30 min",
     difficulty: "Easy",
     image: "https://images.worldofescapes.com/uploads/quests/22975/large/anvio-lost-sanctuary.jpg",
-    pricePerPerson: 1599,
+    pricePerPerson: 1199,
     tags: ["adventure", "puzzle", "family", "fantasy"],
   },
   {
@@ -240,7 +243,7 @@ export const comingSoonGames: Game[] = [
     duration: "30 min",
     difficulty: "Easy",
     image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1486660/header.jpg?t=1619858252",
-    pricePerPerson: 1599,
+    pricePerPerson: 1199,
     tags: ["adventure", "family", "fantasy", "flying"],
   },
   {

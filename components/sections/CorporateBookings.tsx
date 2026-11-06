@@ -85,31 +85,25 @@ export function CorporateBookings() {
               footing.
             </p>
 
-            {/* Corporate pricing callout. Anchor pricing (strike-through
-                ₹2,100 → ₹1,599) is what makes the "second game is on us"
-                claim land for a procurement reader scanning quickly —
-                they see the number drop before they read the headline.
-                Numbers kept inline here (not a config constant) because
-                they're public marketing copy, not revenue code; if the
-                offer changes just edit this block. */}
+            {/* Corporate pricing callout. One flat number, two games (one
+                Anvio + one HeroZone) per person, event lead included. ₹499
+                less than booking both games separately (Anvio ₹1,199 +
+                HeroZone ₹899 = ₹2,098 at the regular rate) — kept inline
+                rather than framed as a "discount" because procurement
+                readers respond better to a clean per-head quote. Public
+                marketing copy, not revenue code; edit here if the offer
+                changes. */}
             <div className="flex items-center gap-4 p-4 mb-6 rounded-xl border border-primary/25 bg-primary/5 max-w-xl">
               <div className="shrink-0 w-11 h-11 rounded-lg bg-primary/15 flex items-center justify-center">
                 <Gift size={20} className="text-primary" />
               </div>
               <div>
                 <p className="text-sm font-semibold text-foreground leading-snug">
-                  Two games per person — the second one&apos;s on us.
+                  ₹1,599 per person · two games per person
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  <span className="line-through decoration-muted-foreground/60">
-                    ₹2,100
-                  </span>
-                  <span className="text-primary font-semibold ml-1.5">
-                    ₹1,599
-                  </span>
-                  <span className="ml-1.5">
-                    per person · corporate bookings only
-                  </span>
+                  One Anvio title + one HeroZone title. Dedicated event lead,
+                  staggered sessions for 8+. Minimum 4 people.
                 </p>
               </div>
             </div>

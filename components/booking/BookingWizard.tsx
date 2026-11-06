@@ -7,12 +7,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft } from "lucide-react";
 import { useBooking } from "@/hooks/use-booking";
 import {
-  calculatePrice,
   calculateSessionPrice,
   getTodayISTString,
   formatTimeDisplay,
 } from "@/lib/booking-config";
-import type { PerPersonPackageType } from "@/lib/booking-types";
 import { DECIDE_AT_VENUE_ID } from "@/lib/booking-types";
 import { allGames, availableGames } from "@/data/games";
 import { trackEvent, partySizeBucket } from "@/lib/analytics";
@@ -244,13 +242,16 @@ export function BookingWizard({
     // the title they actually play.
     const isDecideAtVenue = state.selectedGame === DECIDE_AT_VENUE_ID;
     const game = allGames.find((g) => g.id === state.selectedGame);
-    const perPersonPkg = state.packageType as PerPersonPackageType;
+    // Flat per-game pricing (post-2026-11-05) — no tier multiplier.
+    // "Decide at venue" uses the highest ex-GST game price as the
+    // ceiling; staff adjusts at the counter based on the title finally
+    // played.
     const priceBasis = isDecideAtVenue
       ? Math.max(...availableGames.map((g) => g.pricePerPerson))
       : game?.pricePerPerson;
     const base = priceBasis
-      ? calculateSessionPrice(priceBasis, perPersonPkg, state.partySize)
-      : calculatePrice(state.packageType, state.partySize);
+      ? calculateSessionPrice(priceBasis, state.partySize)
+      : 0;
     const amount = state.discount ? base - state.discount.amountOff : base;
     dispatch({ type: "SET_AMOUNT", amount });
     dispatch({ type: "NEXT_STEP" });
@@ -300,13 +301,12 @@ export function BookingWizard({
     // max-priced Available game as the ceiling.
     const isDecideAtVenueDetail = state.selectedGame === DECIDE_AT_VENUE_ID;
     const game = allGames.find((g) => g.id === state.selectedGame);
-    const perPersonPkg = state.packageType as PerPersonPackageType;
     const priceBasis = isDecideAtVenueDetail
       ? Math.max(...availableGames.map((g) => g.pricePerPerson))
       : game?.pricePerPerson;
     const base = priceBasis
-      ? calculateSessionPrice(priceBasis, perPersonPkg, state.partySize)
-      : calculatePrice(state.packageType, state.partySize);
+      ? calculateSessionPrice(priceBasis, state.partySize)
+      : 0;
     const amount = state.discount ? base - state.discount.amountOff : base;
     dispatch({ type: "SET_AMOUNT", amount });
     dispatch({ type: "NEXT_STEP" });
@@ -717,13 +717,12 @@ export function BookingWizard({
       {state.step === 3 && state.selectedGame && (() => {
         const isDecideAtVenue = state.selectedGame === DECIDE_AT_VENUE_ID;
         const game = allGames.find((g) => g.id === state.selectedGame);
-        const perPersonPkg = state.packageType as PerPersonPackageType;
         const priceBasis = isDecideAtVenue
           ? Math.max(...availableGames.map((g) => g.pricePerPerson))
           : game?.pricePerPerson;
         const base = priceBasis
-          ? calculateSessionPrice(priceBasis, perPersonPkg, state.partySize)
-          : calculatePrice(state.packageType, state.partySize);
+          ? calculateSessionPrice(priceBasis, state.partySize)
+          : 0;
         const subtotal = state.discount ? base - state.discount.amountOff : base;
         // Mirror the GST display logic in PackageSelector — all
         // ticket amounts stored are ex-GST, customer-facing total

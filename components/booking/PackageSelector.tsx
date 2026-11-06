@@ -8,15 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   calculateSessionPrice,
-  getPackageForSize,
   calculateAdvance,
-  perHeadAtTier,
   withGST,
   gstOn,
   GST_PERCENT,
   MAX_PLAYERS,
 } from "@/lib/booking-config";
-import type { PackageType, PerPersonPackageType } from "@/lib/booking-types";
+import type { PackageType } from "@/lib/booking-types";
 import {
   applyDiscount,
   pickActiveDiscount,
@@ -62,28 +60,6 @@ interface PackageSelectorProps {
   // they want to swap, so they're never trapped.
   preselectedGame?: string;
 }
-
-const packages = [
-  {
-    type: "solo" as const,
-    name: "Solo",
-    desc: "1 player",
-    range: "1 player",
-  },
-  {
-    type: "squad" as const,
-    name: "Squad",
-    desc: "2-5 players",
-    range: "2-5 players",
-    popular: true,
-  },
-  {
-    type: "party" as const,
-    name: "Party",
-    desc: "6-8 players",
-    range: "6-8 players",
-  },
-];
 
 export function PackageSelector({
   partySize,
@@ -168,9 +144,8 @@ export function PackageSelector({
 
   // Per-game player range — Anvio 30-min titles cap at 6; Revolta at 8;
   // Versus starts at 2. When no game is picked (or "Decide at venue" is
-  // picked) the full 1..MAX_PLAYERS range is allowed and every tier is
-  // available; once a specific game is picked the stepper and Party card
-  // clamp to what that specific game supports.
+  // picked) the full 1..MAX_PLAYERS range is allowed; once a specific
+  // game is picked the stepper clamps to what that game supports.
   const [gameMinPlayers, gameMaxPlayers] = game
     ? getGamePlayerRange(game.players)
     : [1, MAX_PLAYERS];
@@ -178,8 +153,6 @@ export function PackageSelector({
     ? MAX_PLAYERS
     : Math.min(MAX_PLAYERS, gameMaxPlayers);
   const effectiveMin = isDecideAtVenue ? 1 : Math.max(1, gameMinPlayers);
-  const partySupported = effectiveMax >= 6;
-  const soloSupported = effectiveMin <= 1;
 
   // Fetch active discounts once per session date. Filtering per-package
   // happens client-side with pickActiveDiscount, so a single request covers
@@ -200,11 +173,10 @@ export function PackageSelector({
     };
   }, [sessionDate]);
 
-  // Session pricing is now game-driven. When no game is selected yet the
-  // total shows as ₹0 and Continue is blocked at the wizard level.
-  const perPersonPkg = packageType as PerPersonPackageType;
+  // Flat per-game pricing — no tier multiplier. When no game is selected
+  // yet the total shows as ₹0 and Continue is blocked at the wizard level.
   const baseTotal = perHeadBase
-    ? calculateSessionPrice(perHeadBase, perPersonPkg, partySize)
+    ? calculateSessionPrice(perHeadBase, partySize)
     : 0;
   // Combine auto-apply campaigns with the redeemed coupon (if any). pickActiveDiscount
   // then chooses whichever gives the customer the biggest rupees-off.
@@ -304,18 +276,18 @@ export function PackageSelector({
   const handleSizeChange = (newSize: number) => {
     // Clamp to the intersection of the global cap and the current game's
     // supported range. Without a game picked yet, the full 1..MAX_PLAYERS
-    // range is allowed.
+    // range is allowed. No longer needs to touch packageType — the
+    // Solo/Squad/Party tiers were retired.
     const upper = game ? effectiveMax : MAX_PLAYERS;
     const lower = game ? effectiveMin : 1;
     const clamped = Math.max(lower, Math.min(upper, newSize));
     onPartySizeChange(clamped);
-    onPackageChange(getPackageForSize(clamped));
   };
 
   // When switching games, clamp the current party size down (or up) to
-  // whatever the newly-picked game supports, and rebalance the tier.
-  // "Decide at venue" opens up the full 1..MAX_PLAYERS range since we
-  // don't know which title's cap will apply yet.
+  // whatever the newly-picked game supports. "Decide at venue" opens up
+  // the full 1..MAX_PLAYERS range since we don't know which title's cap
+  // will apply yet.
   const handleGameSelect = (gameId: string) => {
     onGameChange(gameId);
     if (gameId === DECIDE_AT_VENUE_ID) return;
@@ -327,7 +299,6 @@ export function PackageSelector({
     if (partySize > upper || partySize < lower) {
       const clamped = Math.max(lower, Math.min(upper, partySize));
       onPartySizeChange(clamped);
-      onPackageChange(getPackageForSize(clamped));
     }
   };
 
@@ -338,7 +309,7 @@ export function PackageSelector({
       className="max-w-2xl mx-auto"
     >
       <h3 className="font-heading text-lg font-bold text-center mb-6">
-        Pick a Game &amp; Package
+        Pick a Game
       </h3>
 
       {/* Game picker — a visual card strip beats a native <select> here,
@@ -556,124 +527,11 @@ export function PackageSelector({
         )}
       </div>
 
-      {/* Package cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        {packages.map((pkg) => {
-          const isSelected = packageType === pkg.type;
-          // Per-head price for this tier of the currently-chosen game.
-          // Falls back to zero (rendered as "—") while no game is picked.
-          const perPersonBase = perHeadBase
-            ? perHeadAtTier(perHeadBase, pkg.type)
-            : 0;
-          const cardBaseTotal = perPersonBase * Math.max(1, partySize);
-          const cardDiscount = sessionDate && perPersonBase
-            ? pickActiveDiscount(
-                mergedDiscounts,
-                sessionDate,
-                pkg.type,
-                cardBaseTotal,
-                couponApplied?.code
-              )
-            : null;
-          const cardTotal = cardDiscount ? applyDiscount(cardBaseTotal, cardDiscount) : cardBaseTotal;
-          const perPersonAfter = Math.round(cardTotal / Math.max(1, partySize));
-          const showDiscount = cardDiscount && cardTotal < cardBaseTotal;
-
-          const tierDisabled =
-            (pkg.type === "solo" && !soloSupported) ||
-            (pkg.type === "party" && !partySupported);
-          return (
-            <button
-              key={pkg.type}
-              disabled={tierDisabled}
-              onClick={() => {
-                if (tierDisabled) return;
-                onPackageChange(pkg.type);
-                if (pkg.type === "solo") onPartySizeChange(1);
-                else if (pkg.type === "squad" && (partySize < 2 || partySize > 5))
-                  onPartySizeChange(Math.max(2, effectiveMin));
-                else if (pkg.type === "party" && partySize < 6)
-                  onPartySizeChange(6);
-              }}
-              className={`glass-card p-5 text-left relative transition-all ${
-                tierDisabled
-                  ? "opacity-40 cursor-not-allowed"
-                  : isSelected
-                  ? "border-primary/40 glow-violet"
-                  : "hover:border-white/20"
-              }`}
-            >
-              {pkg.popular && (
-                <Badge className="absolute -top-2 left-4 bg-primary text-primary-foreground text-[10px]">
-                  Popular
-                </Badge>
-              )}
-              {showDiscount && cardDiscount && (
-                <Badge className="absolute -top-2 right-4 bg-green-500/90 text-white text-[10px] flex items-center gap-1">
-                  <Tag size={10} /> {formatDiscountBadge(cardDiscount)}
-                </Badge>
-              )}
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-heading text-base font-bold">{pkg.name}</h4>
-                {isSelected && <Check size={16} className="text-primary" />}
-              </div>
-              {/* Price block. "/person" sits on its own line below the
-                  number — keeping it inline with a text-2xl figure
-                  overflowed the narrow mobile card when both the
-                  strikethrough original and the discounted price had to
-                  fit on one row. Stacking is also easier to read at a
-                  glance. */}
-              {!perHeadBase ? (
-                <div className="mb-1">
-                  <p className="text-2xl font-bold text-muted-foreground">—</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    per person
-                  </p>
-                </div>
-              ) : showDiscount ? (
-                <div className="mb-1">
-                  <div className="flex items-baseline gap-2 flex-wrap">
-                    <span className="text-xs text-muted-foreground line-through">
-                      ₹{perPersonBase.toLocaleString("en-IN")}
-                    </span>
-                    <span className="text-2xl font-bold text-green-400 leading-none">
-                      ₹{perPersonAfter.toLocaleString("en-IN")}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    per person
-                  </p>
-                </div>
-              ) : (
-                <div className="mb-1">
-                  <p className="text-2xl font-bold leading-none">
-                    ₹{perPersonBase.toLocaleString("en-IN")}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    per person
-                  </p>
-                </div>
-              )}
-              <p className="text-xs text-muted-foreground">{pkg.range}</p>
-              {perHeadBase > 0 && (
-                <p className="text-[9px] text-muted-foreground/70 mt-0.5">
-                  excl. GST
-                </p>
-              )}
-              {pkg.type !== "solo" && perHeadBase > 0 && (
-                <p className="text-[10px] text-primary/70 mt-1">
-                  {pkg.type === "squad" ? "10% off/head" : "15% off/head"}
-                </p>
-              )}
-              {tierDisabled && game && (
-                <p className="text-[10px] text-amber-400/80 mt-1">
-                  Not available on {game.title}
-                </p>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {/* Package tier cards (Solo / Squad / Party) were retired on
+          2026-11-05 in favour of a single flat per-head price per
+          game. The per-head price is shown directly on each game card
+          in the picker above, and the full session total is computed
+          below in the summary card. */}
 
       {/* Total + advance breakdown — session cost shown ex-GST (revenue
           basis) with a GST line added so the customer sees the actual
@@ -700,9 +558,9 @@ export function PackageSelector({
           )}
           <p className="text-xs text-muted-foreground mt-1">
             {game
-              ? `${partySize} × ₹${perHeadAtTier(perHeadBase, perPersonPkg).toLocaleString("en-IN")} (${packageType}${packageType === "solo" ? "" : packageType === "squad" ? " · 10% off" : " · 15% off"}) — ${game.title}`
+              ? `${partySize} × ₹${perHeadBase.toLocaleString("en-IN")} — ${game.title}`
               : isDecideAtVenue
-              ? `Up to ${partySize} × ₹${perHeadAtTier(perHeadBase, perPersonPkg).toLocaleString("en-IN")} — final price locked at venue`
+              ? `Up to ${partySize} × ₹${perHeadBase.toLocaleString("en-IN")} — final price locked at venue`
               : "Pick a game above to see the total"}
           </p>
         </div>

@@ -5,25 +5,20 @@ import { Plus, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getTodayISTString, withGST, GST_PERCENT } from "@/lib/booking-config";
-import type { PackageType } from "@/lib/booking-types";
-
-// Walk-in auto-fill prices. These are per-head ex-GST base rates
-// aligned with the current Anvio catalogue (City Z / Station Zarya /
-// Revolta are all ₹1,599 Solo, with the 10%/15% squad/party tier
-// discounts from the online flow baked in). Values match
-// calculateSessionPrice() so a walk-in and an online booking for the
-// same group look like-for-like in the Revenue sheet.
-//
-// Kept local to the walk-in form on purpose — lib/booking-config's
-// PRICING constants are the legacy fallback for /api/bookings when a
-// game id doesn't match, which runs at different numbers (1499/1199/
-// 999) and shouldn't be touched without a wider review.
-const WALKIN_BASE_PRICE: Record<Extract<PackageType, "solo" | "squad" | "party">, number> = {
-  solo: 1599,
-  squad: 1439, // 1599 × 0.9 — matches PerPersonPackageType squad tier
-  party: 1359, // 1599 × 0.85 — matches party tier
-};
 import type { GroupType, PaymentMethod } from "@/lib/revenue-config";
+
+// Walk-in auto-fill prices — ex-GST per head. Post-2026-11-05 the
+// walk-in picker shows just two options (Anvio / HeroZone) because
+// customer-facing pricing is now flat per game brand. Legacy tier
+// values map to the Anvio rate so historical rows still display, but
+// staff logging a new walk-in picks a brand, not a tier.
+const WALKIN_BASE_PRICE: Record<GroupType, number> = {
+  anvio: 1199,
+  herozone: 899,
+  solo: 1199,
+  squad: 1199,
+  party: 1199,
+};
 
 const DISCOUNT_PRESETS = [0, 5, 10, 15, 20, 25] as const;
 
@@ -40,7 +35,7 @@ export function WalkinLogger({ pin, onSaved }: WalkinLoggerProps) {
   const today = getTodayISTString();
   const [expanded, setExpanded] = useState(false);
   const [formDate, setFormDate] = useState(today);
-  const [formGroup, setFormGroup] = useState<GroupType>("squad");
+  const [formGroup, setFormGroup] = useState<GroupType>("anvio");
   const [formPlayers, setFormPlayers] = useState<number>(2);
   const [formRevenue, setFormRevenue] = useState<string>("");
   const [formPayment, setFormPayment] = useState<PaymentMethod>("upi");
@@ -80,7 +75,10 @@ export function WalkinLogger({ pin, onSaved }: WalkinLoggerProps) {
       .then((r) => r.json())
       .then((data) => {
         if (cancelled) return;
-        type D = { label: string; type: "percent" | "flat"; value: number; appliesTo: "all" | "solo" | "squad" | "party" };
+        // Accept both the current scopes and the legacy tier scopes so a
+        // stale coupon row in the sheet still auto-pulls here. Scope
+        // match below is string-equality so unknown scopes just skip.
+        type D = { label: string; type: "percent" | "flat"; value: number; appliesTo: string };
         const list: D[] = Array.isArray(data?.discounts) ? data.discounts : [];
         // Pick the biggest percent discount for this group OR site-wide.
         const eligible = list.filter(
@@ -142,7 +140,7 @@ export function WalkinLogger({ pin, onSaved }: WalkinLoggerProps) {
 
   const reset = () => {
     setFormDate(today);
-    setFormGroup("squad");
+    setFormGroup("anvio");
     setFormPlayers(2);
     setFormPayment("upi");
     setFormNotes("");
@@ -242,15 +240,14 @@ export function WalkinLogger({ pin, onSaved }: WalkinLoggerProps) {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Group</label>
+              <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Game library</label>
               <select
                 value={formGroup}
                 onChange={(e) => setFormGroup(e.target.value as GroupType)}
                 className="w-full h-9 rounded-md bg-card/60 border border-white/10 px-2 text-xs"
               >
-                <option value="solo">Solo</option>
-                <option value="squad">Squad</option>
-                <option value="party">Party</option>
+                <option value="anvio">Anvio (₹1,199/head)</option>
+                <option value="herozone">HeroZone (₹899/head)</option>
               </select>
             </div>
             <div className="space-y-1">

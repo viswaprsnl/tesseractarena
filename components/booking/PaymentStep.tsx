@@ -128,10 +128,6 @@ export function PaymentStep({
           <span>{state.partySize}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Package</span>
-          <span className="capitalize">{state.packageType}</span>
-        </div>
-        <div className="flex justify-between">
           <span className="text-muted-foreground">Game</span>
           <span>{state.personalDetails?.gamePreference}</span>
         </div>

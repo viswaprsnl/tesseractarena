@@ -6,6 +6,7 @@ import type {
   PaymentMethod,
   TimeSlot,
 } from "@/lib/booking-types";
+import { STANDARD_PACKAGE } from "@/lib/booking-types";
 
 export interface ActiveDiscount {
   id: string;
@@ -22,10 +23,14 @@ export interface BookingState {
   selectedSlot: string | null;
   selectedSlotDisplay: string | null;
   partySize: number;
+  // packageType was Solo/Squad/Party pre-2026-11-05 — now always
+  // STANDARD_PACKAGE for regular bookings, and only varies for birthday
+  // flows. Kept in state so the sheet writer and legacy consumers keep
+  // compiling; UI no longer dispatches SET_PACKAGE for regular bookings.
   packageType: PackageType;
-  // Chosen game id (matches Game.id in data/games.ts). Picked on the same
-  // step as the Solo/Squad/Party tier so the customer sees the per-game
-  // price live before continuing.
+  // Chosen game id (matches Game.id in data/games.ts). Picked on the
+  // Package step so the customer sees the per-game price live before
+  // continuing.
   selectedGame: string | null;
   personalDetails: {
     name: string;
@@ -80,7 +85,7 @@ const initialState: BookingState = {
   selectedSlot: null,
   selectedSlotDisplay: null,
   partySize: 2,
-  packageType: "squad",
+  packageType: STANDARD_PACKAGE,
   selectedGame: null,
   personalDetails: null,
   paymentMethod: null,

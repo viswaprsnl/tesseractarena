@@ -3,13 +3,11 @@
 import { CalendarDays, Clock, Users, Gamepad2 } from "lucide-react";
 import { format } from "date-fns";
 import {
-  calculatePrice,
   calculateSessionPrice,
   withGST,
   gstOn,
   GST_PERCENT,
 } from "@/lib/booking-config";
-import type { PerPersonPackageType } from "@/lib/booking-types";
 import type { BookingState } from "@/hooks/use-booking";
 import { allGames, availableGames } from "@/data/games";
 import { DECIDE_AT_VENUE_ID } from "@/lib/booking-types";
@@ -21,23 +19,17 @@ export function BookingSummary({ state }: { state: BookingState }) {
     ? format(new Date(state.selectedDate + "T00:00:00"), "EEE, MMM d")
     : "—";
 
-  // Sidebar subtotal must mirror what the PackageSelector and server compute
-  // — game.pricePerPerson × tier × partySize. Falls back to the legacy flat
-  // package price only if the flow is somehow past the picker without a
-  // game set (should be impossible in normal use since Continue is
-  // disabled).
-  const isDecideAtVenue = state.selectedGame === DECIDE_AT_VENUE_ID;
-  const game = allGames.find((g) => g.id === state.selectedGame);
-  const perPersonPkg = state.packageType as PerPersonPackageType;
+  // Sidebar subtotal mirrors what the PackageSelector and server compute
+  // — flat per-game rate × partySize (no tier multiplier post 2026-11-05).
   // "Decide at venue" uses the highest-priced Available game as the
   // ceiling — same rule as the wizard and the server-side price recompute.
+  const isDecideAtVenue = state.selectedGame === DECIDE_AT_VENUE_ID;
+  const game = allGames.find((g) => g.id === state.selectedGame);
   const priceBasis = isDecideAtVenue
     ? Math.max(...availableGames.map((g) => g.pricePerPerson))
     : game?.pricePerPerson;
   const subtotal = priceBasis
-    ? calculateSessionPrice(priceBasis, perPersonPkg, state.partySize)
-    : state.personalDetails
-    ? calculatePrice(state.packageType, state.partySize)
+    ? calculateSessionPrice(priceBasis, state.partySize)
     : 0;
   const gameTitle = isDecideAtVenue
     ? "Decide at venue"
@@ -68,8 +60,7 @@ export function BookingSummary({ state }: { state: BookingState }) {
       <div className="flex items-center gap-2">
         <Users size={14} className="text-primary shrink-0" />
         <span>
-          {state.partySize} {state.partySize === 1 ? "player" : "players"} ·{" "}
-          <span className="capitalize">{state.packageType}</span>
+          {state.partySize} {state.partySize === 1 ? "player" : "players"}
         </span>
       </div>
 

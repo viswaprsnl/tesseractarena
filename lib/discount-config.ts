@@ -1,6 +1,12 @@
 import type { PackageType } from "./booking-types";
 
 export type DiscountType = "percent" | "flat";
+// A discount can be site-wide ("all") or scoped to a specific package
+// (the birthday tiers, or the standard per-person bundle). The Solo /
+// Squad / Party tier scopes were retired on 2026-11-05 — admins who
+// had scoped a coupon to "squad" will see it treated as inactive
+// going forward, which is the intended behaviour (no new squad tier
+// exists to apply it to).
 export type DiscountScope = "all" | PackageType;
 
 export interface Discount {

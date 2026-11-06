@@ -2,13 +2,11 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Check, Building2, Phone } from "lucide-react";
+import { Check, Building2, Phone, Zap, Clock } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { pricingTiers } from "@/data/pricing";
-import { availableGames } from "@/data/games";
 import { fadeInUp, staggerContainer } from "@/lib/animations";
 import {
   PHONE_DISPLAY,
@@ -16,18 +14,45 @@ import {
   whatsappCorporateLink,
 } from "@/lib/contact";
 
-export function Pricing() {
-  // Per-head rate for each tier is game.pricePerPerson × tier.multiplier.
-  // We show the range across the Available library so parents / groups see
-  // "from ₹X" and know exactly what drives the cheaper end.
-  const gamePrices = availableGames.map((g) => g.pricePerPerson);
-  const minGamePrice = Math.min(...gamePrices);
-  const maxGamePrice = Math.max(...gamePrices);
-  const tierRange = (multiplier: number) => ({
-    min: Math.round(minGamePrice * multiplier),
-    max: Math.round(maxGamePrice * multiplier),
-  });
+// Two-card pricing section — one per game library. Post-2026-11-05 we
+// run flat per-head rates (Anvio ₹1,199 / HeroZone ₹899) with no
+// Solo/Squad/Party tier discount. Price-pressure copy dropped because
+// the tier UI was reading as "I need a big group to get a good rate"
+// and killing step-3 conversion. One price, one less decision.
+const TIERS = [
+  {
+    key: "anvio",
+    name: "Anvio",
+    tagline: "Full 30-min free-roam adventures",
+    price: 1199,
+    icon: Clock,
+    popular: true,
+    features: [
+      "30-minute immersive sessions",
+      "Flagship co-op and PvP titles — City Z, Station Zarya, Revolta",
+      "1-6 players (up to 8 on Revolta)",
+      "Private arena slot, all gear included",
+    ],
+    cta: "Book Anvio",
+  },
+  {
+    key: "herozone",
+    name: "HeroZone",
+    tagline: "Short-format arcade rounds",
+    price: 899,
+    icon: Zap,
+    popular: false,
+    features: [
+      "10-20 minute quick-fire titles",
+      "20+ games — Arrowsong, Monkey Madness, Cops vs Robbers, Terminator",
+      "Kids-friendly options for ages 8+",
+      "Mix-and-match multiple titles in one session",
+    ],
+    cta: "Book HeroZone",
+  },
+];
 
+export function Pricing() {
   return (
     <section id="pricing" className="py-12 sm:py-24 px-4">
       <div className="max-w-7xl mx-auto">
@@ -36,15 +61,14 @@ export function Pricing() {
           whileInView="visible"
           viewport={{ once: true, amount: 0.1 }}
           variants={fadeInUp}
-          className="text-center mb-16"
+          className="text-center mb-14"
         >
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Choose Your <span className="gradient-text">Experience</span>
+            One <span className="gradient-text">flat price per game</span>
           </h2>
           <p className="text-muted-foreground max-w-xl mx-auto">
-            Per-head pricing depends on the game — ₹{minGamePrice} for short-format
-            HeroZone titles, ₹{maxGamePrice} for full 30-min Anvio experiences.
-            Bigger groups get better per-head rates automatically.
+            No group-size math, no tier discount hoops. Pick a game, see what it
+            costs per head, book your slot.
           </p>
           <div className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
             <span className="text-sm font-medium text-primary">
@@ -61,11 +85,11 @@ export function Pricing() {
           whileInView="visible"
           viewport={{ once: true, amount: 0.2 }}
           variants={staggerContainer}
-          className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto"
+          className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto"
         >
-          {pricingTiers.map((tier) => (
+          {TIERS.map((tier) => (
             <motion.div
-              key={tier.name}
+              key={tier.key}
               variants={fadeInUp}
               className={`glass-card p-8 flex flex-col relative ${
                 tier.popular
@@ -75,40 +99,32 @@ export function Pricing() {
             >
               {tier.popular && (
                 <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs px-4">
-                  Most Popular
+                  Most Played
                 </Badge>
               )}
 
-              <div className="mb-6">
-                <h3 className="font-heading text-xl font-bold mb-2">
-                  {tier.name}
-                </h3>
-                <p className="text-sm text-muted-foreground">{tier.description}</p>
+              <div className="mb-6 flex items-start gap-3">
+                <span className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                  <tier.icon size={18} className="text-primary" />
+                </span>
+                <div>
+                  <h3 className="font-heading text-xl font-bold mb-1">
+                    {tier.name}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">{tier.tagline}</p>
+                </div>
               </div>
 
               <div className="mb-8">
-                {(() => {
-                  const { min, max } = tierRange(tier.multiplier);
-                  return (
-                    <>
-                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">
-                        Starting at
-                      </p>
-                      <span className="text-4xl font-bold">
-                        &#8377;{min.toLocaleString("en-IN")}
-                      </span>
-                      <span className="text-sm text-muted-foreground ml-2">
-                        per person
-                      </span>
-                      <p className="text-[10px] text-muted-foreground/70 mt-0.5">
-                        excl. GST
-                      </p>
-                      <p className="text-[11px] text-muted-foreground mt-1">
-                        {tier.discountLabel} · up to ₹{max.toLocaleString("en-IN")} for full 30-min titles
-                      </p>
-                    </>
-                  );
-                })()}
+                <span className="text-5xl font-bold">
+                  &#8377;{tier.price.toLocaleString("en-IN")}
+                </span>
+                <span className="text-sm text-muted-foreground ml-2">
+                  per person
+                </span>
+                <p className="text-[11px] text-muted-foreground/70 mt-1">
+                  excl. GST · any group size, same rate
+                </p>
               </div>
 
               <ul className="space-y-3 mb-8 flex-1">
@@ -142,9 +158,10 @@ export function Pricing() {
           ))}
         </motion.div>
 
-        {/* Corporate banner — for team offsites, product launches, and any
-            group larger than the 8-player Party cap. Not a self-serve tier;
-            routes to WhatsApp / phone for a bespoke quote. */}
+        {/* Corporate banner — flat per-head bundle, 2 games (one Anvio +
+            one HeroZone) per person. Separate pricing from the per-game
+            section above because the bundle is meaningfully cheaper than
+            booking both games separately (₹1,599 vs ₹2,098). */}
         <motion.div
           initial="hidden"
           whileInView="visible"
@@ -158,18 +175,16 @@ export function Pricing() {
             </div>
             <div className="flex-1">
               <h3 className="font-heading text-lg font-bold mb-1">
-                Corporate &amp; Team Building
+                Corporate &amp; Team Building — ₹1,599 per person
               </h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Team offsites, product launches, quarterly kickoffs, client
-                events — we host groups of 10 to 24 players across
-                staggered 40-min sessions with a dedicated event lead, plus
-                lounge time, briefings, and photo ops built into the flow.
-                Custom pricing based on group size and event length.
+                One Anvio title + one HeroZone title per person, dedicated event
+                lead, staggered sessions for groups over 8, lounge between
+                rotations. Minimum 4, max 32 per booking.
               </p>
               <p className="text-[11px] text-muted-foreground/80 mt-2">
-                Larger groups can be split across a half-day or multi-day
-                format — contact us for a tailored plan.
+                Groups over 32 can be split across a half-day or multi-day
+                format — WhatsApp us for a tailored plan.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row md:flex-col gap-2 w-full md:w-auto">

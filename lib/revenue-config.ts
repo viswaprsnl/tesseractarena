@@ -7,7 +7,12 @@ export const INVESTMENT_TOTAL = 3_000_000; // ₹30 lakh
 export const DEFAULT_MONTHLY_COST = 300_000; // ₹3 lakh
 
 export type RevenueSource = "booking" | "walkin";
-export type GroupType = "solo" | "squad" | "party";
+// GroupType was Solo/Squad/Party pre-2026-11-05. The walk-in logger now
+// uses "anvio" / "herozone" to tag which game library the session played,
+// which maps 1:1 to the new ₹1,199 / ₹899 per-head flat prices. Legacy
+// values (solo / squad / party) remain in the union so old rows in the
+// Revenue sheet still parse and render.
+export type GroupType = "anvio" | "herozone" | "solo" | "squad" | "party";
 export type PaymentMethod = "cash" | "upi" | "card" | "razorpay";
 
 export interface RevenueEntry {
