@@ -67,7 +67,7 @@ export const faqItems: FAQItem[] = [
     category: "booking",
     question: "How does payment work?",
     answer:
-      "To reserve your slot, you pay a flat advance of ₹500 per player at the time of booking. The remaining balance is paid at the center when you arrive. For example, a group of 4 pays ₹2,000 advance to confirm, with the rest settled on arrival.",
+      "To reserve your slot, you pay a flat advance of ₹99 per player at the time of booking. The remaining balance is paid at the center when you arrive. For example, a group of 4 pays ₹396 advance to confirm, with the rest settled on arrival.",
   },
   {
     category: "booking",

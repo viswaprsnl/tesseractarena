@@ -480,7 +480,7 @@ export function PackageSelector({
               {isKiosk
                 ? "the counter team will suggest a game that fits your group. Final price is locked once you pick."
                 : advanceRequired
-                ? "you pay just the ₹500/head advance now; final price is locked at the counter based on the title you pick."
+                ? "you pay just the ₹99/head advance now; final price is locked at the counter based on the title you pick."
                 : "no advance now; final price is locked at the counter based on the title you pick."}
             </p>
           </div>
@@ -623,7 +623,7 @@ export function PackageSelector({
               </span>
             </div>
             <p className="text-[11px] text-muted-foreground/70 pt-1">
-              Just ₹500 per person (+ GST) reserves your slot. Pay the rest when you arrive.
+              Just ₹99 per person (+ GST) reserves your slot. Pay the rest when you arrive.
             </p>
           </div>
         )}

@@ -19,8 +19,16 @@ export const SLOT_DURATION_MINUTES = 60;
 export const SLOT_LATE_BOOKING_WINDOW_MINUTES = 40;
 export const MAX_PLAYERS = 8;
 
-// Flat advance per person paid at booking. Remaining is paid at the center.
-export const ADVANCE_PER_PERSON = 500;
+// Flat advance per person paid at booking. Remaining is paid at the
+// center. Dropped from ₹500 to ₹99 on 2026-11-05 to lower the online
+// commitment friction — the 2026-10 "no advance" experiment
+// (advance_required=false on the Settings sheet) showed noticeable
+// top-of-funnel improvement but no-show risk was too high to run
+// permanently. ₹99/head is the compromise: enough skin in the game
+// to deter joke bookings, low enough that cold-visitor hesitation
+// at step 5 drops. Razorpay accepts amounts down to ₹1, so there's
+// no gateway floor to worry about.
+export const ADVANCE_PER_PERSON = 99;
 
 // ---------------------------------------------------------------------------
 // GST — Enter Totem-style display

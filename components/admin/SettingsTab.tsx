@@ -5,11 +5,11 @@ import { AlertTriangle, Check, Ghost, Loader2, Settings as SettingsIcon, Sparkle
 import { Button } from "@/components/ui/button";
 
 // Admin controls for app-level flags (not per-booking settings — those
-// live on the booking row). The one knob here right now is
-// advance_required, which turns the ₹500/head Razorpay advance step on
-// or off for online bookings. Owner or staff PIN can flip it; the
-// change propagates within ~60s (settings cache TTL) and the booking
-// wizard re-reads /api/settings on each mount.
+// live on the booking row). The core knob is advance_required, which
+// turns the ₹99/head Razorpay advance step on or off for online
+// bookings. Owner or staff PIN can flip it; the change propagates
+// within ~60s (settings cache TTL) and the booking wizard re-reads
+// /api/settings on each mount. Seasonal overlay toggles live here too.
 
 interface SettingsTabProps {
   pin: string;
@@ -134,7 +134,7 @@ export function SettingsTab({ pin }: SettingsTabProps) {
               Require advance payment on online bookings
             </p>
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-              When ON (default), customers pay ₹500/head via Razorpay to
+              When ON (default), customers pay ₹99/head via Razorpay to
               confirm. When OFF, bookings go through without any upfront
               payment — the full amount is collected at the arena.
             </p>

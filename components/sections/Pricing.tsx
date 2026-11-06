@@ -72,7 +72,7 @@ export function Pricing() {
           </p>
           <div className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
             <span className="text-sm font-medium text-primary">
-              Reserve with just ₹500/person (+ GST) — pay the rest at the center
+              Reserve with just ₹99/person (+ GST) — pay the rest at the center
             </span>
           </div>
           <p className="text-[11px] text-muted-foreground/70 mt-2">

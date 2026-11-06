@@ -175,9 +175,10 @@ function parseBool(value: string, fallback: boolean): boolean {
   return fallback;
 }
 
-// advance_required defaults to true — i.e. the historical behavior
-// (collect ₹500/head at booking). Flipping the sheet value to "false"
-// opts into the no-advance experiment.
+// advance_required defaults to true — i.e. collect ₹99/head at
+// booking (lowered from ₹500 on 2026-11-05). Flipping the sheet
+// value to "false" opts into the no-advance experiment and collects
+// the full amount at the arena instead.
 export async function getAdvanceRequired(): Promise<boolean> {
   const row = await getSetting(SETTING_KEYS.ADVANCE_REQUIRED);
   return parseBool(row?.value || "", true);
