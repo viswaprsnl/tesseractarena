@@ -13,7 +13,6 @@ import {
   isDateBookable,
   getSlotsForDate,
   formatTimeDisplay,
-  getTodayISTString,
   gstOn,
 } from "@/lib/booking-config";
 import type { BookingRow } from "@/lib/booking-types";
@@ -21,7 +20,7 @@ import {
   BIRTHDAY_PACKAGES,
   BIRTHDAY_ADDONS,
   birthdayAdvance,
-  getEffectivePackagePrice,
+  birthdayRequiredSlots,
 } from "@/data/birthday";
 
 // POST body — the birthday wizard sends this shape. Guest count is
@@ -33,7 +32,12 @@ const birthdaySchema = z
     phone: z.string().min(10).max(15),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     timeSlot: z.string().regex(/^\d{2}:\d{2}$/),
-    packageId: z.enum(["essentials", "plus", "ultimate"]),
+    // Only one package now ("standard"). Legacy ids accepted for a
+    // rollout window so a stale client doesn't 400 — they map to
+    // "standard" below.
+    packageId: z
+      .enum(["standard", "essentials", "plus", "ultimate"])
+      .default("standard"),
     birthdayKidName: z.string().min(1).max(60),
     birthdayKidAge: z.number().int().min(6).max(18),
     guestCount: z.number().int().min(1).max(24),
@@ -62,7 +66,17 @@ export async function POST(request: NextRequest) {
     }
     const data = parsed.data;
 
-    const pkg = BIRTHDAY_PACKAGES.find((p) => p.id === data.packageId);
+    // Normalise legacy tier ids to the single current "standard"
+    // package. The sheet keeps the original birthday-* value on the
+    // row through `package: `birthday-${packageId}``, so historical
+    // bookings stay traceable; this is purely about pricing.
+    const normalizedPackageId: "standard" =
+      data.packageId === "essentials" ||
+      data.packageId === "plus" ||
+      data.packageId === "ultimate"
+        ? "standard"
+        : data.packageId;
+    const pkg = BIRTHDAY_PACKAGES.find((p) => p.id === normalizedPackageId);
     if (!pkg) {
       return NextResponse.json(
         { error: "Unknown birthday package" },
@@ -70,15 +84,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Guest count check — cap at pkg.maxKids unless the "extra kid" add-on
-    // was picked up (each qty of that add-on lifts the cap by 1).
-    const extraKidAddon = data.addons.find((a) => a.id === "extra-kid");
-    const extraSlots = extraKidAddon?.qty ?? 0;
-    const effectiveCap = pkg.maxKids + extraSlots;
-    if (data.guestCount > effectiveCap) {
+    // Guest count check — must be within the single package's min/max.
+    // No more "extra-kid" add-on; max is simply pkg.maxKids.
+    if (data.guestCount < pkg.minKids || data.guestCount > pkg.maxKids) {
       return NextResponse.json(
         {
-          error: `Guest count (${data.guestCount}) exceeds the ${pkg.name} cap of ${pkg.maxKids}. Add the "Extra kid over cap" add-on for larger groups.`,
+          error: `Guest count must be between ${pkg.minKids} and ${pkg.maxKids} kids.`,
         },
         { status: 400 }
       );
@@ -99,12 +110,16 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    // A birthday needs pkg.slotsBlocked consecutive slots. Reject early if
-    // the selected slot would run past the end of the operating day.
-    if (startIdx + pkg.slotsBlocked > daySlots.length) {
+    // Slot requirement comes from baseline + any extendsSlots add-ons
+    // (currently just morning-buyout which bumps from 2 to 3 hours).
+    const requiredSlots = birthdayRequiredSlots(
+      pkg,
+      data.addons.map((a) => a.id)
+    );
+    if (startIdx + requiredSlots > daySlots.length) {
       return NextResponse.json(
         {
-          error: `${pkg.name} needs ${pkg.slotsBlocked} back-to-back slots — please pick an earlier start time.`,
+          error: `${pkg.name} needs ${requiredSlots} back-to-back slots — please pick an earlier start time.`,
         },
         { status: 400 }
       );
@@ -122,19 +137,19 @@ export async function POST(request: NextRequest) {
 
     // Slot availability — every slot the birthday occupies must be free.
     const bookedSlots = await getBookedSlotsForDate(data.date, data.arenaId);
-    for (let i = 0; i < pkg.slotsBlocked; i++) {
+    for (let i = 0; i < requiredSlots; i++) {
       const t = daySlots[startIdx + i];
       if (bookedSlots.includes(t)) {
         return NextResponse.json(
           {
-            error: `${formatTimeDisplay(t)} is already taken. This party needs ${pkg.slotsBlocked} back-to-back slots free.`,
+            error: `${formatTimeDisplay(t)} is already taken. This party needs ${requiredSlots} back-to-back slots free.`,
           },
           { status: 409 }
         );
       }
     }
 
-    // Compute total: package base + add-ons.
+    // Compute total: flat per-kid rate × guestCount + add-ons.
     let addonTotal = 0;
     const addonNotes: string[] = [];
     for (const chosen of data.addons) {
@@ -142,28 +157,24 @@ export async function POST(request: NextRequest) {
       if (!def) continue;
       const qty = chosen.qty ?? 1;
       const cost =
-        def.unit === "per-kid" ? def.price * qty : def.price * (qty > 0 ? 1 : 0);
+        def.unit === "per-kid"
+          ? def.price * data.guestCount  // per-kid add-ons scale with guestCount, not the qty field
+          : def.price * (qty > 0 ? 1 : 0);
       if (cost > 0) {
         addonTotal += cost;
-        addonNotes.push(`${def.label} x${qty} = ₹${cost}`);
+        addonNotes.push(
+          def.unit === "per-kid"
+            ? `${def.label} × ${data.guestCount} kids = ₹${cost}`
+            : `${def.label} = ₹${cost}`
+        );
       }
     }
-    // Server-recomputed effective package price so a tampered client can't
-    // beat the launch-window rules. Launch pricing is party-date-driven:
-    // parties whose date falls in the window get 15% off Essentials/Plus.
-    const {
-      price: effectivePkgPrice,
-      originalPrice: pkgOriginalPrice,
-      isLaunchPrice,
-    } = getEffectivePackagePrice(pkg, data.date, getTodayISTString());
-    const amount = effectivePkgPrice + addonTotal;
-    // Rupees the customer saved from the launch discount (add-ons don't
-    // discount). Zero when the party date is outside the launch window
-    // or the tier is Ultimate (excluded from launch pricing).
-    const discountAmount = isLaunchPrice
-      ? Math.max(0, pkgOriginalPrice - effectivePkgPrice)
-      : 0;
-    // 18% GST on the post-discount amount, remitted to govt.
+    const packageSubtotal = pkg.pricePerKid * data.guestCount;
+    const amount = packageSubtotal + addonTotal;
+    // No launch discount post-2026-11-05 — the per-kid rate is the final
+    // price. If we introduce campaigns later they'd plug in here.
+    const discountAmount = 0;
+    // 18% GST on the amount, remitted to govt.
     const gstAmount = gstOn(amount);
 
     const bookingId = `TA-${nanoid(6).toUpperCase()}`;
@@ -190,7 +201,7 @@ export async function POST(request: NextRequest) {
       date: data.date,
       timeSlot: data.timeSlot,
       partySize: data.guestCount,
-      package: `birthday-${data.packageId}` as BookingRow["package"],
+      package: `birthday-${normalizedPackageId}` as BookingRow["package"],
       gamePreference: kidLabel,
       paymentStatus: "pending",
       paymentMethod: "razorpay",
@@ -246,7 +257,7 @@ export async function POST(request: NextRequest) {
         guestCount: data.guestCount,
         amount,
         advance: birthdayAdvance(amount),
-        slotsBlocked: pkg.slotsBlocked,
+        slotsBlocked: requiredSlots,
       },
       emailError,
     });

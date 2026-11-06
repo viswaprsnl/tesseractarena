@@ -6,31 +6,25 @@ import { motion } from "framer-motion";
 import { Cake, Users, Clock, Check, Sparkles, ChevronRight, Minus, Plus } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   BIRTHDAY_PACKAGES,
   BIRTHDAY_ADDONS,
   BIRTHDAY_ADVANCE_PERCENT,
-  LAUNCH_PRICING_END,
   birthdayAdvance,
-  getEffectivePackagePrice,
   whatsappBirthdayLink,
   type BirthdayPackage,
 } from "@/data/birthday";
-import { getTodayISTString, withGST } from "@/lib/booking-config";
+import { withGST } from "@/lib/booking-config";
 import { fadeInUp, staggerContainer } from "@/lib/animations";
 
-// Human-readable "Nov 11" style for the launch-window end date, used in the
-// "Founding families rate" banner. Derived from the constant so it stays in
-// sync if the window shifts.
-function formatLaunchEnd(iso: string): string {
-  const d = new Date(iso + "T00:00:00");
-  return d.toLocaleDateString("en-IN", { month: "short", day: "numeric" });
-}
+// Birthday landing page — post-2026-11-05 Option B rewrite. One flat
+// per-kid rate with every tier perk (lounge, themed decor, morning
+// buyout) available as an add-on. The page shows the base price up
+// front and lets parents stack add-ons live so the total they see
+// below is what they'll pay (ex-GST; the booking summary adds the
+// 18% GST line). All picks carry into the wizard through the
+// ?addons= URL param.
 
-// Serialise the parent-picked add-on quantities into a URL param the
-// birthday wizard understands. Empty selections drop out so a clean
-// "no add-ons" click still gets a clean URL.
 function encodeAddons(qty: Record<string, number>): string {
   return Object.entries(qty)
     .filter(([, n]) => n > 0)
@@ -38,48 +32,49 @@ function encodeAddons(qty: Record<string, number>): string {
     .join(",");
 }
 
-// The birthday landing page has two co-existing CTAs on every package card:
-// "Book online now" (fast lane for parents who know what they want) and
-// "WhatsApp us" (fallback for anyone who wants to discuss dates or
-// customizations before committing). We intentionally give WhatsApp equal
-// visual weight — many Indian parents prefer chat over form flows.
-
 export default function BirthdayPage() {
-  // Add-on selections made on this page follow the parent into the wizard
-  // via the ?addons= URL param on every "Book online now" link.
+  const pkg = BIRTHDAY_PACKAGES[0];
+
+  // Add-on selections. For flat add-ons we store 0 or 1; per-kid add-ons
+  // are stored as the requested quantity but priced against the actual
+  // guest count on the server (so parents can toggle them without
+  // picking a number).
   const [addonQty, setAddonQty] = useState<Record<string, number>>({});
-  // Bump by +1 / -1. Reads the previous quantity inside the setter so rapid
-  // clicks don't collapse into a single increment (the standard React
-  // closure trap — using a target value from the render frame would).
-  const bumpQty = (id: string, delta: number) =>
-    setAddonQty((q) => ({
-      ...q,
-      [id]: Math.max(0, (q[id] ?? 0) + delta),
-    }));
-  const toggleFlat = (id: string) =>
+  const [guestCount, setGuestCount] = useState(pkg.minKids);
+
+  const toggleAddon = (id: string) =>
     setAddonQty((q) => ({ ...q, [id]: (q[id] ?? 0) > 0 ? 0 : 1 }));
 
-  const addonsSubtotal = BIRTHDAY_ADDONS.reduce((sum, a) => {
-    const n = addonQty[a.id] ?? 0;
-    if (n <= 0) return sum;
-    return sum + (a.unit === "per-kid" ? a.price * n : a.price);
+  const bumpGuests = (delta: number) =>
+    setGuestCount((n) => Math.max(pkg.minKids, Math.min(pkg.maxKids, n + delta)));
+
+  // Live preview total — mirrors the /api/birthday math so parents see
+  // the same number here and in the wizard.
+  const addonsTotal = BIRTHDAY_ADDONS.reduce((sum, a) => {
+    const picked = (addonQty[a.id] ?? 0) > 0;
+    if (!picked) return sum;
+    return sum + (a.unit === "per-kid" ? a.price * guestCount : a.price);
   }, 0);
+  const packageTotal = pkg.pricePerKid * guestCount;
+  const grandTotal = packageTotal + addonsTotal;
+  const advance = birthdayAdvance(grandTotal);
+  const perKidEffective = Math.round(grandTotal / guestCount);
   const addonsPickedCount = Object.values(addonQty).filter((n) => n > 0).length;
+
   const addonQuery = encodeAddons(addonQty);
-  const bookHref = (packageId: string) =>
-    addonQuery
-      ? `/birthday/book?package=${packageId}&addons=${encodeURIComponent(addonQuery)}`
-      : `/birthday/book?package=${packageId}`;
+  const bookHref = addonQuery
+    ? `/birthday/book?addons=${encodeURIComponent(addonQuery)}&kids=${guestCount}`
+    : `/birthday/book?kids=${guestCount}`;
 
   return (
     <div className="pt-24 pb-16 px-4">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         {/* Hero */}
         <motion.section
           initial="hidden"
           animate="visible"
           variants={staggerContainer}
-          className="text-center mb-16"
+          className="text-center mb-14"
         >
           <motion.div variants={fadeInUp} className="inline-flex items-center gap-2 mb-4">
             <Sparkles size={16} className="text-primary" />
@@ -98,15 +93,16 @@ export default function BirthdayPage() {
             variants={fadeInUp}
             className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-8"
           >
-            Free-roam VR, a dedicated host, decorations, and a private lounge —
-            packaged so parents can book in under a minute. Pay 25% online (+ GST)
-            to hold your slot; settle the rest at the arena on the day.
+            One flat per-kid rate. Every tier-upgrade perk (private lounge,
+            themed decor, morning buyout) available as an add-on. Pay
+            {" "}{BIRTHDAY_ADVANCE_PERCENT}% online to hold your slot; settle
+            the rest at the arena.
           </motion.p>
           <motion.div variants={fadeInUp} className="flex flex-wrap justify-center gap-3">
-            <a href="#packages">
+            <a href="#build">
               <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
                 <Cake size={16} className="mr-2" />
-                See packages
+                Build your party
               </Button>
             </a>
             <a href={whatsappBirthdayLink()} target="_blank" rel="noopener noreferrer">
@@ -119,20 +115,6 @@ export default function BirthdayPage() {
               </Button>
             </a>
           </motion.div>
-
-          {/* Launch banner — only appears while the promotion is active,
-              driven by the same LAUNCH_PRICING_END constant that gates the
-              discount itself. */}
-          <motion.div
-            variants={fadeInUp}
-            className="inline-flex items-center gap-2 mt-8 px-4 py-2 rounded-full bg-green-500/10 border border-green-500/30"
-          >
-            <Sparkles size={14} className="text-green-400" />
-            <span className="text-xs sm:text-sm text-green-400 font-medium">
-              Founding families rate — 15% off Essentials &amp; Plus for parties
-              booked before {formatLaunchEnd(LAUNCH_PRICING_END)}
-            </span>
-          </motion.div>
         </motion.section>
 
         {/* Value strip */}
@@ -144,9 +126,9 @@ export default function BirthdayPage() {
           className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-16"
         >
           {[
-            { icon: Users, label: "Up to 16 kids", sub: "across staggered waves" },
-            { icon: Clock, label: "90 min - 3 hr", sub: "multi-rotation packages" },
-            { icon: Cake, label: "Cake + decor", sub: "themed to your kid" },
+            { icon: Users, label: `Up to ${pkg.maxKids} kids`, sub: "across staggered waves" },
+            { icon: Clock, label: "2 - 3 hr", sub: "with morning buyout add-on" },
+            { icon: Cake, label: "Cake + decor", sub: "add themes & custom cake" },
             { icon: Sparkles, label: "Zero PC/setup", sub: "standalone VR only" },
           ].map((v) => (
             <motion.div
@@ -161,9 +143,9 @@ export default function BirthdayPage() {
           ))}
         </motion.section>
 
-        {/* Packages */}
+        {/* Build-your-party configurator */}
         <motion.section
-          id="packages"
+          id="build"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.1 }}
@@ -172,133 +154,196 @@ export default function BirthdayPage() {
         >
           <motion.div variants={fadeInUp} className="text-center mb-10">
             <h2 className="text-2xl sm:text-3xl font-bold mb-2">
-              Pick a <span className="gradient-text">package</span>
+              Build your <span className="gradient-text">party</span>
             </h2>
             <p className="text-xs text-muted-foreground">
-              Every package includes the arena, host, safety gear, and slot-hold —
-              differences are in duration, group size, and extras.
+              Pick a group size, add the extras you want, see the total live.
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {BIRTHDAY_PACKAGES.map((pkg) => (
-              <PackageCard key={pkg.id} pkg={pkg} bookHref={bookHref(pkg.id)} addonsSubtotal={addonsSubtotal} />
-            ))}
-          </div>
-        </motion.section>
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            {/* Left: base package + guest stepper */}
+            <motion.div variants={fadeInUp} className="lg:col-span-3 space-y-5">
+              <div className="glass-card p-6">
+                <h3 className="font-heading text-xl font-bold mb-1">{pkg.name}</h3>
+                <p className="text-xs text-muted-foreground italic mb-4">{pkg.tagline}</p>
 
-        {/* Add-ons */}
-        <motion.section
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.2 }}
-          variants={staggerContainer}
-          className="mb-16"
-        >
-          <motion.div variants={fadeInUp} className="text-center mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-2">
-              Optional <span className="gradient-text">add-ons</span>
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Tap + to include with your booking. Your picks travel to the checkout
-              automatically.
-            </p>
-          </motion.div>
+                <div className="flex items-baseline gap-2 mb-5">
+                  <span className="text-4xl font-bold">
+                    ₹{pkg.pricePerKid.toLocaleString("en-IN")}
+                  </span>
+                  <span className="text-sm text-muted-foreground">/ kid · excl. GST</span>
+                </div>
 
-          {addonsPickedCount > 0 && (
-            <motion.div
-              variants={fadeInUp}
-              className="glass-card p-3 mb-4 text-xs flex items-center justify-between border border-primary/30"
-            >
-              <span className="text-muted-foreground">
-                {addonsPickedCount} add-on{addonsPickedCount === 1 ? "" : "s"} selected
-              </span>
-              <span className="font-bold text-primary">
-                + ₹{addonsSubtotal.toLocaleString("en-IN")}
-              </span>
-            </motion.div>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {BIRTHDAY_ADDONS.map((a) => {
-              const qty = addonQty[a.id] ?? 0;
-              const isPerKid = a.unit === "per-kid";
-              return (
-                <motion.div
-                  key={a.id}
-                  variants={fadeInUp}
-                  className={`glass-card p-4 transition-colors ${
-                    qty > 0 ? "border border-primary/40" : ""
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium mb-1">{a.label}</p>
-                      <p className="text-xs text-muted-foreground">{a.description}</p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-lg font-bold">
-                        ₹{a.price.toLocaleString("en-IN")}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {isPerKid ? "per kid" : "flat"}
-                      </p>
-                    </div>
+                {/* Guest stepper */}
+                <div className="flex items-center justify-between gap-4 mb-5 pb-5 border-b border-white/10">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">How many kids?</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Min {pkg.minKids}, max {pkg.maxKids}.
+                    </p>
                   </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <button
+                      onClick={() => bumpGuests(-1)}
+                      disabled={guestCount <= pkg.minKids}
+                      className="w-9 h-9 rounded-lg bg-secondary hover:bg-primary/20 disabled:opacity-30 flex items-center justify-center"
+                      aria-label="Remove one kid"
+                    >
+                      <Minus size={16} />
+                    </button>
+                    <span className="text-2xl font-bold w-10 text-center tabular-nums">
+                      {guestCount}
+                    </span>
+                    <button
+                      onClick={() => bumpGuests(1)}
+                      disabled={guestCount >= pkg.maxKids}
+                      className="w-9 h-9 rounded-lg bg-primary hover:bg-primary/80 text-primary-foreground disabled:opacity-30 flex items-center justify-center"
+                      aria-label="Add one kid"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
+                </div>
 
-                  {isPerKid ? (
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">
-                        {qty > 0
-                          ? `${qty} kid${qty === 1 ? "" : "s"} · +₹${(a.price * qty).toLocaleString("en-IN")}`
-                          : "Not added"}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => bumpQty(a.id, -1)}
-                          disabled={qty === 0}
-                          className="w-7 h-7 rounded bg-secondary hover:bg-primary/20 disabled:opacity-30 flex items-center justify-center"
-                          aria-label={`Remove one ${a.label}`}
-                        >
-                          <Minus size={12} />
-                        </button>
-                        <span className="w-6 text-center text-sm font-medium">{qty}</span>
-                        <button
-                          onClick={() => bumpQty(a.id, 1)}
-                          className="w-7 h-7 rounded bg-primary hover:bg-primary/80 text-primary-foreground flex items-center justify-center"
-                          aria-label={`Add one ${a.label}`}
-                        >
-                          <Plus size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex justify-end">
-                      <Button
-                        onClick={() => toggleFlat(a.id)}
-                        variant={qty > 0 ? "default" : "outline"}
-                        size="sm"
-                        className={
-                          qty > 0
-                            ? "bg-primary hover:bg-primary/90 text-primary-foreground text-xs"
-                            : "text-xs"
-                        }
+                <ul className="space-y-2 text-xs">
+                  {pkg.includes.map((line) => (
+                    <li key={line} className="flex items-start gap-2">
+                      <Check size={12} className="text-primary mt-0.5 shrink-0" />
+                      <span className="text-muted-foreground">{line}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Add-ons */}
+              <div>
+                <h3 className="font-heading text-sm uppercase tracking-wider text-muted-foreground mb-3">
+                  Add-ons
+                </h3>
+                <div className="space-y-2">
+                  {BIRTHDAY_ADDONS.map((a) => {
+                    const picked = (addonQty[a.id] ?? 0) > 0;
+                    const lineCost =
+                      a.unit === "per-kid" ? a.price * guestCount : a.price;
+                    return (
+                      <button
+                        key={a.id}
+                        type="button"
+                        onClick={() => toggleAddon(a.id)}
+                        className={`w-full text-left glass-card p-4 transition-colors border ${
+                          picked
+                            ? "border-primary/40 glow-violet"
+                            : "border-white/10 hover:border-white/25"
+                        }`}
                       >
-                        {qty > 0 ? (
-                          <>
-                            <Check size={12} className="mr-1" /> Added
-                          </>
-                        ) : (
-                          <>
-                            <Plus size={12} className="mr-1" /> Add
-                          </>
-                        )}
-                      </Button>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium">
+                              {a.label}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              {a.description}
+                            </p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-sm font-bold">
+                              ₹{lineCost.toLocaleString("en-IN")}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {a.unit === "per-kid" ? `${guestCount} × ₹${a.price}` : "flat"}
+                            </p>
+                          </div>
+                          <div
+                            className={`shrink-0 w-6 h-6 rounded-md flex items-center justify-center transition-colors ${
+                              picked
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-secondary/60 text-muted-foreground"
+                            }`}
+                            aria-hidden="true"
+                          >
+                            {picked ? <Check size={14} /> : <Plus size={14} />}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Right: live total card (sticky on desktop) */}
+            <motion.div variants={fadeInUp} className="lg:col-span-2">
+              <div className="glass-card p-6 lg:sticky lg:top-24">
+                <h3 className="font-heading text-xs tracking-wider uppercase text-muted-foreground mb-4">
+                  Your party
+                </h3>
+                <div className="space-y-2 text-sm pb-4 border-b border-white/10">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      {pkg.name} ({guestCount} × ₹{pkg.pricePerKid})
+                    </span>
+                    <span>₹{packageTotal.toLocaleString("en-IN")}</span>
+                  </div>
+                  {addonsPickedCount > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        Add-ons ({addonsPickedCount})
+                      </span>
+                      <span>+ ₹{addonsTotal.toLocaleString("en-IN")}</span>
                     </div>
                   )}
-                </motion.div>
-              );
-            })}
+                </div>
+                <div className="space-y-1 pt-4 pb-4 border-b border-white/10">
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-sm text-muted-foreground">
+                      Total (excl. GST)
+                    </span>
+                    <span className="text-2xl font-bold">
+                      ₹{grandTotal.toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground/70">
+                    ₹{withGST(grandTotal).toLocaleString("en-IN")} incl. 18% GST ·
+                    ₹{perKidEffective.toLocaleString("en-IN")} per kid
+                  </p>
+                </div>
+                <div className="pt-4">
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Pay{" "}
+                    <strong className="text-primary">
+                      ₹{withGST(advance).toLocaleString("en-IN")}
+                    </strong>{" "}
+                    online now ({BIRTHDAY_ADVANCE_PERCENT}%). Balance of{" "}
+                    ₹{withGST(grandTotal - advance).toLocaleString("en-IN")} at
+                    the arena.
+                  </p>
+                  <Link href={bookHref}>
+                    <Button
+                      size="lg"
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                    >
+                      <Cake size={16} className="mr-2" />
+                      Book online now
+                    </Button>
+                  </Link>
+                  <a
+                    href={whatsappBirthdayLink(pkg)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block mt-2"
+                  >
+                    <Button
+                      variant="outline"
+                      className="w-full border-[#25D366]/50 text-[#25D366] hover:bg-[#25D366]/10 hover:text-[#25D366]"
+                    >
+                      <WhatsAppIcon size={14} className="mr-2" />
+                      WhatsApp about this party
+                    </Button>
+                  </a>
+                </div>
+              </div>
+            </motion.div>
           </div>
         </motion.section>
 
@@ -367,126 +412,6 @@ export default function BirthdayPage() {
   );
 }
 
-function PackageCard({
-  pkg,
-  bookHref,
-  addonsSubtotal,
-}: {
-  pkg: BirthdayPackage;
-  bookHref: string;
-  addonsSubtotal: number;
-}) {
-  // Launch-price treatment shows the discounted package cost with the
-  // original struck through and a "Founding families rate" badge. Ultimate
-  // is not on the eligible list, so it renders unchanged.
-  const today = getTodayISTString();
-  const { price: effectivePkgPrice, originalPrice, isLaunchPrice } =
-    getEffectivePackagePrice(pkg, null, today);
-  const total = effectivePkgPrice + addonsSubtotal;
-  const originalTotal = originalPrice + addonsSubtotal;
-  const advance = birthdayAdvance(total);
-  return (
-    <motion.div
-      variants={fadeInUp}
-      className={`glass-card p-6 relative flex flex-col ${
-        pkg.popular ? "border-primary/40 glow-violet" : ""
-      }`}
-    >
-      {pkg.popular && (
-        <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] whitespace-nowrap">
-          Most booked
-        </Badge>
-      )}
-      {isLaunchPrice && (
-        <Badge className="absolute -top-3 right-4 bg-green-500/90 text-white text-[10px] whitespace-nowrap">
-          Founding families rate
-        </Badge>
-      )}
-
-      <div className="text-center mb-5">
-        <h3 className="font-heading text-xl font-bold mb-1">{pkg.name}</h3>
-        <p className="text-[11px] text-muted-foreground italic">{pkg.tagline}</p>
-      </div>
-
-      <div className="text-center mb-5">
-        {isLaunchPrice && (
-          <p className="text-sm text-muted-foreground line-through leading-none mb-1">
-            ₹{originalTotal.toLocaleString("en-IN")}
-          </p>
-        )}
-        <p className={`text-4xl font-bold ${isLaunchPrice ? "text-green-400" : ""}`}>
-          ₹{total.toLocaleString("en-IN")}
-          <span className="text-xs text-muted-foreground font-normal ml-1">
-            {addonsSubtotal > 0 ? "with add-ons" : "flat"}
-          </span>
-        </p>
-        <p className="text-[10px] text-muted-foreground/70 mt-0.5">
-          excl. GST · ₹{withGST(total).toLocaleString("en-IN")} incl. GST
-        </p>
-        {addonsSubtotal > 0 && (
-          <p className="text-[10px] text-muted-foreground mt-1">
-            ₹{effectivePkgPrice.toLocaleString("en-IN")} package + ₹
-            {addonsSubtotal.toLocaleString("en-IN")} add-ons
-          </p>
-        )}
-        {isLaunchPrice && (
-          <p className="text-[10px] text-green-400/90 mt-1">
-            15% off for parties booked before {formatLaunchEnd(LAUNCH_PRICING_END)}
-          </p>
-        )}
-        <p className="text-[11px] text-muted-foreground mt-1">
-          Pay ₹{withGST(advance).toLocaleString("en-IN")} online ·
-          ₹{withGST(total - advance).toLocaleString("en-IN")} at the arena
-        </p>
-      </div>
-
-      <div className="flex justify-center gap-3 text-[11px] text-muted-foreground mb-5">
-        <span className="flex items-center gap-1">
-          <Users size={11} className="text-primary" /> up to {pkg.maxKids}
-        </span>
-        <span className="flex items-center gap-1">
-          <Clock size={11} className="text-primary" /> {pkg.durationLabel}
-        </span>
-      </div>
-
-      <ul className="space-y-2 text-xs mb-6 flex-1">
-        {pkg.includes.map((line) => (
-          <li key={line} className="flex items-start gap-2">
-            <Check size={12} className="text-primary mt-0.5 shrink-0" />
-            <span className="text-muted-foreground">{line}</span>
-          </li>
-        ))}
-      </ul>
-
-      <div className="space-y-2">
-        <Link href={bookHref}>
-          <Button
-            size="lg"
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-          >
-            <Cake size={16} className="mr-2" />
-            Book online now
-          </Button>
-        </Link>
-        <a
-          href={whatsappBirthdayLink(pkg)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block"
-        >
-          <Button
-            variant="outline"
-            className="w-full border-[#25D366]/50 text-[#25D366] hover:bg-[#25D366]/10 hover:text-[#25D366]"
-          >
-            <WhatsAppIcon size={14} className="mr-2" />
-            WhatsApp about this package
-          </Button>
-        </a>
-      </div>
-    </motion.div>
-  );
-}
-
 const FAQ: { q: string; a: string }[] = [
   {
     q: `What ages does the party work for?`,
@@ -494,22 +419,22 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: `How does the ${BIRTHDAY_ADVANCE_PERCENT}% advance work?`,
-    a: `You pay ${BIRTHDAY_ADVANCE_PERCENT}% online via Razorpay to hold your date and time slot. The remaining ${100 - BIRTHDAY_ADVANCE_PERCENT}% is settled in cash / UPI / card at the counter on the day of the party. Full refund if you cancel more than 48 hours before the party.`,
+    a: `You pay ${BIRTHDAY_ADVANCE_PERCENT}% of the total online via Razorpay to hold your date and time slot. The remaining ${100 - BIRTHDAY_ADVANCE_PERCENT}% is settled in cash / UPI / card at the counter on the day of the party. Full refund if you cancel more than 48 hours before the party.`,
   },
   {
     q: `Can I bring my own cake?`,
-    a: `Yes, absolutely — BYO cake is welcome on any package with no extra fee. If you'd rather we arrange one, add the "Branded custom cake" add-on for ₹1,999 and our bakery partner handles it.`,
+    a: `Yes, absolutely — BYO cake is welcome with no extra fee. If you'd rather we arrange one, add the "Branded custom cake" add-on for ₹1,999 and our bakery partner handles it.`,
   },
   {
-    q: `What if we're a bigger group than the package caps?`,
-    a: `Add the "Extra kid over cap" add-on at ₹1,299 per additional child (up to 4 extras — beyond that we need another wave). For groups larger than 24, WhatsApp us — we'll build a custom quote and probably need to combine sessions or block extra slots.`,
+    q: `Why is there a minimum of 8 kids?`,
+    a: `The party format needs enough kids to split into rotation waves (so one group plays while the other is in the lounge or eating cake). Under 8 feels empty for a party and makes the per-kid math uneconomical. For smaller groups, just book a regular session from the home page — same games, no party extras.`,
   },
   {
     q: `Can parents play too?`,
-    a: `A couple of parents joining the VR is fine and included; just tell your host on arrival. If a whole cohort of adults wants to play, we'd suggest a Squad or Party booking on a separate slot right after your kids' party.`,
+    a: `A couple of parents joining the VR is fine and included; just tell your host on arrival. If a whole cohort of adults wants to play, we'd suggest booking a separate adult session on an adjacent slot.`,
   },
   {
     q: `Do you handle food?`,
-    a: `We don't have an in-house kitchen. Preston Prime Mall has plenty of options right outside our door — most parties either grab a bite before, order to the private lounge, or head out together after cake. We handle the arena; food's on you (or us to point you at the mall).`,
+    a: `We don't have an in-house kitchen. Preston Prime Mall has plenty of options right outside our door — most parties either grab a bite before, order to the private lounge (if you added the lounge add-on), or head out together after cake.`,
   },
 ];

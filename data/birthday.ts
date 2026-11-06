@@ -1,11 +1,20 @@
-// Birthday-party package definitions used by both the /birthday landing page
-// and the /birthday/book wizard. Prices are market-anchored against
-// Enter Totem Bangalore (₹1,099-₹1,600/kid free-roam VR birthday floor),
-// Anvio Bengaluru (₹1,399+ adult play), and Dubai/US ceilings (₹4-7k/kid).
-// Sits above Smaaash arcade tier, matches Enter Totem free-roam VR floor
-// with an Anvio premium justification.
+// Birthday-party pricing — flat per-kid model (Option B, 2026-11-05).
+//
+// Previously three tiers (Essentials/Plus/Ultimate) with fixed group caps
+// and bundled extras. The new model is ONE flat per-kid rate with every
+// tier-level perk (lounge, themed decor, morning buyout) available as an
+// optional add-on. Simpler to quote, respects the "per-kid cost should
+// never exceed the equivalent solo gameplay cost (~₹2,098)" rule at every
+// group size, and matches the per-game simplification shipped at the same
+// time. Legacy package IDs (birthday-essentials/plus/ultimate) are kept
+// in the type union (lib/booking-types.ts) so historical sheet rows
+// still parse.
+//
+// Prices are market-anchored against Enter Totem Bangalore (₹1,099-₹1,600/
+// kid free-roam VR birthday floor) — the flat ₹1,499/kid sits in that band
+// while leaving room for decor + lounge upgrades.
 
-export type BirthdayPackageId = "essentials" | "plus" | "ultimate";
+export type BirthdayPackageId = "standard";
 
 export interface BirthdayAddon {
   id: string;
@@ -13,99 +22,87 @@ export interface BirthdayAddon {
   price: number;
   unit: "flat" | "per-kid";
   description: string;
+  // When true, this add-on bumps the slot-block requirement by 1 (so the
+  // server reserves the extra consecutive slot needed for the longer
+  // format). Currently only the morning-buyout add-on sets this.
+  extendsSlots?: boolean;
 }
 
 export interface BirthdayPackage {
   id: BirthdayPackageId;
   name: string;
-  price: number;
+  // Flat per-kid rate, ex-GST. Session total is pricePerKid × guestCount.
+  pricePerKid: number;
+  minKids: number;
   maxKids: number;
+  // Baseline duration — a party books this many consecutive 1-hour slots
+  // unless the morning-buyout add-on bumps it.
+  baseSlotsBlocked: number;
   durationLabel: string;
-  slotsBlocked: number;
-  popular?: boolean;
   tagline: string;
   includes: string[];
 }
 
+// One package, one rate. Everything else is an add-on.
 export const BIRTHDAY_PACKAGES: BirthdayPackage[] = [
   {
-    id: "essentials",
-    name: "Party Essentials",
-    price: 10999,
-    maxKids: 8,
-    durationLabel: "90 min · 1 Anvio + 1 HeroZone",
-    // 2 × 1-hour slots covers the 90-min experience + changeover time.
-    // Dropped from 3 when slot duration moved from 40 min to 60 min.
-    slotsBlocked: 2,
-    tagline: "The clean fun one — full 8-player squad, back-to-back VR.",
-    includes: [
-      "Up to 8 kids in the arena",
-      "90 min · 1 Anvio rotation + 1 HeroZone rotation per kid",
-      "Our host picks age-appropriate Anvio & HeroZone titles for the group",
-      "Dedicated party host",
-      "Basic table decor — balloons + banner at the party bay",
-      "All safety gear + waiver assistance",
-    ],
-  },
-  {
-    id: "plus",
-    name: "Party Plus",
-    price: 18999,
-    maxKids: 12,
+    id: "standard",
+    name: "Birthday Party",
+    pricePerKid: 1499,
+    minKids: 8,
+    maxKids: 24,
+    baseSlotsBlocked: 2,
     durationLabel: "2 hr · 1 Anvio + 1 HeroZone per kid",
-    // 2 × 1-hour slots = the "2 hr" the label promises.
-    // Dropped from 3 when slot duration moved from 40 min to 60 min.
-    slotsBlocked: 2,
-    popular: true,
-    tagline: "Our most-booked — Anvio + HeroZone in a private lounge.",
+    tagline:
+      "One flat per-kid rate, every perk à la carte. Build the party your kid actually wants.",
     includes: [
-      "Up to 12 kids across 2 staggered waves",
-      "2 hr · each kid gets 1 Anvio rotation + 1 HeroZone rotation",
-      "Our host picks age-appropriate Anvio & HeroZone titles for the group",
-      "Themed party decorations",
-      "Private lounge access for cake-cutting",
-      "Dedicated event host",
-      "Host-shot party photos shared on WhatsApp",
-    ],
-  },
-  {
-    id: "ultimate",
-    name: "Ultimate Party",
-    price: 32999,
-    maxKids: 16,
-    durationLabel: "3 hr morning buyout · 1 Anvio + 1 HeroZone per kid",
-    // 1-hour slots × 3 = the "3 hr morning buyout" the label promises.
-    // Dropped from 5 when slot duration moved from 40 min to 60 min.
-    slotsBlocked: 3,
-    tagline: "The full experience — full-venue morning buyout, Anvio + HeroZone.",
-    includes: [
-      "Up to 16 kids across 2 staggered waves",
-      "3 hr morning buyout (11 AM-2 PM weekends) — no other bookings share the arena",
-      "Each kid gets 1 Anvio rotation + 1 HeroZone rotation (longer rotations)",
-      "Our host picks age-appropriate Anvio & HeroZone titles for the group",
-      "Premium themed decoration setup",
-      "Private lounge for the entire booking",
-      "Dedicated event host",
-      "Host-shot party photos shared on WhatsApp",
-      "Priority cancellation / rebooking window",
+      "₹1,499 per kid (ex-GST) — minimum 8, up to 24 across staggered waves",
+      "1 Anvio rotation + 1 HeroZone rotation per kid (our host picks age-appropriate titles)",
+      "2-hour arena block (add Morning Buyout below for 3 hr full-venue)",
+      "Dedicated party host for the whole booking",
+      "Basic table decor — balloons + banner at the party bay",
+      "All safety gear + waiver assistance for every guest",
     ],
   },
 ];
 
+// Add-on catalogue. Order here is the display order in the landing-page
+// grid and the wizard. Keep the tier-upgrade add-ons (themed decor,
+// lounge, morning buyout) above the per-kid ones so parents see the
+// biggest experience bumps first.
 export const BIRTHDAY_ADDONS: BirthdayAddon[] = [
   {
-    id: "extra-kid",
-    label: "Extra kid over cap",
-    price: 1299,
-    unit: "per-kid",
-    description: "Bring one more friend beyond the package's max. Priced to reflect the incremental rotation slot they take.",
+    id: "themed-decor",
+    label: "Themed party decoration",
+    price: 1999,
+    unit: "flat",
+    description:
+      "Full themed setup around the party bay — superhero, princess, neon, or custom. Lands configured before guests arrive.",
+  },
+  {
+    id: "private-lounge",
+    label: "Private lounge access",
+    price: 2999,
+    unit: "flat",
+    description:
+      "Dedicated lounge for cake-cutting, gifts, and food between rotations. Seats 12 comfortably.",
+  },
+  {
+    id: "morning-buyout",
+    label: "Morning full-arena buyout (3 hr)",
+    price: 5999,
+    unit: "flat",
+    description:
+      "Lock the whole arena for your party (11 AM–2 PM weekends). Adds a third rotation per kid, no other bookings share the space.",
+    extendsSlots: true,
   },
   {
     id: "custom-cake",
     label: "Branded custom cake",
     price: 1999,
     unit: "flat",
-    description: "Themed birthday cake baked to order by our bakery partner. BYO cake is welcome too — no extra fee.",
+    description:
+      "Themed birthday cake baked to order by our bakery partner. BYO cake is welcome too — no extra fee.",
   },
   {
     id: "party-favors",
@@ -114,62 +111,30 @@ export const BIRTHDAY_ADDONS: BirthdayAddon[] = [
     unit: "per-kid",
     description: "Take-home goodie bag for each kid.",
   },
-  // Removed: "Professional photographer" add-on — pulled out until the
-  // photographer partnership is actually lined up so we don't offer
-  // something we can't deliver.
 ];
 
-// Percentage of package price collected as an online advance to hold the
-// slot. Rest is settled at the arena on the day of the party. Raised from
-// 20% to 25% to better absorb late-cancellation risk on higher-ticket
-// packages.
+// Percentage of total collected as the online advance to hold the slot.
+// Rest paid at the arena on the day. Unchanged from the tiered model.
 export const BIRTHDAY_ADVANCE_PERCENT = 25;
 
 export function birthdayAdvance(total: number): number {
   return Math.round((total * BIRTHDAY_ADVANCE_PERCENT) / 100);
 }
 
-// ---------------------------------------------------------------------------
-// Launch pricing — "Founding families rate"
-// ---------------------------------------------------------------------------
-// A 15% introductory discount on Essentials + Plus for parties whose date
-// falls within the launch window below. Meant to seed the first wave of
-// bookings and word-of-mouth before the arena has any local reference
-// customers to lean on. Ultimate is intentionally excluded — it's the
-// aspirational premium tier and shouldn't be discounted.
-//
-// Dates are in Asia/Kolkata (see getTodayISTString). Window inclusive on
-// both ends. To end the promotion early, set LAUNCH_PRICING_END to a past
-// date and the discount silently stops applying everywhere.
-
-export const LAUNCH_PRICING_START = "2026-09-12";
-export const LAUNCH_PRICING_END = "2026-11-11";
-export const LAUNCH_DISCOUNT_PERCENT = 15;
-const LAUNCH_ELIGIBLE_IDS: BirthdayPackageId[] = ["essentials", "plus"];
-
-// A YYYY-MM-DD Asia/Kolkata date is inside the launch window.
-export function isLaunchWindow(dateISO: string): boolean {
-  return dateISO >= LAUNCH_PRICING_START && dateISO <= LAUNCH_PRICING_END;
-}
-
-// Effective price for a package given the party date. When no date is
-// picked yet (landing page cards), we fall back to "today" so the launch
-// price shows as long as the promo is live.
-export function getEffectivePackagePrice(
+// Compute the slots a booking needs based on the baseline + whether the
+// morning-buyout add-on is in the list. Keep this as a pure function so
+// both the client and /api/birthday can derive the same answer.
+export function birthdayRequiredSlots(
   pkg: BirthdayPackage,
-  partyDateISO: string | null,
-  todayISO: string
-): { price: number; originalPrice: number; isLaunchPrice: boolean } {
-  const dateForCheck = partyDateISO ?? todayISO;
-  const eligible = LAUNCH_ELIGIBLE_IDS.includes(pkg.id);
-  if (isLaunchWindow(dateForCheck) && eligible) {
-    return {
-      price: Math.round((pkg.price * (100 - LAUNCH_DISCOUNT_PERCENT)) / 100),
-      originalPrice: pkg.price,
-      isLaunchPrice: true,
-    };
-  }
-  return { price: pkg.price, originalPrice: pkg.price, isLaunchPrice: false };
+  addonIds: string[]
+): number {
+  const addonExtends = BIRTHDAY_ADDONS.some(
+    (a) => a.extendsSlots && addonIds.includes(a.id)
+  );
+  // Morning buyout bumps the block to 3 hours (3 slots) from the
+  // baseline 2. If baseline is already larger (shouldn't happen with
+  // the current single package but future-proof), keep the baseline.
+  return addonExtends ? Math.max(pkg.baseSlotsBlocked, 3) : pkg.baseSlotsBlocked;
 }
 
 // Re-exported for backward compatibility with older imports. New code
@@ -180,7 +145,7 @@ import { WHATSAPP_NUMBER as _WA } from "@/lib/contact";
 export function whatsappBirthdayLink(pkg?: BirthdayPackage): string {
   const base = `https://wa.me/${_WA}`;
   const msg = pkg
-    ? `Hi! I'd like to book the ${pkg.name} birthday package at Tesseract Arena. Can you help me with dates?`
+    ? `Hi! I'd like to book a ${pkg.name} at Tesseract Arena. Can you help me with dates?`
     : `Hi! I'd like to plan a birthday party at Tesseract Arena. Can you share options?`;
   return `${base}?text=${encodeURIComponent(msg)}`;
 }

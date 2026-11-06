@@ -24,12 +24,11 @@ import {
   BIRTHDAY_ADDONS,
   BIRTHDAY_ADVANCE_PERCENT,
   birthdayAdvance,
-  getEffectivePackagePrice,
+  birthdayRequiredSlots,
   whatsappBirthdayLink,
-  type BirthdayPackage,
   type BirthdayPackageId,
 } from "@/data/birthday";
-import { getTodayISTString, withGST, gstOn, GST_PERCENT } from "@/lib/booking-config";
+import { withGST, gstOn, GST_PERCENT } from "@/lib/booking-config";
 import type { TimeSlot } from "@/lib/booking-types";
 import { formatTimeDisplay } from "@/lib/booking-config";
 
@@ -125,15 +124,27 @@ function parseAddonsParam(raw: string | null): Record<string, number> {
 export function BirthdayWizard() {
   const router = useRouter();
   const search = useSearchParams();
-  const requested = (search.get("package") || "plus") as BirthdayPackageId;
-  const initialPkg = BIRTHDAY_PACKAGES.find((p) => p.id === requested)
-    ? requested
-    : "plus";
+  // Only one package post-2026-11-05. Legacy ?package=essentials|plus|
+  // ultimate URLs still work (they all map to "standard"); parents
+  // bookmarking an old landing-page tier card don't 404.
   const initialAddons = parseAddonsParam(search.get("addons"));
+  // Pre-fill guest count from the landing-page configurator (?kids=N).
+  // Default to pkg.minKids if absent or invalid.
+  const initialGuestCount = (() => {
+    const raw = parseInt(search.get("kids") || "", 10);
+    const pkg0 = BIRTHDAY_PACKAGES[0];
+    if (!Number.isFinite(raw)) return "";
+    const clamped = Math.max(pkg0.minKids, Math.min(pkg0.maxKids, raw));
+    return String(clamped);
+  })();
 
   const [state, setState] = useState<BirthdayState>({
-    step: 1,
-    packageId: initialPkg,
+    // Package-selection step retired — there's only one package now.
+    // Start at step 2 (date) and remap step numbers so the indicator
+    // shows 4 dots instead of 5. Keeping the 1..5 type union to avoid
+    // a wider state-shape change; just never land on step 1.
+    step: 2,
+    packageId: "standard",
     selectedDate: null,
     selectedSlot: null,
     selectedSlotDisplay: null,
@@ -142,7 +153,7 @@ export function BirthdayWizard() {
     parentPhone: "",
     birthdayKidName: "",
     birthdayKidAge: "",
-    guestCount: "",
+    guestCount: initialGuestCount,
     specialRequests: "",
     addonQty: initialAddons,
     availableSlots: [],
@@ -166,22 +177,30 @@ export function BirthdayWizard() {
     };
   }, []);
 
-  // Effective package price for the picked party date (falls back to "today"
-  // when the customer hasn't picked a date yet, so the initial cards still
-  // reflect the current promo status). Launch pricing is a 15% discount on
-  // Essentials + Plus for parties within the launch window.
-  const today = getTodayISTString();
-  const { price: effectivePkgPrice, originalPrice: pkgOriginalPrice, isLaunchPrice } =
-    getEffectivePackagePrice(pkg, state.selectedDate || null, today);
+  // Flat per-kid pricing. When no guest count is picked yet (empty
+  // string), fall back to pkg.minKids for the preview so the summary
+  // card isn't ₹0.
+  const guestCountNum = Number(state.guestCount || pkg.minKids);
+  const packageSubtotal = pkg.pricePerKid * guestCountNum;
 
-  // Compute total including add-ons.
+  // Add-ons: flat add-ons priced once; per-kid add-ons priced against
+  // the guest count. Mirrors /api/birthday.
   const addonTotal = BIRTHDAY_ADDONS.reduce((sum, def) => {
-    const qty = state.addonQty[def.id] ?? 0;
-    if (qty <= 0) return sum;
-    return sum + (def.unit === "per-kid" ? def.price * qty : def.price);
+    const picked = (state.addonQty[def.id] ?? 0) > 0;
+    if (!picked) return sum;
+    return sum + (def.unit === "per-kid" ? def.price * guestCountNum : def.price);
   }, 0);
-  const total = effectivePkgPrice + addonTotal;
+  const total = packageSubtotal + addonTotal;
   const advance = birthdayAdvance(total);
+  // Slot requirement depends on whether the morning-buyout add-on was
+  // picked. Computed once per render; used by the step-3 slot filter
+  // and the summary line.
+  const requiredSlots = birthdayRequiredSlots(
+    pkg,
+    Object.entries(state.addonQty)
+      .filter(([, qty]) => qty > 0)
+      .map(([id]) => id)
+  );
 
   // Fetch slots when date changes.
   useEffect(() => {
@@ -232,8 +251,8 @@ export function BirthdayWizard() {
           state.parentPhone.replace(/\D/g, "").length >= 10 &&
           state.birthdayKidName.trim().length >= 1 &&
           age >= 6 && age <= 18 &&
-          guests >= 1 &&
-          guests <= pkg.maxKids + (state.addonQty["extra-kid"] || 0)
+          guests >= pkg.minKids &&
+          guests <= pkg.maxKids
         );
       }
       default:
@@ -357,9 +376,11 @@ export function BirthdayWizard() {
         src="https://checkout.razorpay.com/v1/checkout.js"
       />
 
-      {/* Step indicator */}
+      {/* Step indicator — 4 segments now (step 1 was retired with the
+          package picker). Shows progress through Date → Time → Details
+          → Pay. */}
       <div className="flex items-center justify-center gap-2 mb-8">
-        {[1, 2, 3, 4, 5].map((n) => (
+        {[2, 3, 4, 5].map((n) => (
           <div
             key={n}
             className={`h-1 rounded-full flex-1 max-w-16 transition-colors ${
@@ -369,7 +390,10 @@ export function BirthdayWizard() {
         ))}
       </div>
 
-      {state.step > 1 && (
+      {/* Back button — min step is 2 now (step 1 was the retired
+          package picker). Hidden on step 2 because there's nowhere
+          to go back to within this wizard. */}
+      {state.step > 2 && (
         <button
           onClick={() => goto((state.step - 1) as BirthdayState["step"])}
           className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-6 transition-colors"
@@ -386,62 +410,11 @@ export function BirthdayWizard() {
       )}
 
       <AnimatePresence mode="wait">
-        {/* STEP 1 — Package overview / switch */}
-        {state.step === 1 && (
-          <motion.div
-            key="pkg"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-          >
-            <h2 className="font-heading text-lg text-center mb-2">
-              You picked{" "}
-              <span className="gradient-text font-bold">{pkg.name}</span>
-            </h2>
-            <p className="text-xs text-muted-foreground text-center mb-6">
-              Change your mind? Pick a different tier below.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
-              {BIRTHDAY_PACKAGES.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() =>
-                    setState((s) => ({ ...s, packageId: p.id }))
-                  }
-                  className={`glass-card p-4 text-left transition-all ${
-                    p.id === state.packageId
-                      ? "border-primary/40 glow-violet"
-                      : "hover:border-white/20"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-heading text-sm font-bold">
-                      {p.name}
-                    </span>
-                    {p.id === state.packageId && (
-                      <Check size={14} className="text-primary" />
-                    )}
-                  </div>
-                  <p className="text-lg font-bold">
-                    ₹{p.price.toLocaleString("en-IN")}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">
-                    up to {p.maxKids} · {p.durationLabel}
-                  </p>
-                </button>
-              ))}
-            </div>
-            <div className="flex justify-center">
-              <Button
-                size="lg"
-                onClick={() => goto(2)}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground"
-              >
-                Continue with {pkg.name}
-              </Button>
-            </div>
-          </motion.div>
-        )}
+        {/* STEP 1 (package picker) was removed on 2026-11-05 — there's
+            only one package now, so landing straight on the date step
+            saves a tap. The state.step type union keeps 1 so legacy
+            back-button handling doesn't need a schema change; we just
+            never render anything for it. */}
 
         {/* STEP 2 — Date */}
         {state.step === 2 && (
@@ -467,15 +440,15 @@ export function BirthdayWizard() {
         )}
 
         {/* STEP 3 — Time slot. Filtered so only start times with
-            `pkg.slotsBlocked` consecutive available slots after
-            them survive — otherwise a parent could book Party Plus
-            at 9 PM, the server would fail because 9 PM + 10 PM
-            isn't bookable, and we'd lose them to a confusing error
-            at Razorpay. */}
+            `requiredSlots` consecutive available slots after them
+            survive — otherwise a parent picking morning-buyout at
+            8 PM would hit a server 400 ("not enough slots left in
+            the day") on submit. requiredSlots comes from the
+            baseline (2) plus +1 if morning-buyout is active. */}
         {state.step === 3 && state.selectedDate && (() => {
           const bookable = filterBookableStartSlots(
             state.availableSlots,
-            pkg.slotsBlocked
+            requiredSlots
           );
           return (
           <motion.div
@@ -485,7 +458,7 @@ export function BirthdayWizard() {
             exit={{ opacity: 0, y: -20 }}
           >
             <p className="text-xs text-muted-foreground text-center mb-3">
-              {pkg.name} needs <strong>{pkg.slotsBlocked}</strong> back-to-back
+              {pkg.name} needs <strong>{requiredSlots}</strong> back-to-back
               slots starting from your chosen time.
             </p>
             <TimeSlotGrid
@@ -761,16 +734,16 @@ function BirthdaySummary({
   total,
   advance,
 }: {
-  pkg: BirthdayPackage;
+  pkg: (typeof BIRTHDAY_PACKAGES)[number];
   state: BirthdayState;
   addonTotal: number;
   total: number;
   advance: number;
 }) {
-  // Effective price is party-date-driven — same helper the parent wizard
-  // and the API use, so the summary line never disagrees with the total.
-  const { price: effectivePkgPrice, originalPrice: pkgOriginalPrice, isLaunchPrice } =
-    getEffectivePackagePrice(pkg, state.selectedDate || null, getTodayISTString());
+  // Flat per-kid rate — same math the parent wizard and /api/birthday
+  // use, so this summary line never disagrees with the total.
+  const guestCountNum = Number(state.guestCount || pkg.minKids);
+  const packageSubtotal = pkg.pricePerKid * guestCountNum;
   return (
     <div className="glass-card p-5 space-y-3 text-sm">
       <div className="flex items-center justify-between">
@@ -801,23 +774,11 @@ function BirthdaySummary({
       </div>
       <hr className="border-white/10" />
       <div className="flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">{pkg.name}</span>
-        <span>
-          {isLaunchPrice && (
-            <span className="text-muted-foreground line-through mr-2">
-              ₹{pkgOriginalPrice.toLocaleString("en-IN")}
-            </span>
-          )}
-          <span className={isLaunchPrice ? "text-green-400 font-medium" : ""}>
-            ₹{effectivePkgPrice.toLocaleString("en-IN")}
-          </span>
+        <span className="text-muted-foreground">
+          {guestCountNum} × ₹{pkg.pricePerKid.toLocaleString("en-IN")} / kid
         </span>
+        <span>₹{packageSubtotal.toLocaleString("en-IN")}</span>
       </div>
-      {isLaunchPrice && (
-        <p className="text-[10px] text-green-400/90 -mt-1">
-          Founding families rate — 15% off
-        </p>
-      )}
       {addonTotal > 0 && (
         <div className="flex items-center justify-between text-xs">
           <span className="text-muted-foreground">Add-ons</span>
