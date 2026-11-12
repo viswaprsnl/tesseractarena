@@ -107,29 +107,46 @@ test.describe("booking smoke", () => {
     expect(createBody.booking.paymentStatus, "autotest forces paid").toBe("paid");
 
     // STEP 2 — read back via admin API. Google Sheets' append-then-read
-    // can lag a beat — the smoke suite started hitting this reliably
-    // post-Nov-7 even though neither the test nor the endpoints
-    // changed, so retry 3× with 600ms spacing before failing. Keeps
-    // the assertion honest (a genuinely missing write still fails)
-    // without going red on a sub-second consistency blip.
+    // can lag a beat; retry 3× with 600ms spacing before failing.
+    // Each attempt captures the full admin response for diagnostics —
+    // if all three miss, the error message includes the last body so
+    // we can see whether the row is genuinely missing, cleared, or
+    // filed under a different date.
     let row: Record<string, unknown> | undefined;
+    let lastDiag = "no attempts made";
     for (let attempt = 0; attempt < 3; attempt++) {
       if (attempt > 0) await new Promise((r) => setTimeout(r, 600));
       const readRes = await request.get(
         `/api/admin/bookings?pin=noop&date=${createdPayload.date}`,
         { headers: { [AUTOTEST_HEADER]: getAutotestToken() } }
       );
-      expect(
-        readRes.status(),
-        `read-back body: ${await readRes.text()}`
-      ).toBe(200);
-      const readBody = await readRes.json();
-      row = readBody.bookings.find(
+      const bodyText = await readRes.text();
+      expect(readRes.status(), `admin read-back status (attempt ${attempt + 1}): ${bodyText.slice(0, 200)}`).toBe(200);
+      const readBody = JSON.parse(bodyText);
+      const bookings = readBody.bookings || [];
+      row = bookings.find(
         (b: { bookingId: string }) => b.bookingId === bookingId
       );
+      // Capture a compact per-attempt diagnostic: count, first 3 ids
+      // found for this date, autotest row count for the date, and
+      // whether the booking appears on any OTHER date in the sheet
+      // (helps catch date-write regressions).
+      const autotestForDate = bookings.filter(
+        (b: { email?: string }) =>
+          b.email && b.email.startsWith("autotest+")
+      );
+      lastDiag = JSON.stringify({
+        attempt: attempt + 1,
+        totalForDate: bookings.length,
+        autotestForDate: autotestForDate.length,
+        firstThreeIds: bookings.slice(0, 3).map((b: { bookingId: string }) => b.bookingId),
+      });
       if (row) break;
     }
-    expect(row, `booking ${bookingId} not found in admin read-back after 3 retries`).toBeDefined();
+    expect(
+      row,
+      `booking ${bookingId} not found in admin read-back after 3 retries. Last diag: ${lastDiag}`
+    ).toBeDefined();
     // The sheet row should match every piece of the payload. Any
     // mismatch means a column got misaligned, a serializer dropped a
     // field, or the sheet schema drifted — all are regressions worth
