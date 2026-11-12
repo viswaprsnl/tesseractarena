@@ -91,13 +91,26 @@ test.describe("booking smoke", () => {
     };
     const headers = autotestRequestInit("POST", payload).headers as Record<string, string>;
 
-    // STEP 1 — create. 409 on slot conflict retries once at a different
-    // time so a busy real-world day doesn't fail the suite.
-    let createRes = await request.post("/api/bookings", { headers, data: payload });
+    // STEP 1 — create. Three retry policies layered here:
+    //   - 409 (slot conflict): try the next slot once. A busy real-world
+    //     day shouldn't fail the suite.
+    //   - 5xx (Google Sheets quota): back off and retry; the server-side
+    //     read-request-per-minute quota is the main flake we see in CI.
+    //   - anything else: fail the assertion with the body for debugging.
+    const postCreate = async (p: typeof payload) => {
+      for (const waitMs of [0, 800, 2500, 5000]) {
+        if (waitMs > 0) await new Promise((r) => setTimeout(r, waitMs));
+        const res = await request.post("/api/bookings", { headers, data: p });
+        if (res.status() < 500) return res;
+      }
+      // Fall through — one last attempt whose 5xx body will be in the error.
+      return request.post("/api/bookings", { headers, data: p });
+    };
+    let createRes = await postCreate(payload);
     let createdPayload = payload;
     if (createRes.status() === 409) {
       createdPayload = { ...payload, timeSlot: "12:00" };
-      createRes = await request.post("/api/bookings", { headers, data: createdPayload });
+      createRes = await postCreate(createdPayload);
     }
     expect(createRes.status(), `body: ${await createRes.text()}`).toBe(200);
     const createBody = await createRes.json();
@@ -106,47 +119,37 @@ test.describe("booking smoke", () => {
     expect(bookingId, "bookingId format").toMatch(/^TA-/);
     expect(createBody.booking.paymentStatus, "autotest forces paid").toBe("paid");
 
-    // STEP 2 — read back via admin API. Google Sheets' append-then-read
-    // can lag a beat; retry 3× with 600ms spacing before failing.
-    // Each attempt captures the full admin response for diagnostics —
-    // if all three miss, the error message includes the last body so
-    // we can see whether the row is genuinely missing, cleared, or
-    // filed under a different date.
+    // STEP 2 — read back via admin API. Retry ONLY on 5xx (Google
+    // Sheets rate-limit the account periodically with "Quota exceeded
+    // for 'Read requests per minute per user'", which surfaces as
+    // the admin endpoint returning 500). On rate-limit, back off and
+    // try again — the quota window resets within a minute. A missing
+    // row (200 with no match) is NOT retried; that's a real failure.
     let row: Record<string, unknown> | undefined;
-    let lastDiag = "no attempts made";
-    for (let attempt = 0; attempt < 3; attempt++) {
-      if (attempt > 0) await new Promise((r) => setTimeout(r, 600));
+    let lastStatus = 0;
+    let lastBody = "";
+    const BACKOFFS_MS = [0, 800, 2500, 5000];
+    for (const waitMs of BACKOFFS_MS) {
+      if (waitMs > 0) await new Promise((r) => setTimeout(r, waitMs));
       const readRes = await request.get(
         `/api/admin/bookings?pin=noop&date=${createdPayload.date}`,
         { headers: { [AUTOTEST_HEADER]: getAutotestToken() } }
       );
-      const bodyText = await readRes.text();
-      expect(readRes.status(), `admin read-back status (attempt ${attempt + 1}): ${bodyText.slice(0, 200)}`).toBe(200);
-      const readBody = JSON.parse(bodyText);
-      const bookings = readBody.bookings || [];
-      row = bookings.find(
+      lastStatus = readRes.status();
+      lastBody = await readRes.text();
+      if (lastStatus >= 500) continue; // rate-limited or transient — retry
+      expect(lastStatus, `admin read-back: ${lastBody.slice(0, 200)}`).toBe(200);
+      const readBody = JSON.parse(lastBody);
+      row = (readBody.bookings || []).find(
         (b: { bookingId: string }) => b.bookingId === bookingId
       );
-      // Capture a compact per-attempt diagnostic: count, first 3 ids
-      // found for this date, autotest row count for the date, and
-      // whether the booking appears on any OTHER date in the sheet
-      // (helps catch date-write regressions).
-      const autotestForDate = bookings.filter(
-        (b: { email?: string }) =>
-          b.email && b.email.startsWith("autotest+")
-      );
-      lastDiag = JSON.stringify({
-        attempt: attempt + 1,
-        totalForDate: bookings.length,
-        autotestForDate: autotestForDate.length,
-        firstThreeIds: bookings.slice(0, 3).map((b: { bookingId: string }) => b.bookingId),
-      });
-      if (row) break;
+      break; // 200 with definitive answer — don't retry regardless of row presence
     }
     expect(
-      row,
-      `booking ${bookingId} not found in admin read-back after 3 retries. Last diag: ${lastDiag}`
-    ).toBeDefined();
+      lastStatus,
+      `admin read-back never returned 2xx after ${BACKOFFS_MS.length} attempts: ${lastBody.slice(0, 200)}`
+    ).toBeLessThan(500);
+    expect(row, `booking ${bookingId} not in admin read-back`).toBeDefined();
     // The sheet row should match every piece of the payload. Any
     // mismatch means a column got misaligned, a serializer dropped a
     // field, or the sheet schema drifted — all are regressions worth
