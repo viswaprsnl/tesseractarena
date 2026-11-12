@@ -58,7 +58,7 @@ export const BIRTHDAY_PACKAGES: BirthdayPackage[] = [
     includes: [
       "₹1,499 per kid (ex-GST) — minimum 8, up to 24 across staggered waves",
       "1 Anvio rotation + 1 HeroZone rotation per kid (our host picks age-appropriate titles)",
-      "2-hour arena block (add Morning Buyout below for 3 hr full-venue)",
+      "2-hour arena block for the whole party",
       "Dedicated party host for the whole booking",
       "Basic table decor — balloons + banner at the party bay",
       "All safety gear + waiver assistance for every guest",
@@ -66,35 +66,19 @@ export const BIRTHDAY_PACKAGES: BirthdayPackage[] = [
   },
 ];
 
-// Add-on catalogue. Order here is the display order in the landing-page
-// grid and the wizard. Keep the tier-upgrade add-ons (themed decor,
-// lounge, morning buyout) above the per-kid ones so parents see the
-// biggest experience bumps first.
+// Add-on catalogue. Order is the display order on the landing page and
+// in the wizard. Trimmed on 2026-11-12 to the two things parents
+// actually ask for: a branded cake and food. Decor, lounge, morning
+// buyout and favor bags were dropped to keep the party a simple
+// flat-rate-plus-two-extras decision.
 export const BIRTHDAY_ADDONS: BirthdayAddon[] = [
   {
-    id: "themed-decor",
-    label: "Themed party decoration",
-    price: 1999,
-    unit: "flat",
+    id: "food-combo",
+    label: "Food combo — pizza + burger + fries + drink",
+    price: 300,
+    unit: "per-kid",
     description:
-      "Full themed setup around the party bay — superhero, princess, neon, or custom. Lands configured before guests arrive.",
-  },
-  {
-    id: "private-lounge",
-    label: "Private lounge access",
-    price: 2999,
-    unit: "flat",
-    description:
-      "Dedicated lounge for cake-cutting, gifts, and food between rotations. Seats 12 comfortably.",
-  },
-  {
-    id: "morning-buyout",
-    label: "Morning full-arena buyout (3 hr)",
-    price: 5999,
-    unit: "flat",
-    description:
-      "Lock the whole arena for your party (11 AM–2 PM weekends). Adds a third rotation per kid, no other bookings share the space.",
-    extendsSlots: true,
+      "A full meal for every kid, served at the party bay. Special requests (veg / Jain, allergies, extra items) are accepted and charged accordingly — the team confirms any extra cost with you before the party.",
   },
   {
     id: "custom-cake",
@@ -103,13 +87,6 @@ export const BIRTHDAY_ADDONS: BirthdayAddon[] = [
     unit: "flat",
     description:
       "Themed birthday cake baked to order by our bakery partner. BYO cake is welcome too — no extra fee.",
-  },
-  {
-    id: "party-favors",
-    label: "Party favor bags",
-    price: 250,
-    unit: "per-kid",
-    description: "Take-home goodie bag for each kid.",
   },
 ];
 

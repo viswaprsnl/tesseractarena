@@ -5,12 +5,9 @@ import { getSlotsForDate, getTodayISTString } from "./booking-config";
 import { BIRTHDAY_PACKAGES } from "@/data/birthday";
 
 // How many consecutive slots this booking physically occupies.
-// - Birthday: the package's baseline slot count. Legacy tier packages
-//   (essentials/plus/ultimate) are read-only in the sheet; the current
-//   "standard" package blocks baseSlotsBlocked (2). The morning-buyout
-//   add-on may extend this to 3 — that's computed per-booking in the
-//   birthday API, not here (this function has no access to add-ons),
-//   so lean on a safe upper bound of 3 for any birthday row.
+// - Birthday: the current "standard" package blocks baseSlotsBlocked
+//   (2). Legacy tier rows (essentials/plus/ultimate) predate it and
+//   blocked up to 3+, so they keep a conservative 3.
 // - Party (partySize >= 6): 2 slots (existing 90-min behavior)
 // - Everything else: 1 slot
 function slotsOccupiedBy(booking: BookingRow): number {
@@ -20,7 +17,7 @@ function slotsOccupiedBy(booking: BookingRow): number {
     // Legacy tier lookups won't match the new single "standard" id;
     // fall back to the safe upper bound so slot availability is
     // conservative (false negatives are better than double-bookings).
-    if (pkg) return Math.max(pkg.baseSlotsBlocked, 3);
+    if (pkg) return pkg.baseSlotsBlocked;
     return 3;
   }
   if (booking.partySize >= 6) return 2;

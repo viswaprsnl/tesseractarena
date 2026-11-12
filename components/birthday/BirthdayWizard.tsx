@@ -639,7 +639,7 @@ export function BirthdayWizard() {
             </div>
 
             <div>
-              <Label>Anything else we should know?</Label>
+              <Label>Special requests (food, allergies, theme, anything else)</Label>
               <Textarea
                 value={state.specialRequests}
                 onChange={(e) =>
@@ -648,7 +648,7 @@ export function BirthdayWizard() {
                     specialRequests: e.target.value,
                   }))
                 }
-                placeholder="Dietary notes, allergies, theme requests, arrival time, etc."
+                placeholder="Veg / Jain, allergies, extra food items, theme requests, arrival time… Any extra cost is confirmed with you before the party."
                 className="bg-card/60 border-white/10 mt-1"
                 rows={3}
               />

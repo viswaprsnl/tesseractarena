@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Cake, Users, Clock, Check, Sparkles, ChevronRight, Minus, Plus } from "lucide-react";
+import { Cake, Users, Clock, Check, Sparkles, ChevronRight, Minus, Plus, Pizza } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,8 +18,7 @@ import { withGST } from "@/lib/booking-config";
 import { fadeInUp, staggerContainer } from "@/lib/animations";
 
 // Birthday landing page — post-2026-11-05 Option B rewrite. One flat
-// per-kid rate with every tier perk (lounge, themed decor, morning
-// buyout) available as an add-on. The page shows the base price up
+// per-kid rate with two add-ons: a branded cake and a food combo. The page shows the base price up
 // front and lets parents stack add-ons live so the total they see
 // below is what they'll pay (ex-GST; the booking summary adds the
 // 18% GST line). All picks carry into the wizard through the
@@ -93,11 +92,18 @@ export default function BirthdayPage() {
             variants={fadeInUp}
             className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-8"
           >
-            One flat per-kid rate. Every tier-upgrade perk (private lounge,
-            themed decor, morning buyout) available as an add-on. Pay
-            {" "}{BIRTHDAY_ADVANCE_PERCENT}% online to hold your slot; settle
-            the rest at the arena.
+            One flat per-kid rate, with a branded cake and a full food combo
+            available as add-ons. Pay {BIRTHDAY_ADVANCE_PERCENT}% online to
+            hold your slot; settle the rest at the arena.
           </motion.p>
+          <motion.div variants={fadeInUp} className="mb-6">
+            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/30">
+              <Pizza size={14} className="text-amber-300" />
+              <span className="text-xs sm:text-sm text-amber-100">
+                Food available — pizza, burger, fries &amp; drink at ₹300/kid
+              </span>
+            </span>
+          </motion.div>
           <motion.div variants={fadeInUp} className="flex flex-wrap justify-center gap-3">
             <a href="#build">
               <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
@@ -127,8 +133,8 @@ export default function BirthdayPage() {
         >
           {[
             { icon: Users, label: `Up to ${pkg.maxKids} kids`, sub: "across staggered waves" },
-            { icon: Clock, label: "2 - 3 hr", sub: "with morning buyout add-on" },
-            { icon: Cake, label: "Cake + decor", sub: "add themes & custom cake" },
+            { icon: Clock, label: "2 hr arena block", sub: "1 Anvio + 1 HeroZone per kid" },
+            { icon: Pizza, label: "Cake + food", sub: "branded cake & ₹300/kid combo" },
             { icon: Sparkles, label: "Zero PC/setup", sub: "standalone VR only" },
           ].map((v) => (
             <motion.div
@@ -427,7 +433,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: `Why is there a minimum of 8 kids?`,
-    a: `The party format needs enough kids to split into rotation waves (so one group plays while the other is in the lounge or eating cake). Under 8 feels empty for a party and makes the per-kid math uneconomical. For smaller groups, just book a regular session from the home page — same games, no party extras.`,
+    a: `The party format needs enough kids to split into rotation waves (so one group plays while the other has cake or a snack break). Under 8 feels empty for a party and makes the per-kid math uneconomical. For smaller groups, just book a regular session from the home page — same games, no party extras.`,
   },
   {
     q: `Can parents play too?`,
@@ -435,6 +441,6 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: `Do you handle food?`,
-    a: `We don't have an in-house kitchen. Preston Prime Mall has plenty of options right outside our door — most parties either grab a bite before, order to the private lounge (if you added the lounge add-on), or head out together after cake.`,
+    a: `Yes — add the Food combo for ₹300 per kid: pizza, burger, fries and a drink, served at the party bay. Special requests (veg / Jain, allergies, extra items) are accepted and charged accordingly; the team will confirm any extra cost with you before the party. You can also bring your own food if you prefer.`,
   },
 ];
