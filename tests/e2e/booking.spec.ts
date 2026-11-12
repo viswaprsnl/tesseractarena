@@ -78,7 +78,13 @@ test.describe("booking smoke", () => {
       date,
       timeSlot: "11:00",
       partySize: 1,
-      package: "solo" as const,
+      // Post-2026-11-05 the booking API normalises every regular-flow
+      // package to "standard" (the Solo/Squad/Party tier system was
+      // retired). Sending "standard" here keeps the request + the
+      // written sheet row in agreement so the package assertion
+      // below checks the real state rather than a legacy value the
+      // server would rewrite.
+      package: "standard" as const,
       gamePreference: "decide-at-venue",
       paymentMethod: "razorpay" as const,
       specialRequests: `smoke run ${getRunId()}`,
@@ -100,32 +106,52 @@ test.describe("booking smoke", () => {
     expect(bookingId, "bookingId format").toMatch(/^TA-/);
     expect(createBody.booking.paymentStatus, "autotest forces paid").toBe("paid");
 
-    // STEP 2 — read back via admin API. The sheet row should match
-    // every piece of the payload exactly. Any mismatch means a
-    // column got misaligned, a serializer dropped a field, or the
-    // sheet schema drifted — all are regressions worth paging on.
-    const readRes = await request.get(
-      `/api/admin/bookings?pin=noop&date=${createdPayload.date}`,
-      { headers: { [AUTOTEST_HEADER]: getAutotestToken() } }
-    );
-    expect(readRes.status(), `read-back body: ${await readRes.text()}`).toBe(200);
-    const readBody = await readRes.json();
-    const row = readBody.bookings.find((b: { bookingId: string }) => b.bookingId === bookingId);
-    expect(row, `booking ${bookingId} not found in admin read-back`).toBeDefined();
-    expect(row.name, "name mismatch").toBe(createdPayload.name);
-    expect(row.email, "email mismatch").toBe(createdPayload.email);
-    expect(row.phone, "phone mismatch").toBe(createdPayload.phone);
-    expect(row.date, "date mismatch").toBe(createdPayload.date);
-    expect(row.timeSlot, "timeSlot mismatch").toBe(createdPayload.timeSlot);
-    expect(row.partySize, "partySize mismatch").toBe(createdPayload.partySize);
-    expect(row.package, "package mismatch").toBe(createdPayload.package);
-    expect(row.paymentStatus, "sheet row paymentStatus mismatch").toBe("paid");
-    expect(row.specialRequests, "AUTOTEST marker missing").toContain("[AUTOTEST]");
-    expect(row.amount, "amount should be a positive integer").toBeGreaterThan(0);
+    // STEP 2 — read back via admin API. Google Sheets' append-then-read
+    // can lag a beat — the smoke suite started hitting this reliably
+    // post-Nov-7 even though neither the test nor the endpoints
+    // changed, so retry 3× with 600ms spacing before failing. Keeps
+    // the assertion honest (a genuinely missing write still fails)
+    // without going red on a sub-second consistency blip.
+    let row: Record<string, unknown> | undefined;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (attempt > 0) await new Promise((r) => setTimeout(r, 600));
+      const readRes = await request.get(
+        `/api/admin/bookings?pin=noop&date=${createdPayload.date}`,
+        { headers: { [AUTOTEST_HEADER]: getAutotestToken() } }
+      );
+      expect(
+        readRes.status(),
+        `read-back body: ${await readRes.text()}`
+      ).toBe(200);
+      const readBody = await readRes.json();
+      row = readBody.bookings.find(
+        (b: { bookingId: string }) => b.bookingId === bookingId
+      );
+      if (row) break;
+    }
+    expect(row, `booking ${bookingId} not found in admin read-back after 3 retries`).toBeDefined();
+    // The sheet row should match every piece of the payload. Any
+    // mismatch means a column got misaligned, a serializer dropped a
+    // field, or the sheet schema drifted — all are regressions worth
+    // paging on.
+    expect(row!.name, "name mismatch").toBe(createdPayload.name);
+    expect(row!.email, "email mismatch").toBe(createdPayload.email);
+    expect(row!.phone, "phone mismatch").toBe(createdPayload.phone);
+    expect(row!.date, "date mismatch").toBe(createdPayload.date);
+    expect(row!.timeSlot, "timeSlot mismatch").toBe(createdPayload.timeSlot);
+    expect(row!.partySize, "partySize mismatch").toBe(createdPayload.partySize);
+    expect(row!.package, "package mismatch").toBe(createdPayload.package);
+    expect(row!.paymentStatus, "sheet row paymentStatus mismatch").toBe("paid");
+    expect(row!.specialRequests, "AUTOTEST marker missing").toContain("[AUTOTEST]");
+    expect(row!.amount as number, "amount should be a positive integer").toBeGreaterThan(0);
     // GST is a fixed 18% of amount, rounded. Allow ±2 rupees for the
     // bookings endpoint's own rounding so this doesn't go red on a
-    // boundary case.
-    expect(Math.abs(row.gstAmount - Math.round(row.amount * 0.18))).toBeLessThanOrEqual(2);
+    // boundary case. Discount rows (e.g. the Diwali campaign) may
+    // further reduce the amount; gstAmount is always 18% of the
+    // post-discount amount on the row, so the ratio check holds.
+    const amt = row!.amount as number;
+    const gst = row!.gstAmount as number;
+    expect(Math.abs(gst - Math.round(amt * 0.18))).toBeLessThanOrEqual(2);
 
     // STEP 3 — cleanup wipes this run's rows immediately. Confirms the
     // delete path still works end-to-end.
