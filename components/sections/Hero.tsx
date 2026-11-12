@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { fadeInUp, staggerContainer } from "@/lib/animations";
 import { trackEvent } from "@/lib/analytics";
+import { useLivePromo, promoAmountOff } from "@/lib/use-promo";
 import { ReviewsMarquee } from "@/components/sections/ReviewsMarquee";
 
 const ParticleField = dynamic(
@@ -213,30 +214,18 @@ export function Hero() {
   );
 }
 
-// Diwali promo window — keep in lockstep with OpeningOfferBar's
-// END_DATE_ISO. The bar and this chip both auto-switch on Nov 16,
-// so the site doesn't advertise a discount it isn't applying.
-const DIWALI_END_ISO = "2026-11-16"; // first day the chip returns to the non-discounted ₹899
-
-// Hero price anchor. Renders two states:
-//   - Diwali window active → strikes through ₹899 and shows ₹799 with
-//     a tiny saffron "Diwali 10% off" tag so the chip tells the
-//     whole story on its own (no need to read the top bar first).
-//   - Otherwise                → shows just ₹899 / person · excl. GST.
-//
-// A client-side mount gate keeps SSR and the first client render in
-// agreement so hydration doesn't mismatch; before mount the chip
-// renders the non-discounted state (safe fallback — never a false
-// discount claim).
+// Hero price anchor. Driven by the Discounts sheet via useLivePromo():
+//   - A live site-wide promo → strike ₹899, show the exact discounted
+//     price (same floor-rounding math as checkout, so the chip never
+//     promises a price the Razorpay sheet won't honour) plus a small
+//     tag carrying the promo label.
+//   - Nothing live (paused, ended, or still loading) → plain
+//     ₹899 / person · excl. GST. Never advertises a discount it
+//     can't confirm.
 function HeroPriceChip() {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  const todayIST = new Date()
-    .toLocaleString("sv-SE", { timeZone: "Asia/Kolkata" })
-    .slice(0, 10);
-  const diwaliActive = mounted && todayIST < DIWALI_END_ISO;
+  const promo = useLivePromo();
 
-  if (!diwaliActive) {
+  if (!promo) {
     return (
       <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/8 border border-white/15 backdrop-blur-sm">
         <span className="text-xs sm:text-sm text-white/80">Games start at</span>
@@ -248,6 +237,7 @@ function HeroPriceChip() {
     );
   }
 
+  const discounted = 899 - promoAmountOff(899, promo);
   return (
     <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/8 border border-amber-400/30 backdrop-blur-sm">
       <span className="text-xs sm:text-sm text-white/80">Games start at</span>
@@ -255,13 +245,13 @@ function HeroPriceChip() {
         ₹899
       </span>
       <span className="text-sm sm:text-base font-bold text-amber-200">
-        ₹799
+        ₹{discounted.toLocaleString("en-IN")}
       </span>
       <span className="text-[10px] sm:text-xs text-white/60">
         / person · excl. GST
       </span>
       <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 ml-1 rounded-md bg-amber-400/15 border border-amber-400/30 text-[10px] uppercase tracking-wider text-amber-200 font-semibold">
-        Diwali 10% off
+        {promo.label}
       </span>
     </span>
   );
