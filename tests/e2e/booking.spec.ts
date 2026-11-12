@@ -128,6 +128,7 @@ test.describe("booking smoke", () => {
     let row: Record<string, unknown> | undefined;
     let lastStatus = 0;
     let lastBody = "";
+    let diagSummary = "no reads attempted";
     const BACKOFFS_MS = [0, 800, 2500, 5000];
     for (const waitMs of BACKOFFS_MS) {
       if (waitMs > 0) await new Promise((r) => setTimeout(r, waitMs));
@@ -140,16 +141,25 @@ test.describe("booking smoke", () => {
       if (lastStatus >= 500) continue; // rate-limited or transient — retry
       expect(lastStatus, `admin read-back: ${lastBody.slice(0, 200)}`).toBe(200);
       const readBody = JSON.parse(lastBody);
-      row = (readBody.bookings || []).find(
-        (b: { bookingId: string }) => b.bookingId === bookingId
-      );
-      break; // 200 with definitive answer — don't retry regardless of row presence
+      const bookings: Array<{ bookingId: string; email?: string; date?: string }> =
+        readBody.bookings || [];
+      row = bookings.find((b) => b.bookingId === bookingId);
+      // Compact diagnostic so a failure on next run tells us whether
+      // the row landed under a different date, got cleared mid-read,
+      // or the whole admin list is empty.
+      diagSummary = JSON.stringify({
+        date: createdPayload.date,
+        totalForDate: bookings.length,
+        autotestForDate: bookings.filter((b) => b.email?.startsWith("autotest+")).length,
+        bookingIds: bookings.map((b) => b.bookingId),
+      });
+      break;
     }
     expect(
       lastStatus,
       `admin read-back never returned 2xx after ${BACKOFFS_MS.length} attempts: ${lastBody.slice(0, 200)}`
     ).toBeLessThan(500);
-    expect(row, `booking ${bookingId} not in admin read-back`).toBeDefined();
+    expect(row, `booking ${bookingId} not in admin read-back. ${diagSummary}`).toBeDefined();
     // The sheet row should match every piece of the payload. Any
     // mismatch means a column got misaligned, a serializer dropped a
     // field, or the sheet schema drifted — all are regressions worth
