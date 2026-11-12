@@ -119,14 +119,29 @@ export async function getActiveBookingsByContact(
 
 export async function appendBooking(booking: BookingRow): Promise<void> {
   const sheets = getSheets();
-  await sheets.spreadsheets.values.append({
+  // insertDataOption: "INSERT_ROWS" forces a brand-new row at the end
+  // of the sheet. Without it (default = OVERWRITE) the Sheets API
+  // chooses the first row after the detected "table", and if cleared
+  // (empty-string) rows from previous autotest sweeps left gaps the
+  // chosen row can skip past the real data range. Nightly smoke ran
+  // into this starting Nov 7 — POST returned 200 but admin GET
+  // couldn't find the row, because the append landed on a row the
+  // reader's A2:V range didn't cover.
+  const res = await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
     range: `${SHEET_NAME}!A:V`,
     valueInputOption: "RAW",
+    insertDataOption: "INSERT_ROWS",
     requestBody: {
       values: [bookingToRow(booking)],
     },
   });
+  // One-line log of where the row actually landed. Useful when a
+  // smoke failure later says "booking X not in read-back" — the
+  // Vercel logs should name the exact cell range the server wrote to.
+  console.log(
+    `appendBooking: id=${booking.bookingId} date=${booking.date} updatedRange=${res.data.updates?.updatedRange || "?"}`
+  );
 }
 
 export async function findBookingById(
