@@ -159,7 +159,32 @@ test.describe("booking smoke", () => {
       lastStatus,
       `admin read-back never returned 2xx after ${BACKOFFS_MS.length} attempts: ${lastBody.slice(0, 200)}`
     ).toBeLessThan(500);
-    expect(row, `booking ${bookingId} not in admin read-back. ${diagSummary}`).toBeDefined();
+    if (!row) {
+      // Date-filtered read missed. Search the WHOLE sheet for this id so
+      // the failure says whether the row exists under another date, or
+      // is gone entirely, and where the server says it wrote it.
+      const allRes = await request.get(`/api/admin/bookings?pin=noop`, {
+        headers: { [AUTOTEST_HEADER]: getAutotestToken() },
+      });
+      let whereFound = "unknown";
+      let totalRows = -1;
+      if (allRes.status() === 200) {
+        const all = (await allRes.json()).bookings || [];
+        totalRows = all.length;
+        const hit = all.find((b: { bookingId: string }) => b.bookingId === bookingId);
+        whereFound = hit
+          ? `FOUND under date=${hit.date} slot=${hit.timeSlot}`
+          : "NOT in sheet at all";
+      } else {
+        whereFound = `full read returned ${allRes.status()}`;
+      }
+      throw new Error(
+        `booking ${bookingId} missing from date-filtered read. ${whereFound}; ` +
+          `server wrote to ${createBody.debug?.sheetRange ?? "(no range returned)"}; ` +
+          `totalRowsInSheet=${totalRows}; ${diagSummary}`
+      );
+    }
+    expect(row, `booking ${bookingId} not in admin read-back`).toBeDefined();
     // The sheet row should match every piece of the payload. Any
     // mismatch means a column got misaligned, a serializer dropped a
     // field, or the sheet schema drifted — all are regressions worth

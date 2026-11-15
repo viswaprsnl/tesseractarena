@@ -363,7 +363,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Save to Google Sheets
-    await appendBooking(booking);
+    const sheetRange = await appendBooking(booking);
 
     // Confirmation emails:
     //   - autotest: NEVER send. The whole point is a silent smoke test
@@ -394,6 +394,10 @@ export async function POST(request: NextRequest) {
         paymentMethod: effectivePaymentMethod,
       },
       emailError,
+      // Autotest-only: the exact sheet range the row was written to, so
+      // a smoke failure can say where the booking landed. Never sent to
+      // real customers.
+      ...(isAutotest ? { debug: { sheetRange } } : {}),
     });
   } catch (error) {
     console.error("Error creating booking:", error);

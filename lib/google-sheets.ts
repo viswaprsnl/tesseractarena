@@ -114,7 +114,7 @@ export async function getActiveBookingsByContact(
     .map(rowToBooking);
 }
 
-export async function appendBooking(booking: BookingRow): Promise<void> {
+export async function appendBooking(booking: BookingRow): Promise<string> {
   const sheets = getSheets();
   // insertDataOption: "INSERT_ROWS" forces a brand-new row at the end
   // of the sheet. Without it (default = OVERWRITE) the Sheets API
@@ -136,9 +136,11 @@ export async function appendBooking(booking: BookingRow): Promise<void> {
   // One-line log of where the row actually landed. Useful when a
   // smoke failure later says "booking X not in read-back" — the
   // Vercel logs should name the exact cell range the server wrote to.
+  const range = res.data.updates?.updatedRange || "?";
   console.log(
-    `appendBooking: id=${booking.bookingId} date=${booking.date} updatedRange=${res.data.updates?.updatedRange || "?"}`
+    `appendBooking: id=${booking.bookingId} date=${booking.date} updatedRange=${range}`
   );
+  return range;
 }
 
 export async function findBookingById(
