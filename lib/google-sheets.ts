@@ -116,27 +116,43 @@ export async function getActiveBookingsByContact(
 
 export async function appendBooking(booking: BookingRow): Promise<string> {
   const sheets = getSheets();
-  // insertDataOption: "INSERT_ROWS" forces a brand-new row at the end
-  // of the sheet. Without it (default = OVERWRITE) the Sheets API
-  // chooses the first row after the detected "table", and if cleared
-  // (empty-string) rows from previous autotest sweeps left gaps the
-  // chosen row can skip past the real data range. Nightly smoke ran
-  // into this starting Nov 7 — POST returned 200 but admin GET
-  // couldn't find the row, because the append landed on a row the
-  // reader's A2:V range didn't cover.
+  const values = bookingToRow(booking);
+  // Append against column A ONLY. The Sheets append call detects a
+  // "table" inside `range` and writes starting at that table's first
+  // column. With range `A:V` that detection drifted: rows landed in
+  // Q:AL (16 columns to the right), so the admin reader (A2:V) never
+  // saw them. Pointing detection at column A alone pins the first
+  // column to A and the new row to the first free row below the last
+  // booking id.
   const res = await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A:V`,
+    range: `${SHEET_NAME}!A:A`,
     valueInputOption: "RAW",
     insertDataOption: "INSERT_ROWS",
-    requestBody: {
-      values: [bookingToRow(booking)],
-    },
+    requestBody: { values: [values] },
   });
-  // One-line log of where the row actually landed. Useful when a
-  // smoke failure later says "booking X not in read-back" — the
-  // Vercel logs should name the exact cell range the server wrote to.
-  const range = res.data.updates?.updatedRange || "?";
+  let range = res.data.updates?.updatedRange || "?";
+
+  // Self-heal: if the row still didn't start at column A, rewrite it
+  // into A:V on the same row and blank the stray cells, rather than
+  // silently losing a customer's booking off the admin's radar.
+  const m = range.match(/!([A-Z]+)(\d+):/);
+  if (m && m[1] !== "A") {
+    const row = m[2];
+    console.error(
+      `appendBooking: MISPLACED write for ${booking.bookingId} at ${range} — relocating to A${row}:V${row}`
+    );
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_NAME}!A${row}:AL${row}`,
+      valueInputOption: "RAW",
+      requestBody: {
+        values: [[...values, ...Array.from({ length: 16 }, () => "")]],
+      },
+    });
+    range = `${SHEET_NAME}!A${row}:V${row} (relocated from ${range})`;
+  }
+
   console.log(
     `appendBooking: id=${booking.bookingId} date=${booking.date} updatedRange=${range}`
   );
