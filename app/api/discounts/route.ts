@@ -44,7 +44,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       { discounts: applicable },
-      { headers: { "Cache-Control": "no-store" } }
+      // CDN-cached per URL (i.e. per date): all instances share one answer
+      // and a paused promo disappears within ~30s.
+      { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" } }
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

@@ -30,7 +30,26 @@ function getAuth() {
 const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_SPREADSHEET_ID!;
 const SHEET_NAME = "GameStatus";
 
+// Per-instance 60s cache + stale-on-error. This endpoint runs on every
+// home/booking page view and costs 2 sheet reads, so uncached it was a
+// major contributor to Google's 60 reads/min quota being exhausted.
+let _cached: { at: number; body: unknown } | null = null;
+const CACHE_TTL_MS = 60_000;
+const CDN_HEADERS = {
+  "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+};
+
+function isTransient(e: unknown): boolean {
+  const err = e as { code?: number | string; message?: string };
+  const code = Number(err?.code);
+  return code === 429 || code >= 500 || /quota|rate limit|ECONN|ETIMEDOUT/i.test(err?.message || "");
+}
+
 export async function GET() {
+  if (_cached && Date.now() - _cached.at < CACHE_TTL_MS) {
+    return NextResponse.json(_cached.body, { headers: CDN_HEADERS });
+  }
+  let degraded = false;
   try {
     const sheets = google.sheets({ version: "v4", auth: getAuth() });
 
@@ -60,8 +79,10 @@ export async function GET() {
         },
         {} as typeof statuses
       );
-    } catch {
-      // Sheet may not exist yet — return empty statuses.
+    } catch (e) {
+      // Sheet may not exist yet — return empty statuses. Quota/5xx
+      // errors flag the result so it is never cached or broadcast.
+      if (isTransient(e)) degraded = true;
     }
 
     // Custom games — admin-added titles rendered on the public catalog.
@@ -105,12 +126,21 @@ export async function GET() {
             tags: r[10] || "",
           };
         });
-    } catch {
-      // CustomGames sheet may not exist yet
+    } catch (e) {
+      // CustomGames sheet may not exist yet (that's fine and cacheable).
+      if (isTransient(e)) degraded = true;
     }
 
-    return NextResponse.json({ statuses, customGames });
+    const body = { statuses, customGames };
+    if (degraded) {
+      // Prefer last good copy; otherwise return what we have, uncached.
+      if (_cached) return NextResponse.json(_cached.body, { headers: CDN_HEADERS });
+      return NextResponse.json(body, { headers: { "Cache-Control": "no-store" } });
+    }
+    _cached = { at: Date.now(), body };
+    return NextResponse.json(body, { headers: CDN_HEADERS });
   } catch (error) {
+    if (_cached) return NextResponse.json(_cached.body, { headers: CDN_HEADERS });
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
       { error: "Failed to fetch game statuses", details: message },

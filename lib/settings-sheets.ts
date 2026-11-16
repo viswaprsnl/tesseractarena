@@ -99,15 +99,30 @@ export async function listSettings(): Promise<SettingRow[]> {
   if (_cache && Date.now() - _cache.at < CACHE_TTL_MS) {
     return _cache.rows;
   }
-  await ensureSheet();
-  const sheets = getSheets();
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A2:D`,
-  });
-  const rows = readRows((res.data.values || []) as string[][]);
-  _cache = { at: Date.now(), rows };
-  return rows;
+  try {
+    const sheets = getSheets();
+    const read = () =>
+      sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${SHEET_NAME}!A2:D`,
+      });
+    let res;
+    try {
+      res = await read();
+    } catch (e) {
+      // Only pay for the existence check when the read actually fails
+      // (e.g. tab missing). Quota errors fall through to the stale cache.
+      if (_cache) throw e;
+      await ensureSheet();
+      res = await read();
+    }
+    const rows = readRows((res.data.values || []) as string[][]);
+    _cache = { at: Date.now(), rows };
+    return rows;
+  } catch (e) {
+    if (_cache) return _cache.rows; // stale beats a 500 / wrong default
+    throw e;
+  }
 }
 
 export async function getSetting(key: string): Promise<SettingRow | undefined> {

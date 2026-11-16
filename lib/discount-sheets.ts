@@ -27,7 +27,22 @@ function getSheets() {
 // Idempotently create the sheet + header row on first use. Also backfills
 // the "code" header (col I) on sheets created before coupon support so
 // admins can eyeball the column without a manual migration.
-async function ensureSheet(): Promise<void> {
+// Runs at most once per server instance (it used to run on EVERY list call,
+// burning 2 of the 3 sheet reads each time and tripping Google's 60
+// reads/min quota under real traffic). Resets on failure so a transient
+// error is retried on the next call.
+let _ensured: Promise<void> | null = null;
+function ensureSheet(): Promise<void> {
+  if (!_ensured) {
+    _ensured = ensureSheetOnce().catch((e) => {
+      _ensured = null;
+      throw e;
+    });
+  }
+  return _ensured;
+}
+
+async function ensureSheetOnce(): Promise<void> {
   const sheets = getSheets();
   let existed = true;
   try {
@@ -109,19 +124,35 @@ function discountToRow(d: Discount): string[] {
   ];
 }
 
+// 30s in-memory cache; writes below clear it so admin edits show up
+// immediately on the instance that handled them. On a read failure (e.g.
+// Sheets quota) we serve the last good copy instead of failing the booking.
+let _cache: { at: number; rows: Discount[] } | null = null;
+const CACHE_TTL_MS = 30_000;
+
 export async function listDiscounts(): Promise<Discount[]> {
-  await ensureSheet();
-  const sheets = getSheets();
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A2:I`,
-  });
-  const rows = (res.data.values || []) as string[][];
-  return rows.filter((r) => r[0]).map(rowToDiscount);
+  if (_cache && Date.now() - _cache.at < CACHE_TTL_MS) return _cache.rows;
+  try {
+    await ensureSheet();
+    const sheets = getSheets();
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_NAME}!A2:I`,
+    });
+    const rows = ((res.data.values || []) as string[][])
+      .filter((r) => r[0])
+      .map(rowToDiscount);
+    _cache = { at: Date.now(), rows };
+    return rows;
+  } catch (e) {
+    if (_cache) return _cache.rows; // stale beats a 500
+    throw e;
+  }
 }
 
 export async function appendDiscount(d: Discount): Promise<void> {
   await ensureSheet();
+  _cache = null;
   const sheets = getSheets();
   await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
@@ -145,6 +176,7 @@ async function findRowIndex(id: string): Promise<number> {
 export async function updateDiscount(d: Discount): Promise<boolean> {
   const rowIndex = await findRowIndex(d.id);
   if (rowIndex === -1) return false;
+  _cache = null;
   const sheets = getSheets();
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
@@ -158,6 +190,7 @@ export async function updateDiscount(d: Discount): Promise<boolean> {
 export async function deleteDiscount(id: string): Promise<boolean> {
   const rowIndex = await findRowIndex(id);
   if (rowIndex === -1) return false;
+  _cache = null;
   const sheets = getSheets();
   // Clear the row (leaves an empty row rather than deleting — matches how
   // CustomGames handles removals and avoids reshuffling row indices).

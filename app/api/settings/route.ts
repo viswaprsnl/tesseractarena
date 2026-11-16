@@ -20,17 +20,22 @@ export async function GET() {
       getHalloweenMode(),
       getDiwaliMode(),
     ]);
-    return NextResponse.json({ advanceRequired, halloweenMode, diwaliMode });
+    // CDN-cache briefly so all serverless instances share one answer
+    // instead of each hitting Sheets (quota is 60 reads/min total). A
+    // staff flip still propagates in well under a minute.
+    return NextResponse.json(
+      { advanceRequired, halloweenMode, diwaliMode },
+      { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" } }
+    );
   } catch (error) {
     // On a sheet-read failure, default to the SAFER state: advance
     // REQUIRED (so a transient outage doesn't accidentally run the
     // no-advance experiment), seasonal overlays OFF (chrome is only
     // ever opt-in; if we can't read the flag, don't guess).
     console.error("Public settings read failed:", error);
-    return NextResponse.json({
-      advanceRequired: true,
-      halloweenMode: false,
-      diwaliMode: false,
-    });
+    return NextResponse.json(
+      { advanceRequired: true, halloweenMode: false, diwaliMode: false },
+      { headers: { "Cache-Control": "no-store" } }
+    );
   }
 }
