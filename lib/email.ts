@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 import { NOTIFY_RECIPIENTS } from "@/lib/contact";
-import { gstOn, withGST, GST_PERCENT, formatTimeDisplay } from "@/lib/booking-config";
+import { gstOn, withGST, GST_PERCENT, formatTimeDisplay, calculateAdvance } from "@/lib/booking-config";
 import type { BookingRow } from "@/lib/booking-types";
 
 let resendInstance: Resend | null = null;
@@ -26,7 +26,7 @@ interface BookingEmailData {
 }
 
 function advanceFor(data: BookingEmailData): number {
-  return Math.min(500 * data.partySize, data.amount);
+  return calculateAdvance(data.partySize, data.amount);
 }
 
 export async function sendBookingConfirmation(data: BookingEmailData): Promise<{ data: unknown; error: unknown }> {

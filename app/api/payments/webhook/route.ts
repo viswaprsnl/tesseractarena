@@ -9,6 +9,7 @@ import { calculateAdvance } from "@/lib/booking-config";
 import { isBirthdayPackage } from "@/lib/booking-types";
 import { birthdayAdvance } from "@/data/birthday";
 import { sendBookingEmailsFromRow } from "@/lib/email";
+import { notifyTeam } from "@/lib/notify";
 
 // Razorpay may retry the same event on non-2xx. Every handler below is
 // designed to be idempotent — replaying a "payment.captured" event on an
@@ -178,6 +179,7 @@ export async function POST(request: NextRequest) {
           balanceDue: Math.max(0, hit.booking.amount - paidBase),
         };
         await sendBookingEmailsFromRow(bookingForEmail);
+        await notifyTeam("paid", bookingForEmail);
 
         return NextResponse.json({ ok: true, updated: "paid" });
       }

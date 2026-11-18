@@ -6,6 +6,7 @@ import { calculateAdvance } from "@/lib/booking-config";
 import { isBirthdayPackage } from "@/lib/booking-types";
 import { birthdayAdvance } from "@/data/birthday";
 import { sendBookingEmailsFromRow } from "@/lib/email";
+import { notifyTeam } from "@/lib/notify";
 
 const verifySchema = z.object({
   razorpay_order_id: z.string().min(1),
@@ -106,6 +107,7 @@ export async function POST(request: NextRequest) {
       balanceDue: Math.max(0, result.booking.amount - chargeBase),
     };
     await sendBookingEmailsFromRow(bookingForEmail);
+    await notifyTeam("paid", bookingForEmail);
 
     return NextResponse.json({
       success: true,

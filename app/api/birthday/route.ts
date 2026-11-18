@@ -9,6 +9,7 @@ import {
   getActiveBookingsByContact,
 } from "@/lib/google-sheets";
 import { sendBookingConfirmation, sendOwnerNotification } from "@/lib/email";
+import { notifyTeam } from "@/lib/notify";
 import {
   isDateBookable,
   getSlotsForDate,
@@ -218,6 +219,7 @@ export async function POST(request: NextRequest) {
     };
 
     await appendBooking(booking);
+    await notifyTeam("birthday", booking);
 
     // Best-effort notification emails. We reuse the standard templates —
     // the birthday-specific info shows up in the gamePreference /

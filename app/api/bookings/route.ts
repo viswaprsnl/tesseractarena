@@ -24,6 +24,7 @@ import { allGames, availableGames, getGamePlayerRange } from "@/data/games";
 import { AUTOTEST_MARKER, isAutotestRequest } from "@/lib/autotest";
 import { getAdvanceRequired } from "@/lib/settings-sheets";
 import { getClientIp, verifyTurnstileToken } from "@/lib/turnstile";
+import { notifyTeam } from "@/lib/notify";
 
 // Sentinel game id used by the /book wizard when the customer opts to
 // pick their title at the counter instead of committing up front. When
@@ -378,6 +379,12 @@ export async function POST(request: NextRequest) {
     let emailError: string | null = null;
     if (!isAutotest && effectivePaymentMethod === "pay_at_center") {
       emailError = await sendBookingEmailsFromRow(booking);
+    }
+
+    // Team alert for every real online attempt (pending Razorpay included,
+    // so abandoned payments are visible as leads). Kiosk = walk-in, not online.
+    if (!data.isKiosk) {
+      await notifyTeam("created", booking, { isAutotest });
     }
 
     return NextResponse.json({
