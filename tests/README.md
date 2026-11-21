@@ -2,10 +2,10 @@
 
 End-to-end checks that run against **production** every night at
 **03:00 IST** (21:30 UTC) via GitHub Actions. The suite verifies the
-three customer-facing flows that would ruin a day if they silently
-broke:
+flows that would ruin a day if they silently broke:
 
-1. **Online booking** — home page renders, `/book` wizard mounts, the real
+1. **Online booking** — home page renders, the `/book` page mounts and
+   picking a date + slot works, the real
    `/api/bookings` endpoint accepts a payload and writes a confirmed row
    to Sheet1.
 2. **Walk-in logging** — `/admin` renders, the real `/api/admin/revenue`
@@ -13,6 +13,9 @@ broke:
    sheet.
 3. **Kiosk entry** — `/kiosk` renders with a QR code (verifies the
    server component builds and the client shell hydrates).
+4. **Admin access** — owner data (overview, expenses, calendar,
+   customers, prices) can't be read or changed without a PIN, a wrong
+   PIN can't sign in, and a forged bill link doesn't render.
 
 The suite does not touch Razorpay. It uses a server-side bypass so a
 valid test booking lands in Sheet1 marked as paid, without a real

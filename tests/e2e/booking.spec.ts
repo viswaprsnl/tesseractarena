@@ -10,11 +10,10 @@ import {
 
 // What this smoke test covers (Tier 2):
 //   1. Home page renders — hard crash + bundler + hydration canary.
-//   2. /book renders the wizard first step.
-//   3. UI click-through: pick a date on the booking page, click a
-//      time slot, confirm we advance to the Package step. Proves
-//      the step-to-step UX actually works, not just that the first
-//      screen mounts.
+//   2. /book renders the single-page booking form.
+//   3. UI click-through: pick a date, click a time slot, confirm the
+//      "When" section ticks off and shows the chosen slot. Proves the
+//      date → slot interaction works, not just that the page mounts.
 //   4. Booking API round-trip: POST creates a booking → GET reads
 //      it back via /api/admin/bookings → every field we sent must
 //      match what the sheet returned → cleanup wipes it → GET
@@ -33,12 +32,12 @@ test.describe("booking smoke", () => {
     expect(errors, "page errored during initial render").toEqual([]);
   });
 
-  test("booking page renders the wizard", async ({ page }) => {
+  test("booking page renders the booking form", async ({ page }) => {
     await page.goto("/book");
     await expect(page.getByText(/select a date/i)).toBeVisible();
   });
 
-  test("booking wizard: date → slot advances to package step", async ({ page }) => {
+  test("booking page: date → slot fills the When section", async ({ page }) => {
     await page.goto("/book");
     await expect(page.getByText(/select a date/i)).toBeVisible();
 
@@ -60,13 +59,12 @@ test.describe("booking smoke", () => {
       .locator('button:not([disabled])')
       .filter({ hasText: /\d{1,2}:\d{2}\s*(AM|PM)/i });
     await expect(slotButtons.first()).toBeVisible({ timeout: 10_000 });
+    const slotTime = (await slotButtons.first().innerText()).match(/\d{1,2}:\d{2}\s*(AM|PM)/i)![0];
     await slotButtons.first().click();
 
-    // After picking a slot the wizard advances to Step 3 (Package).
-    // Look for the Package heading or the "How many players?" copy.
-    await expect(
-      page.getByText(/package|how many players|party size/i).first()
-    ).toBeVisible({ timeout: 10_000 });
+    // All sections live on one page; once a slot is picked the "When"
+    // section's header recaps it ("Sat, 22 Nov · 11:00 AM").
+    await expect(page.locator("#book-when header")).toContainText(slotTime, { timeout: 10_000 });
   });
 
   test("booking API: round-trip + cleanup self-check", async ({ request }) => {
