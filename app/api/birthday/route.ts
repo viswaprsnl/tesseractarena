@@ -17,10 +17,10 @@ import {
   gstOn,
 } from "@/lib/booking-config";
 import type { BookingRow } from "@/lib/booking-types";
+import { birthdayAdvanceOf, birthdayCatalog } from "@/lib/pricing";
+import { getPricing } from "@/lib/settings-sheets";
 import {
   BIRTHDAY_PACKAGES,
-  BIRTHDAY_ADDONS,
-  birthdayAdvance,
   birthdayRequiredSlots,
 } from "@/data/birthday";
 
@@ -150,11 +150,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Compute total: flat per-kid rate × guestCount + add-ons.
+    // Compute total: flat per-kid rate × guestCount + add-ons, at the
+    // admin-configured prices.
+    const pricing = await getPricing();
+    const catalog = birthdayCatalog(pricing);
     let addonTotal = 0;
     const addonNotes: string[] = [];
     for (const chosen of data.addons) {
-      const def = BIRTHDAY_ADDONS.find((a) => a.id === chosen.id);
+      const def = catalog.addons.find((a) => a.id === chosen.id);
       if (!def) continue;
       const qty = chosen.qty ?? 1;
       const cost =
@@ -170,7 +173,7 @@ export async function POST(request: NextRequest) {
         );
       }
     }
-    const packageSubtotal = pkg.pricePerKid * data.guestCount;
+    const packageSubtotal = catalog.pkg.pricePerKid * data.guestCount;
     const amount = packageSubtotal + addonTotal;
     // No launch discount post-2026-11-05 — the per-kid rate is the final
     // price. If we introduce campaigns later they'd plug in here.
@@ -216,6 +219,8 @@ export async function POST(request: NextRequest) {
       balanceDue: amount,
       gstAmount,
       discountAmount,
+      source: "birthday",
+      slots: requiredSlots,
     };
 
     await appendBooking(booking);
@@ -235,6 +240,7 @@ export async function POST(request: NextRequest) {
       amount,
       gamePreference: kidLabel,
       paymentMethod: "razorpay",
+      advance: birthdayAdvanceOf(pricing, amount),
     };
     let emailError: string | null = null;
     try {
@@ -258,7 +264,7 @@ export async function POST(request: NextRequest) {
         packageName: pkg.name,
         guestCount: data.guestCount,
         amount,
-        advance: birthdayAdvance(amount),
+        advance: birthdayAdvanceOf(pricing, amount),
         slotsBlocked: requiredSlots,
       },
       emailError,

@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 import { NOTIFY_RECIPIENTS } from "@/lib/contact";
-import { gstOn, withGST, GST_PERCENT, formatTimeDisplay, calculateAdvance } from "@/lib/booking-config";
+import { gstOn, withGST, GST_PERCENT, formatTimeDisplay } from "@/lib/booking-config";
 import type { BookingRow } from "@/lib/booking-types";
 
 let resendInstance: Resend | null = null;
@@ -23,11 +23,10 @@ interface BookingEmailData {
   amount: number;
   gamePreference: string;
   paymentMethod: string;
+  advance: number; // ex-GST amount paid (or due) up front
 }
 
-function advanceFor(data: BookingEmailData): number {
-  return calculateAdvance(data.partySize, data.amount);
-}
+const advanceFor = (data: BookingEmailData) => data.advance;
 
 export async function sendBookingConfirmation(data: BookingEmailData): Promise<{ data: unknown; error: unknown }> {
   const paymentText =
@@ -269,6 +268,7 @@ export async function sendBookingEmailsFromRow(
     amount: booking.amount,
     gamePreference: booking.gamePreference,
     paymentMethod: booking.paymentMethod,
+    advance: booking.amountPaid,
   };
   try {
     const [custResult, ownerResult] = await Promise.all([
@@ -283,4 +283,14 @@ export async function sendBookingEmailsFromRow(
     console.error("Booking email send failed:", msg);
     return msg;
   }
+}
+
+// Thank-you + bill link after a completed visit (admin "Email bill").
+export async function sendBillEmail(b: BookingRow, message: string): Promise<{ error: unknown }> {
+  return await getResend().emails.send({
+    from: "Tesseract Arena <bookings@tesseractarena.com>",
+    to: b.email,
+    subject: `Your bill · ${b.bookingId} | Tesseract Arena`,
+    text: message,
+  });
 }

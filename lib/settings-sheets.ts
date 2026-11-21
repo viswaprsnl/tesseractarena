@@ -1,4 +1,6 @@
 import { google } from "googleapis";
+import { resolvePricing, type Pricing } from "./pricing";
+import { resolveOps, type Ops } from "./ops-config";
 
 // Simple key/value settings store, backed by a "Settings" tab in the
 // bookings spreadsheet. Shape:
@@ -177,6 +179,8 @@ export const SETTING_KEYS = {
   ADVANCE_REQUIRED: "advance_required",
   HALLOWEEN_MODE: "halloween_mode",
   DIWALI_MODE: "diwali_mode",
+  PRICING: "pricing",
+  OPS: "ops",
 } as const;
 
 // Shared truthy/falsy parser so new flags added below all read the same
@@ -239,4 +243,34 @@ export async function setDiwaliMode(
   updatedBy: string
 ): Promise<void> {
   await setSetting(SETTING_KEYS.DIWALI_MODE, String(value), updatedBy);
+}
+
+// Price overrides live as one JSON blob under the "pricing" key. Defaults
+// and validation are in lib/pricing.ts so the client resolves identically.
+export async function getPricing(): Promise<Pricing> {
+  const row = await getSetting(SETTING_KEYS.PRICING);
+  try {
+    return resolvePricing(row?.value ? JSON.parse(row.value) : {});
+  } catch {
+    return resolvePricing({});
+  }
+}
+
+export async function setPricing(pricing: Pricing, updatedBy: string): Promise<void> {
+  await setSetting(SETTING_KEYS.PRICING, JSON.stringify(pricing), updatedBy);
+}
+
+// Owner-only business settings (food menu, game fees, review link). Never
+// returned by the public /api/settings.
+export async function getOps(): Promise<Ops> {
+  const row = await getSetting(SETTING_KEYS.OPS);
+  try {
+    return resolveOps(row?.value ? JSON.parse(row.value) : {});
+  } catch {
+    return resolveOps({});
+  }
+}
+
+export async function setOps(ops: Ops, updatedBy: string): Promise<void> {
+  await setSetting(SETTING_KEYS.OPS, JSON.stringify(ops), updatedBy);
 }

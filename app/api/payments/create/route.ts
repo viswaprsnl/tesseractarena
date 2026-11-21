@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createOrder } from "@/lib/razorpay";
 import { findBookingById, updateBookingCells } from "@/lib/google-sheets";
-import { calculateAdvance, withGST } from "@/lib/booking-config";
-import { isBirthdayPackage } from "@/lib/booking-types";
-import { birthdayAdvance } from "@/data/birthday";
+import { withGST } from "@/lib/booking-config";
+import { advanceDue } from "@/lib/pricing";
+import { getPricing } from "@/lib/settings-sheets";
 
 // The client sends only the bookingId. The amount to charge is derived
 // server-side from the booking row so a tampered client cannot short-pay
@@ -51,9 +51,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Charge either the advance (regular online booking) or the full
-    // ticket (kiosk / counter opt-in via payFull). Regular sessions
-    // collect ₹500/person (capped at total); birthday packages collect
-    // BIRTHDAY_ADVANCE_PERCENT of the flat package total.
+    // ticket (kiosk / counter opt-in via payFull). Advance rates come
+    // from the admin Pricing tab (lib/pricing.ts).
     //
     // All chargeBase amounts here are ex-GST — that's what the sheet
     // records so the Anvio royalty and revenue reports stay clean. The
@@ -61,9 +60,7 @@ export async function POST(request: NextRequest) {
     // charges via the order.
     const chargeBase = payFull
       ? result.booking.amount
-      : isBirthdayPackage(result.booking.package)
-      ? birthdayAdvance(result.booking.amount)
-      : calculateAdvance(result.booking.partySize, result.booking.amount);
+      : advanceDue(await getPricing(), result.booking);
     const chargeWithGST = withGST(chargeBase);
 
     // Create Razorpay order (customer-facing gross).

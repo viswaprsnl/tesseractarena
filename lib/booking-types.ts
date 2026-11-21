@@ -48,7 +48,16 @@ export function isLegacyTierPackage(p: string): boolean {
 }
 export type PaymentMethod = "razorpay" | "pay_at_center";
 export type PaymentStatus = "pending" | "paid" | "pay_at_center";
-export type BookingStatus = "confirmed" | "cancelled";
+export type BookingStatus = "confirmed" | "cancelled" | "checked_in" | "no_show" | "completed";
+// Where a booking came from. Legacy rows (blank column) read as website,
+// or birthday when the package says so.
+export type BookingSource = "website" | "kiosk" | "walkin" | "phone" | "birthday" | "corporate";
+// How money actually reached us — recorded per payment in the Payments sheet.
+export type CollectedVia = "razorpay" | "cash" | "upi" | "card" | "bank";
+// Labels for every payment-method picker in the admin, in menu order.
+export const COLLECTED_VIA: Record<CollectedVia, string> = {
+  cash: "Cash", upi: "UPI", card: "Card (PoS machine)", razorpay: "Razorpay", bank: "Bank transfer",
+};
 // "past" is emitted for slots on today's date whose start time has already
 // elapsed — visually distinct from a real customer booking in the admin UI.
 export type SlotStatus = "available" | "booked" | "past";
@@ -125,4 +134,22 @@ export interface BookingRow {
   // discount. Zero when no discount applied. Useful for measuring promo
   // effectiveness in the admin dashboard.
   discountAmount: number;
+  source: BookingSource;
+  // Consecutive 1-hour slots this booking blocks. 0 = derive from package /
+  // party size (see slotsOccupiedBy); admin-created events set it explicitly.
+  slots: number;
+}
+
+// Admin customer list row, merged across bookings, waivers and callbacks.
+export interface Customer {
+  name: string;
+  phone: string;
+  email: string;
+  visits: number;
+  upcoming: number;
+  spent: number; // ex-GST collected
+  lastVisit: string;
+  sources: BookingSource[];
+  waiver: boolean;
+  enquiries: number;
 }

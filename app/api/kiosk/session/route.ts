@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { roleForPin } from "@/lib/admin-auth";
 import { z } from "zod";
 import {
   createKioskSession,
@@ -21,8 +22,7 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: "PIN required" }, { status: 400 });
     }
-    const adminPin = process.env.ADMIN_PIN || "1234";
-    if (parsed.data.pin !== adminPin) {
+    if (!roleForPin(parsed.data.pin)) {
       return NextResponse.json({ error: "Incorrect PIN" }, { status: 401 });
     }
     await createKioskSession();

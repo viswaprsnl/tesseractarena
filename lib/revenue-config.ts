@@ -38,6 +38,46 @@ export interface DailyAggregate {
   walkinSessions: number;
 }
 
+export const EXPENSE_CATEGORIES = {
+  rent: "Rent",
+  salaries: "Salaries",
+  utilities: "Electricity & internet",
+  royalty: "Game royalties / credits",
+  marketing: "Marketing",
+  maintenance: "Maintenance & repairs",
+  software: "Software & subscriptions",
+  food: "Food partner payment",
+  cleaning: "Cleaning staff wages",
+  helpers: "Helpers",
+  supplies: "Birthday supplies (cups, plates, decor)",
+  rental: "Chair & table rental",
+  other: "Other",
+} as const;
+export type ExpenseCategory = keyof typeof EXPENSE_CATEGORIES;
+// What staff can log from the Expenses tab; the rest are owner-only.
+export const STAFF_EXPENSE_CATEGORIES: ExpenseCategory[] = ["food", "cleaning", "helpers", "supplies", "rental", "maintenance", "other"];
+// Monthly bills: shown once for the month, not as a spike on the day paid.
+export const MONTHLY_BILLS: ExpenseCategory[] = ["rent", "salaries", "utilities", "software"];
+
+export interface Expense {
+  id: string;
+  date: string;
+  category: ExpenseCategory;
+  amount: number;
+  note: string;
+  by?: string; // "owner" | "staff"
+}
+
+// One day of the admin calendar (ex-GST rupees).
+export interface CalendarDay {
+  date: string;
+  sessions: number;
+  players: number;
+  booked: number;
+  received: number;
+  expenses: number;
+}
+
 export interface MonthlyCost {
   month: string;
   cost: number;

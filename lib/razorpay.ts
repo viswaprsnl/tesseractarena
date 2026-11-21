@@ -67,3 +67,27 @@ export function verifyWebhookSignature(
     Buffer.from(signature)
   );
 }
+
+// Payment link for an event advance or balance, sent by Razorpay to the
+// customer's phone / email. reference_id carries our booking id; the
+// webhook's payment_link.paid event uses it to record the payment.
+// No notes are set, so the matching payment.captured event doesn't map
+// to the booking and can't count the money twice.
+export async function createPaymentLink(p: {
+  bookingId: string;
+  amountINR: number;
+  name: string;
+  phone: string;
+  email: string;
+  description: string;
+}): Promise<string> {
+  const link = await getRazorpay().paymentLink.create({
+    amount: p.amountINR * 100,
+    currency: "INR",
+    reference_id: `${p.bookingId}-${Date.now().toString(36)}`,
+    description: p.description,
+    customer: { name: p.name, contact: p.phone, ...(p.email && { email: p.email }) },
+    notify: { sms: true, email: !!p.email },
+  });
+  return link.short_url;
+}

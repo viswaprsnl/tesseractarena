@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 import { verifyKioskSession } from "@/lib/kiosk-session";
-import { findBookingById } from "@/lib/google-sheets";
+import { findBookingById, updateBookingCells } from "@/lib/google-sheets";
 
 // Single-booking waiver count. Used by the check-in page's polling
 // loop — cheaper than re-fetching the whole roster every few seconds
@@ -50,6 +50,12 @@ export async function GET(
         : waiverCount >= total
         ? "ready"
         : "partial";
+
+    // Everyone has signed at the kiosk = the group has arrived, so the
+    // booking shows as checked in on the admin page too.
+    if (status === "ready" && booking.booking.status === "confirmed") {
+      await updateBookingCells(booking.rowIndex, { status: "checked_in" });
+    }
 
     return NextResponse.json({
       bookingId,

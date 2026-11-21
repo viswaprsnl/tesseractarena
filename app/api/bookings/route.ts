@@ -20,9 +20,10 @@ import {
 } from "@/lib/booking-config";
 import type { BookingRow } from "@/lib/booking-types";
 import { STANDARD_PACKAGE } from "@/lib/booking-types";
-import { allGames, availableGames, getGamePlayerRange } from "@/data/games";
+import { allGames, getGamePlayerRange } from "@/data/games";
 import { AUTOTEST_MARKER, isAutotestRequest } from "@/lib/autotest";
-import { getAdvanceRequired } from "@/lib/settings-sheets";
+import { getAdvanceRequired, getPricing } from "@/lib/settings-sheets";
+import { gamePrice, maxGamePrice } from "@/lib/pricing";
 import { getClientIp, verifyTurnstileToken } from "@/lib/turnstile";
 import { notifyTeam } from "@/lib/notify";
 
@@ -280,13 +281,12 @@ export async function POST(request: NextRequest) {
     // (flat per-game rate — Solo/Squad/Party tier multipliers retired on
     // 2026-11-05) so a tampered client can't understate.
     const bookingId = `TA-${nanoid(6).toUpperCase()}`;
-    const game = allGames.find((g) => g.id === data.gamePreference);
-    // "Decide at venue" uses the highest Available ex-GST price as the
-    // stored ceiling — the customer pays their ₹500/head advance now and
-    // the balance is trued up at the counter when they pick a title.
+    // "Decide at venue" uses the highest bookable price as the stored
+    // ceiling; the balance is trued up at the counter once they pick.
+    const pricing = await getPricing();
     const priceBasis = isDecideAtVenue
-      ? Math.max(...availableGames.map((g) => g.pricePerPerson))
-      : game?.pricePerPerson;
+      ? maxGamePrice(pricing)
+      : gamePrice(pricing, data.gamePreference);
     const basePrice = priceBasis
       ? calculateSessionPrice(priceBasis, data.partySize)
       : 0;
@@ -361,6 +361,8 @@ export async function POST(request: NextRequest) {
       balanceDue: isAutotest ? 0 : amount,
       gstAmount,
       discountAmount,
+      source: data.isKiosk ? "kiosk" : "website",
+      slots: 0,
     };
 
     // Save to Google Sheets

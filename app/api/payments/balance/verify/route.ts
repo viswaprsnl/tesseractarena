@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { verifyPaymentSignature } from "@/lib/razorpay";
 import { findBookingById, updateBookingCells } from "@/lib/google-sheets";
+import { recordPayment } from "@/lib/ledger-sheets";
 
 // Verify the Razorpay signature for a BALANCE payment and flip the
 // sheet row to fully paid. Separate from /api/payments/verify so the
@@ -64,6 +65,12 @@ export async function POST(request: NextRequest) {
       razorpayPaymentId: razorpay_payment_id,
       amountPaid: String(result.booking.amount),
       balanceDue: "0",
+    });
+    await recordPayment({
+      bookingId,
+      amount: result.booking.balanceDue,
+      method: "razorpay",
+      ref: razorpay_payment_id,
     });
 
     return NextResponse.json({

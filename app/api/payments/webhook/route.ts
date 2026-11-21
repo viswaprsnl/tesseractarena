@@ -5,9 +5,10 @@ import {
   findBookingByOrderId,
   updateBookingCells,
 } from "@/lib/google-sheets";
-import { calculateAdvance } from "@/lib/booking-config";
-import { isBirthdayPackage } from "@/lib/booking-types";
-import { birthdayAdvance } from "@/data/birthday";
+import { advanceDue } from "@/lib/pricing";
+import { getPricing } from "@/lib/settings-sheets";
+import { listPayments, recordPayment } from "@/lib/ledger-sheets";
+import { gstOn } from "@/lib/booking-config";
 import { sendBookingEmailsFromRow } from "@/lib/email";
 import { notifyTeam } from "@/lib/notify";
 
@@ -33,7 +34,30 @@ interface RazorpayWebhookPayload {
     payment?: { entity?: RazorpayEntity };
     order?: { entity?: RazorpayEntity };
     refund?: { entity?: RazorpayEntity };
+    payment_link?: { entity?: { reference_id?: string } };
   };
+}
+
+// Admin-sent payment link paid (event advance / balance). The amount is
+// incl. GST; it's stored ex-GST at the booking's own blended rate. The
+// ledger ref makes a redelivered event a no-op.
+async function linkPaid(event: RazorpayWebhookPayload) {
+  const payment = event.payload?.payment?.entity;
+  const bookingId = event.payload?.payment_link?.entity?.reference_id?.replace(/-[^-]+$/, "");
+  const hit = bookingId ? await findBookingById(bookingId) : null;
+  if (!hit || !payment?.id || !payment.amount) return NextResponse.json({ ok: true, matched: false });
+  if ((await listPayments()).some((p) => p.ref === payment.id)) return NextResponse.json({ ok: true, already: "recorded" });
+  const b = hit.booking;
+  const incl = payment.amount / 100;
+  const exGst = Math.min(b.balanceDue, Math.round((incl * b.amount) / (b.amount + (b.gstAmount || gstOn(b.amount)))));
+  await updateBookingCells(hit.rowIndex, {
+    paymentStatus: "paid",
+    amountPaid: String(b.amountPaid + exGst),
+    balanceDue: String(b.balanceDue - exGst),
+    razorpayPaymentId: payment.id,
+  });
+  await recordPayment({ bookingId: b.bookingId, amount: exGst, method: "razorpay", ref: payment.id });
+  return NextResponse.json({ ok: true, updated: "link_paid" });
 }
 
 // Resolve a Razorpay event to our internal booking. Prefers notes.bookingId
@@ -81,6 +105,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    if (event.event === "payment_link.paid") return await linkPaid(event);
     const hit = await resolveBooking(event);
     // Unknown booking is not a Razorpay problem — 200 so Razorpay stops
     // retrying, log it for our own investigation.
@@ -123,6 +148,12 @@ export async function POST(request: NextRequest) {
             if (payment.id) updates.razorpayPaymentId = payment.id;
             if (payment.order_id) updates.razorpayOrderId = payment.order_id;
             await updateBookingCells(hit.rowIndex, updates);
+            await recordPayment({
+              bookingId: hit.booking.bookingId,
+              amount: hit.booking.balanceDue,
+              method: "razorpay",
+              ref: payment.id,
+            });
             return NextResponse.json({ ok: true, updated: "balance_paid" });
           }
         }
@@ -133,9 +164,7 @@ export async function POST(request: NextRequest) {
         if (hit.booking.paymentStatus === "paid") {
           return NextResponse.json({ ok: true, already: "paid" });
         }
-        const advance = isBirthdayPackage(hit.booking.package)
-          ? birthdayAdvance(hit.booking.amount)
-          : calculateAdvance(hit.booking.partySize, hit.booking.amount);
+        const advance = advanceDue(await getPricing(), hit.booking);
 
         // Derive paid base from the Razorpay payment amount so a kiosk
         // "pay full" flow is recorded correctly even when the client
@@ -164,6 +193,12 @@ export async function POST(request: NextRequest) {
         if (payment?.id) updates.razorpayPaymentId = payment.id;
         if (payment?.order_id) updates.razorpayOrderId = payment.order_id;
         await updateBookingCells(hit.rowIndex, updates);
+        await recordPayment({
+          bookingId: hit.booking.bookingId,
+          amount: paidBase,
+          method: "razorpay",
+          ref: payment?.id,
+        });
 
         // This path handles the case where the customer closed their
         // browser tab after paying — /api/payments/verify never ran, so

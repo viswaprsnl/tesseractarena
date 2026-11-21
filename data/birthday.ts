@@ -56,7 +56,7 @@ export const BIRTHDAY_PACKAGES: BirthdayPackage[] = [
     tagline:
       "One flat per-kid rate, every perk à la carte. Build the party your kid actually wants.",
     includes: [
-      "₹1,499 per kid (ex-GST) — minimum 8, up to 24 across staggered waves",
+      "One flat per-kid rate (ex-GST) — minimum 8, up to 24 across staggered waves",
       "1 Anvio rotation + 1 HeroZone rotation per kid (our host picks age-appropriate titles)",
       "2-hour arena block for the whole party",
       "Dedicated party host for the whole booking",
@@ -93,10 +93,6 @@ export const BIRTHDAY_ADDONS: BirthdayAddon[] = [
 // Percentage of total collected as the online advance to hold the slot.
 // Rest paid at the arena on the day. Unchanged from the tiered model.
 export const BIRTHDAY_ADVANCE_PERCENT = 25;
-
-export function birthdayAdvance(total: number): number {
-  return Math.round((total * BIRTHDAY_ADVANCE_PERCENT) / 100);
-}
 
 // Compute the slots a booking needs based on the baseline + whether the
 // morning-buyout add-on is in the list. Keep this as a pure function so

@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { verifyPaymentSignature } from "@/lib/razorpay";
 import { findBookingById, updateBookingCells } from "@/lib/google-sheets";
-import { calculateAdvance } from "@/lib/booking-config";
-import { isBirthdayPackage } from "@/lib/booking-types";
-import { birthdayAdvance } from "@/data/birthday";
+import { advanceDue } from "@/lib/pricing";
+import { getPricing } from "@/lib/settings-sheets";
+import { recordPayment } from "@/lib/ledger-sheets";
 import { sendBookingEmailsFromRow } from "@/lib/email";
 import { notifyTeam } from "@/lib/notify";
 
@@ -72,9 +72,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Advance = ₹500 per player for regular sessions, capped at total;
-    // BIRTHDAY_ADVANCE_PERCENT of the flat package total for birthdays.
-    // Balance = total − advance.
+    // Advance per lib/pricing.ts; balance = total − advance.
     //
     // All amounts written back to the sheet here are EX-GST — this is the
     // clean revenue basis for Anvio royalty (10% of ex-GST) and internal
@@ -83,15 +81,14 @@ export async function POST(request: NextRequest) {
     // accounting. See lib/booking-config.ts (GST_PERCENT) for the rule.
     const chargeBase = payFull
       ? result.booking.amount
-      : isBirthdayPackage(result.booking.package)
-      ? birthdayAdvance(result.booking.amount)
-      : calculateAdvance(result.booking.partySize, result.booking.amount);
+      : advanceDue(await getPricing(), result.booking);
     await updateBookingCells(result.rowIndex, {
       paymentStatus: "paid",
       razorpayPaymentId: razorpay_payment_id,
       amountPaid: String(chargeBase),
       balanceDue: String(Math.max(0, result.booking.amount - chargeBase)),
     });
+    await recordPayment({ bookingId, amount: chargeBase, method: "razorpay", ref: razorpay_payment_id });
 
     // The booking is only "real" now that payment has cleared. Fire
     // customer + arena-ops emails here, not at /api/bookings create
@@ -113,6 +110,7 @@ export async function POST(request: NextRequest) {
       success: true,
       bookingId,
       paymentStatus: "paid",
+      amountPaid: chargeBase,
     });
   } catch (error) {
     console.error("Error verifying payment:", error);

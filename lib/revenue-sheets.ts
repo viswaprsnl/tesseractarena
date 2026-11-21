@@ -6,7 +6,7 @@ import type {
   PaymentMethod,
 } from "./revenue-config";
 import { DEFAULT_MONTHLY_COST } from "./revenue-config";
-import { getBookingsForDate } from "./google-sheets";
+import { listBookingRows } from "./google-sheets";
 
 const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_SPREADSHEET_ID!;
 const REVENUE_SHEET = "Revenue";
@@ -170,34 +170,21 @@ export async function listBookingRevenueBetween(
   fromDate: string,
   toDate: string
 ): Promise<RevenueEntry[]> {
-  const days: string[] = [];
-  const start = new Date(fromDate + "T00:00:00Z");
-  const end = new Date(toDate + "T00:00:00Z");
-  for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
-    days.push(d.toISOString().slice(0, 10));
-  }
-
-  const all = await Promise.all(days.map((d) => getBookingsForDate(d)));
-  const entries: RevenueEntry[] = [];
-  for (const dayBookings of all) {
-    for (const b of dayBookings) {
-      // Only count bookings that were actually paid online. Cancelled rows
-      // are already filtered by getBookingsForDate.
-      if (b.paymentStatus !== "paid") continue;
-      entries.push({
-        id: `booking-${b.bookingId}`,
-        date: b.date,
-        source: "booking",
-        groupType: b.package as GroupType,
-        players: b.partySize,
-        revenue: b.amount,
-        paymentMethod: "razorpay",
-        notes: b.gamePreference || "",
-        createdAt: b.createdAt,
-      });
-    }
-  }
-  return entries;
+  // One sheet read for the whole range; only paid, non-cancelled bookings.
+  const rows = await listBookingRows(
+    (b) => b.status !== "cancelled" && b.paymentStatus === "paid" && b.date >= fromDate && b.date <= toDate
+  );
+  return rows.map(({ booking: b }) => ({
+    id: `booking-${b.bookingId}`,
+    date: b.date,
+    source: "booking",
+    groupType: b.package as GroupType,
+    players: b.partySize,
+    revenue: b.amount,
+    paymentMethod: "razorpay",
+    notes: b.gamePreference || "",
+    createdAt: b.createdAt,
+  }));
 }
 
 // ─────────────── Monthly cost overrides ───────────────

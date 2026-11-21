@@ -1,5 +1,5 @@
-import { google } from "googleapis";
-import type { BookingRow } from "./booking-types";
+import type { BookingRow, BookingSource } from "./booking-types";
+import { getSheets, SPREADSHEET_ID } from "./sheets";
 import { isBirthdayPackage } from "./booking-types";
 import { getSlotsForDate, getTodayISTString } from "./booking-config";
 import { BIRTHDAY_PACKAGES } from "@/data/birthday";
@@ -10,7 +10,8 @@ import { BIRTHDAY_PACKAGES } from "@/data/birthday";
 //   blocked up to 3+, so they keep a conservative 3.
 // - Party (partySize >= 6): 2 slots (existing 90-min behavior)
 // - Everything else: 1 slot
-function slotsOccupiedBy(booking: BookingRow): number {
+export function slotsOccupiedBy(booking: BookingRow): number {
+  if (booking.slots > 0) return booking.slots;
   if (isBirthdayPackage(booking.package)) {
     const key = booking.package.replace("birthday-", "");
     const pkg = BIRTHDAY_PACKAGES.find((p) => p.id === key);
@@ -24,24 +25,6 @@ function slotsOccupiedBy(booking: BookingRow): number {
   return 1;
 }
 
-function getAuth() {
-  const privateKey = Buffer.from(
-    process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || "",
-    "base64"
-  ).toString("utf-8");
-
-  return new google.auth.JWT({
-    email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-    key: privateKey,
-    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-  });
-}
-
-function getSheets() {
-  return google.sheets({ version: "v4", auth: getAuth() });
-}
-
-const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_SPREADSHEET_ID!;
 const SHEET_NAME = "Sheet1";
 
 export async function getBookingsForDate(
@@ -51,7 +34,7 @@ export async function getBookingsForDate(
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A2:V`,
+    range: `${SHEET_NAME}!A2:X`,
   });
 
   const rows = res.data.values || [];
@@ -73,7 +56,11 @@ export async function getBookedSlotsForDate(
   date: string,
   arenaId: string = "arena-1"
 ): Promise<string[]> {
-  const bookings = await getBookingsForDate(date, arenaId);
+  // Unpaid online checkouts stop holding the slot after 30 minutes, so an
+  // abandoned Razorpay sheet can't block a slot forever.
+  const bookings = (await getBookingsForDate(date, arenaId)).filter(
+    (b) => b.paymentStatus !== "pending" || !isStaleHold(b.createdAt)
+  );
   const slotsInDay = getSlotsForDate(date);
   const blocked = new Set<string>();
   for (const b of bookings) {
@@ -91,6 +78,12 @@ export async function getBookedSlotsForDate(
   return [...blocked];
 }
 
+const HOLD_MINUTES = 30;
+function isStaleHold(createdAt: string): boolean {
+  const t = Date.parse(createdAt);
+  return Number.isFinite(t) && Date.now() - t > HOLD_MINUTES * 60_000;
+}
+
 export async function getActiveBookingsByContact(
   email: string,
   phone: string
@@ -98,7 +91,7 @@ export async function getActiveBookingsByContact(
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A2:V`,
+    range: `${SHEET_NAME}!A2:X`,
   });
 
   const rows = res.data.values || [];
@@ -147,10 +140,11 @@ export async function appendBooking(booking: BookingRow): Promise<string> {
       range: `${SHEET_NAME}!A${row}:AL${row}`,
       valueInputOption: "RAW",
       requestBody: {
-        values: [[...values, ...Array.from({ length: 16 }, () => "")]],
+        // A..AL is 38 columns: the booking plus blanks over the stray cells.
+        values: [[...values, ...Array.from({ length: 38 - values.length }, () => "")]],
       },
     });
-    range = `${SHEET_NAME}!A${row}:V${row} (relocated from ${range})`;
+    range = `${SHEET_NAME}!A${row}:X${row} (relocated from ${range})`;
   }
 
   console.log(
@@ -165,7 +159,7 @@ export async function findBookingById(
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A2:V`,
+    range: `${SHEET_NAME}!A2:X`,
   });
 
   const rows = res.data.values || [];
@@ -184,7 +178,7 @@ export async function findBookingByOrderId(
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A2:V`,
+    range: `${SHEET_NAME}!A2:X`,
   });
 
   const rows = res.data.values || [];
@@ -200,6 +194,10 @@ export async function updateBookingCells(
 ): Promise<void> {
   const sheets = getSheets();
   const columnMap: Record<string, string> = {
+    name: "C",
+    email: "D",
+    phone: "E",
+    partySize: "H",
     paymentStatus: "K",
     razorpayOrderId: "M",
     razorpayPaymentId: "N",
@@ -213,6 +211,8 @@ export async function updateBookingCells(
     balanceDue: "T",
     gstAmount: "U",
     discountAmount: "V",
+    source: "W",
+    slots: "X",
   };
 
   const requests = Object.entries(updates).map(([field, value]) => ({
@@ -238,11 +238,11 @@ export async function clearBookingRow(rowIndex: number): Promise<void> {
   const sheets = getSheets();
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A${rowIndex}:V${rowIndex}`,
+    range: `${SHEET_NAME}!A${rowIndex}:X${rowIndex}`,
     valueInputOption: "RAW",
     requestBody: {
-      // 22 empty strings = columns A..V.
-      values: [Array.from({ length: 22 }, () => "")],
+      // 24 empty strings = columns A..X.
+      values: [Array.from({ length: 24 }, () => "")],
     },
   });
 }
@@ -257,7 +257,7 @@ export async function listBookingRows(
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A2:V`,
+    range: `${SHEET_NAME}!A2:X`,
   });
   const rows = res.data.values || [];
   const out: { booking: BookingRow; rowIndex: number }[] = [];
@@ -273,7 +273,7 @@ export async function getExpiredPayAtCenterBookings(): Promise<{ booking: Bookin
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A2:V`,
+    range: `${SHEET_NAME}!A2:X`,
   });
 
   const rows = res.data.values || [];
@@ -284,6 +284,8 @@ export async function getExpiredPayAtCenterBookings(): Promise<{ booking: Bookin
     if (
       row[10] === "pay_at_center" &&
       row[17] !== "cancelled" &&
+      // Only online bookings expire; counter/staff-made ones are real.
+      (!row[22] || row[22] === "website") &&
       row[5] && row[6] // has date and time_slot
     ) {
       // Build the session start time
@@ -328,6 +330,8 @@ function bookingToRow(b: BookingRow): string[] {
     String(b.balanceDue), // T
     String(b.gstAmount),      // U — 18% of amount, remitted to govt
     String(b.discountAmount), // V — rupees off via discount / promo
+    b.source,                 // W
+    b.slots ? String(b.slots) : "", // X — blank = derived
   ];
 }
 
@@ -345,7 +349,7 @@ function inferAmountPaid(
   return 0;
 }
 
-function rowToBooking(row: string[]): BookingRow {
+export function rowToBooking(row: string[]): BookingRow {
   const partySize = parseInt(row[7] || "1");
   const amount = parseInt(row[14] || "0");
   const paymentStatus = (row[10] || "pending") as BookingRow["paymentStatus"];
@@ -395,5 +399,7 @@ function rowToBooking(row: string[]): BookingRow {
     balanceDue,
     gstAmount,
     discountAmount,
+    source: (row[22] as BookingSource) || (isBirthdayPackage(row[8] || "") ? "birthday" : "website"),
+    slots: parseInt(row[23] || "0") || 0,
   };
 }

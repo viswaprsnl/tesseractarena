@@ -19,7 +19,8 @@ export const SLOT_DURATION_MINUTES = 60;
 export const SLOT_LATE_BOOKING_WINDOW_MINUTES = 40;
 export const MAX_PLAYERS = 8;
 
-// Flat advance per person paid at booking. Remaining is paid at the
+// Default flat advance per person paid at booking (owner can override it
+// from the admin Pricing tab — see lib/pricing.ts). Remaining is paid at the
 // center. Dropped from ₹500 to ₹99 on 2026-11-05 to lower the online
 // commitment friction — the 2026-10 "no advance" experiment
 // (advance_required=false on the Settings sheet) showed noticeable
@@ -51,6 +52,14 @@ export function withGST(exGSTAmount: number): number {
   return Math.round((exGSTAmount * (100 + GST_PERCENT)) / 100);
 }
 
+// Incl.-GST value of part of a booking's ex-GST amount, at that booking's
+// own blended rate (events mix 18% play with 5% food). Rows without a
+// stored GST amount fall back to the standard 18%.
+export function inclGst(b: { amount: number; gstAmount: number }, exGst: number): number {
+  const rate = b.amount > 0 && b.gstAmount > 0 ? b.gstAmount / b.amount : GST_PERCENT / 100;
+  return Math.round(exGst * (1 + rate));
+}
+
 // The GST portion of an ex-GST amount (i.e. the amount remitted to govt).
 export function gstOn(exGSTAmount: number): number {
   return Math.round((exGSTAmount * GST_PERCENT) / 100);
@@ -66,13 +75,6 @@ export function calculateSessionPrice(
   partySize: number
 ): number {
   return gameBasePrice * partySize;
-}
-
-// Advance amount for a per-person booking = ₹500 per player, capped at the
-// total if the total is somehow lower. Birthday advances are computed in
-// data/birthday.ts as a percentage of the flat package price.
-export function calculateAdvance(partySize: number, total: number): number {
-  return Math.min(ADVANCE_PER_PERSON * partySize, total);
 }
 
 // True when the package is NOT a birthday package — i.e. a regular
