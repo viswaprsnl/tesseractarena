@@ -156,3 +156,23 @@ Open:
 Docs:
 - https://business.paytm.com/docs/api/pos-sale-api
 - https://www.paytmpayments.com/docs/pos-connection-via-payment-request
+
+## Bugs to fix (live site, found during this work)
+
+### Unpaid online bookings block the slot
+- **Today:** a booking that pays online is saved as `pending` before the customer pays, and blocks its slot straight away. If the customer closes the Razorpay window, nothing frees it: `payment.failed` leaves the row pending and the daily job only expires pay-at-center bookings. The slot stays taken until staff cancel it.
+- **Who it hits now:** with "advance required" off (live setting as of 2026-11-21), home bookings skip payment and are unaffected. It still hits:
+  - birthday bookings, which always take the advance online and block 2–3 slots;
+  - kiosk "Pay online";
+  - every online booking again if the advance is switched back on.
+- **Fix:**
+  - [ ] Count a slot as taken only when the booking is paid, pay-at-center, or made by staff.
+  - [ ] Keep a short hold while the Razorpay window is open, so two people can't pay for the same slot. Set the Razorpay checkout `timeout` to the same length (about 10 minutes).
+  - [ ] On payment success, check the slot again. If someone else paid for it first, refund automatically and tell the customer and staff.
+  - [ ] Hide or mark expired `pending` rows in the admin so they don't look like real bookings.
+
+### Daily expiry job may cancel real pay-at-center bookings (check)
+- `/api/cron/expire-bookings` runs once a day at 13:30 IST. It cancels every website booking that is still pay-at-center and starts within 4 hours, or has already started, and emails the customer a cancellation.
+- With the advance off, every home booking is pay-at-center. So bookings for that afternoon could be cancelled before the customer arrives, and past ones get a cancellation email if staff never marked them paid.
+- [ ] Check the Vercel cron logs to see whether it runs (it needs `CRON_SECRET`) and how many bookings it has cancelled.
+- [ ] Decide what it should do now that pay-at-center is the normal flow. Probably: only expire bookings whose customer didn't confirm, and never email for past sessions.
