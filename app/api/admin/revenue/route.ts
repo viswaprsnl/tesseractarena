@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { roleForPin } from "@/lib/admin-auth";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import {
@@ -10,6 +11,7 @@ import {
   listMonthlyCosts,
 } from "@/lib/revenue-sheets";
 import type { RevenueEntry } from "@/lib/revenue-config";
+import { listExpenses } from "@/lib/ledger-sheets";
 import { AUTOTEST_MARKER, isAutotestRequest } from "@/lib/autotest";
 
 const entryBodySchema = z.object({
@@ -28,18 +30,12 @@ const entryBodySchema = z.object({
 // instead of needing a PIN embedded in the GitHub secret store.
 function checkStaffPin(request: NextRequest): boolean {
   if (isAutotestRequest(request)) return true;
-  const pin = new URL(request.url).searchParams.get("pin");
-  const staffPin = process.env.ADMIN_PIN || "1234";
-  const ownerPin = process.env.OWNER_PIN;
-  // Owner pin also satisfies staff-only endpoints — owners can do anything staff can.
-  return pin === staffPin || (!!ownerPin && pin === ownerPin);
+  // Owner pin also satisfies staff-only endpoints.
+  return !!roleForPin(new URL(request.url).searchParams.get("pin"));
 }
 
 function checkOwnerPin(request: NextRequest): boolean {
-  const pin = new URL(request.url).searchParams.get("pin");
-  const ownerPin = process.env.OWNER_PIN;
-  if (!ownerPin) return false;
-  return pin === ownerPin;
+  return roleForPin(new URL(request.url).searchParams.get("pin")) === "owner";
 }
 
 // GET ?from=YYYY-MM-DD&to=YYYY-MM-DD — returns walk-ins + booking-derived
@@ -60,11 +56,23 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const [walkins, bookings, costs] = await Promise.all([
+    const [walkins, bookings, overrides, expenses] = await Promise.all([
       listWalkinRevenue(),
       listBookingRevenueBetween(from, to),
       listMonthlyCosts(),
+      listExpenses(),
     ]);
+    // A month with logged expenses uses their real total instead of the
+    // flat monthly-cost estimate.
+    const logged = new Map<string, number>();
+    for (const e of expenses) {
+      const m = e.date.slice(0, 7);
+      logged.set(m, (logged.get(m) || 0) + e.amount);
+    }
+    const costs = [
+      ...overrides.filter((c) => !logged.has(c.month)),
+      ...[...logged].map(([month, cost]) => ({ month, cost, updatedAt: "" })),
+    ];
 
     const inRange = (e: RevenueEntry) => e.date >= from && e.date <= to;
     const entries = [...walkins.filter(inRange), ...bookings];

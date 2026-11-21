@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { roleForPin } from "@/lib/admin-auth";
 import { z } from "zod";
 import {
   getSetting,
@@ -7,7 +8,13 @@ import {
   setHalloweenMode,
   setDiwaliMode,
   SETTING_KEYS,
+  getPricing,
+  setPricing,
+  getOps,
+  setOps,
 } from "@/lib/settings-sheets";
+import { resolvePricing } from "@/lib/pricing";
+import { resolveOps } from "@/lib/ops-config";
 
 // Admin-authenticated read + write for app settings. Separate from
 // /api/settings (which is public, read-only, and returns only what
@@ -17,10 +24,7 @@ import {
 // Auth: ADMIN_PIN via ?pin= — same pattern as /api/admin/revenue.
 
 function checkAdminPin(request: NextRequest): boolean {
-  const pin = new URL(request.url).searchParams.get("pin");
-  const adminPin = process.env.ADMIN_PIN || "1234";
-  const ownerPin = process.env.OWNER_PIN;
-  return pin === adminPin || (!!ownerPin && pin === ownerPin);
+  return !!roleForPin(new URL(request.url).searchParams.get("pin"));
 }
 
 export async function GET(request: NextRequest) {
@@ -45,6 +49,14 @@ export async function GET(request: NextRequest) {
         // seasonal overlays default to false (missing row = off)
         halloweenMode: !!halloweenRow && isTruthy(halloweenRow.value),
         diwaliMode: !!diwaliRow && isTruthy(diwaliRow.value),
+        pricing: await getPricing(),
+        // Staff need food and corporate prices to book events; game fees
+        // and the rest stay with the owner.
+        ops: await getOps().then((o) =>
+          roleForPin(new URL(request.url).searchParams.get("pin")) === "owner"
+            ? o
+            : { food: o.food, corporatePerHead: o.corporatePerHead }
+        ),
       },
     });
   } catch (error) {
@@ -60,6 +72,9 @@ const patchSchema = z.object({
   advanceRequired: z.boolean().optional(),
   halloweenMode: z.boolean().optional(),
   diwaliMode: z.boolean().optional(),
+  // Shape is validated (and defaults filled) by resolvePricing.
+  pricing: z.record(z.string(), z.unknown()).optional(),
+  ops: z.record(z.string(), z.unknown()).optional(),
 });
 
 export async function PATCH(request: NextRequest) {
@@ -77,11 +92,20 @@ export async function PATCH(request: NextRequest) {
     }
     // Which PIN level made the change — tracked in updatedBy so the
     // sheet log distinguishes an owner change from a staff change.
-    const pin = new URL(request.url).searchParams.get("pin");
-    const label =
-      process.env.OWNER_PIN && pin === process.env.OWNER_PIN ? "owner" : "staff";
+    const label = roleForPin(new URL(request.url).searchParams.get("pin")) ?? "staff";
 
+    if ((parsed.data.pricing || parsed.data.ops) && label !== "owner") {
+      return NextResponse.json({ error: "Owner PIN required to change prices" }, { status: 403 });
+    }
     const updates: string[] = [];
+    if (parsed.data.pricing) {
+      await setPricing(resolvePricing(parsed.data.pricing), label);
+      updates.push(SETTING_KEYS.PRICING);
+    }
+    if (parsed.data.ops) {
+      await setOps(resolveOps(parsed.data.ops), label);
+      updates.push(SETTING_KEYS.OPS);
+    }
     if (parsed.data.advanceRequired !== undefined) {
       await setAdvanceRequired(parsed.data.advanceRequired, label);
       updates.push(SETTING_KEYS.ADVANCE_REQUIRED);

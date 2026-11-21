@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { roleForPin } from "@/lib/admin-auth";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import {
@@ -56,10 +57,7 @@ function extraValidation(body: z.infer<typeof discountBodySchema>): string | nul
 }
 
 function checkPin(request: NextRequest): boolean {
-  const { searchParams } = new URL(request.url);
-  const pin = searchParams.get("pin");
-  const adminPin = process.env.ADMIN_PIN || "1234";
-  return pin === adminPin;
+  return !!roleForPin(new URL(request.url).searchParams.get("pin"));
 }
 
 export async function GET(request: NextRequest) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { format, addDays } from "date-fns";
 import {
@@ -15,7 +15,6 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertTriangle,
-  Gamepad2,
   Search,
   Eye,
   EyeOff,
@@ -23,21 +22,30 @@ import {
   Plus,
   Settings,
   ExternalLink,
-  Tag,
-  TrendingUp,
-  Lock,
-  PhoneCall,
   LogOut,
+  KeyRound,
+  Receipt,
+  ChevronDown,
+  type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { formatTimeDisplay, getTodayISTString, GST_PERCENT } from "@/lib/booking-config";
-import type { BookingRow } from "@/lib/booking-types";
+import { formatTimeDisplay, getTodayISTString, inclGst, withGST } from "@/lib/booking-config";
+import { COLLECTED_VIA, type BookingRow, type CollectedVia } from "@/lib/booking-types";
+import type { AdminRole } from "@/lib/admin-auth";
+import { FOOD_MENU, isEvent, type BookingDetails } from "@/lib/ops-config";
+import { EventEditor } from "@/components/admin/EventEditor";
+import { GamesPicker } from "@/components/admin/GamesPicker";
 import { allGames, availableGames, comingSoonGames, type Game, type GameCategory } from "@/data/games";
 import { formatDiscountBadge, type Discount, type DiscountScope, type DiscountType } from "@/lib/discount-config";
 import { RevenueTab } from "@/components/admin/RevenueTab";
-import { WalkinLogger } from "@/components/admin/WalkinLogger";
+import { ExpensesPanel } from "@/components/admin/ExpensesPanel";
+import { OwnerOverview } from "@/components/admin/OwnerOverview";
+import { CounterBookingForm } from "@/components/admin/CounterBookingForm";
+import { MonthCalendar } from "@/components/admin/MonthCalendar";
+import { PricingTab } from "@/components/admin/PricingTab";
+import { CustomersTab } from "@/components/admin/CustomersTab";
 import { DiscountModal } from "@/components/admin/DiscountModal";
 import { CallbacksTab } from "@/components/admin/CallbacksTab";
 import { SettingsTab } from "@/components/admin/SettingsTab";
@@ -58,6 +66,7 @@ interface Stats {
   paid: number;
   payAtCenter: number;
   totalRevenue: number;
+  collected: number;
   // Optional on legacy responses that pre-date walk-in merging.
   walkins?: number;
   walkinRevenue?: number;
@@ -107,54 +116,44 @@ function ServiceCard({ name, purpose, plan, limits, upgrade, url, login, status 
   );
 }
 
-// Inline PIN prompt shown when a staff-authenticated user clicks an
-// owner-only tab. Once the PIN is verified once per session, this doesn't
-// reappear until logout.
-function OwnerGate({
-  title,
-  subtitle,
-  busy,
-  error,
-  onSubmit,
-}: {
-  title: string;
-  subtitle: string;
-  busy: boolean;
-  error: string | null;
-  onSubmit: (pin: string) => void;
-}) {
-  const [candidate, setCandidate] = useState("");
+// Four tabs, each with sub-pages. The PIN decides which ones exist:
+// staff never see owner pages, and the owner APIs refuse a staff PIN too.
+type Page = "bookings" | "schedule" | "customers" | "callbacks" | "expenses" | "games" | "discounts" | "settings" | "pricing" | "revenue" | "ledger" | "services";
+const GROUPS: { label: string; icon: LucideIcon; pages: Page[]; owner?: true }[] = [
+  { label: "Bookings", icon: Calendar, pages: ["bookings", "schedule"] },
+  { label: "Customers", icon: Users, pages: ["customers", "callbacks"] },
+  { label: "Expenses", icon: Receipt, pages: ["expenses"] },
+  { label: "Setup", icon: Settings, pages: ["games", "discounts", "settings", "pricing"] },
+  { label: "Owner", icon: KeyRound, pages: ["revenue", "ledger", "services"], owner: true },
+];
+const PAGE_LABEL: Record<Page, string> = {
+  bookings: "Calendar & day", schedule: "Block slots", customers: "All customers", callbacks: "Callbacks", expenses: "Add expense",
+  games: "Games", discounts: "Discounts", settings: "Settings", pricing: "Pricing", revenue: "Overview", ledger: "Revenue log", services: "Services",
+};
+const OWNER_PAGES = new Set<Page>(["pricing", "revenue", "ledger", "services"]);
+
+// Secondary booking actions, tucked away so each card shows only its next step.
+function MoreMenu({ items }: { items: [label: string, onClick: () => void, tone?: string][] }) {
   return (
-    <div className="max-w-sm mx-auto mt-12">
-      <div className="glass-card p-6 text-center space-y-4">
-        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-          <Lock size={20} className="text-primary" />
-        </div>
-        <div>
-          <h3 className="font-heading text-lg font-bold">{title}</h3>
-          <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
-        </div>
-        <Input
-          type="password"
-          inputMode="numeric"
-          placeholder="Owner PIN"
-          value={candidate}
-          onChange={(e) => setCandidate(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && candidate.trim()) onSubmit(candidate.trim());
-          }}
-          className="bg-card/60 border-white/10 text-center tracking-widest"
-        />
-        {error && <p className="text-xs text-destructive">{error}</p>}
-        <Button
-          onClick={() => candidate.trim() && onSubmit(candidate.trim())}
-          disabled={busy || !candidate.trim()}
-          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-        >
-          {busy ? "Verifying…" : "Unlock"}
-        </Button>
+    <details className="relative">
+      <summary className="list-none [&::-webkit-details-marker]:hidden cursor-pointer h-9 px-3 rounded-md border border-white/20 text-xs text-muted-foreground flex items-center gap-1">
+        More <ChevronDown size={12} />
+      </summary>
+      <div className="absolute right-0 z-20 mt-1 w-44 rounded-lg border border-white/10 bg-card p-1 shadow-xl flex flex-col">
+        {items.map(([label, onClick, tone]) => (
+          <button
+            key={label}
+            onClick={(e) => {
+              e.currentTarget.closest("details")?.removeAttribute("open");
+              onClick();
+            }}
+            className={`text-left text-xs px-3 py-2 rounded hover:bg-secondary ${tone ?? ""}`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
-    </div>
+    </details>
   );
 }
 
@@ -264,10 +263,9 @@ function DiscountForm({
           onChange={(e) => setAppliesTo(e.target.value as DiscountScope)}
           className="w-full h-9 rounded-md bg-card/60 border border-white/10 px-2 text-xs"
         >
-          <option value="all">Site-wide (all packages)</option>
-          <option value="solo">Solo only</option>
-          <option value="squad">Squad only</option>
-          <option value="party">Party only</option>
+          <option value="all">Everything</option>
+          <option value="standard">Game sessions only</option>
+          <option value="birthday-standard">Birthday parties only</option>
         </select>
       </div>
 
@@ -347,44 +345,37 @@ function DiscountForm({
   );
 }
 
+// "owner" | "staff" for a valid PIN, "invalid" if rejected, null if the
+// check itself failed (network).
+async function checkPin(pin: string): Promise<"owner" | "staff" | "invalid" | null> {
+  try {
+    const res = await fetch("/api/admin/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin }),
+    });
+    return res.ok ? (await res.json()).role : "invalid";
+  } catch {
+    return null;
+  }
+}
+
 export default function AdminPage() {
   const [pin, setPin] = useState("");
-  // Owner-level PIN unlocks the Revenue and Services tabs. Kept separate
-  // from the staff `pin` so a staff member on the counter can't accidentally
-  // see finance data or credentials.
-  const [ownerPin, setOwnerPin] = useState("");
-  const [ownerAuthed, setOwnerAuthed] = useState(false);
-  const [ownerCheckError, setOwnerCheckError] = useState<string | null>(null);
-  const [checkingOwner, setCheckingOwner] = useState(false);
-
-  const verifyOwnerPin = async (candidate: string) => {
-    setCheckingOwner(true);
-    setOwnerCheckError(null);
-    try {
-      // Round-trip through the revenue GET — it's owner-gated, so a 200
-      // means the PIN is correct without needing a separate auth endpoint.
-      const today = new Date().toISOString().slice(0, 10);
-      const res = await fetch(
-        `/api/admin/revenue?pin=${candidate}&from=${today}&to=${today}`
-      );
-      if (res.ok) {
-        setOwnerPin(candidate);
-        setOwnerAuthed(true);
-      } else {
-        setOwnerCheckError("Incorrect owner PIN");
-      }
-    } catch {
-      setOwnerCheckError("Failed to verify — try again");
-    }
-    setCheckingOwner(false);
-  };
-  const [authenticated, setAuthenticated] = useState(false);
+  const [role, setRole] = useState<AdminRole | null>(null);
+  const isOwner = role === "owner";
   const [selectedDate, setSelectedDate] = useState(getTodayISTString());
   // The native date input is hidden but stays functional — clicking the
   // pretty date label calls showPicker() on this ref to open the browser's
   // calendar popup on top of the label.
   const datePickerRef = useRef<HTMLInputElement>(null);
   const [bookings, setBookings] = useState<BookingRow[]>([]);
+  // Event food, games played and invoice numbers, keyed by booking id.
+  const [details, setDetails] = useState<Record<string, BookingDetails>>({});
+  const [gamesFor, setGamesFor] = useState<{ id: string; checkIn: boolean } | null>(null);
+  const [eventOpen, setEventOpen] = useState<BookingRow | null>(null);
+  const [bills, setBills] = useState<Record<string, { url: string; whatsapp: string }>>({});
+  const [notice, setNotice] = useState("");
   const [walkins, setWalkins] = useState<WalkinSummary[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(false);
@@ -396,7 +387,10 @@ export default function AdminPage() {
   const [discountModal, setDiscountModal] = useState<BookingRow | null>(null);
   const [error, setError] = useState("");
   const [waiverCheck, setWaiverCheck] = useState<Record<string, boolean | null>>({});
-  const [activeTab, setActiveTab] = useState<"bookings" | "games" | "services" | "schedule" | "discounts" | "revenue" | "callbacks" | "settings">("bookings");
+  const [activeTab, setActiveTab] = useState<Page>("bookings");
+  // Bumped after any booking change so the month calendar refetches.
+  const [calendarVersion, setCalendarVersion] = useState(0);
+  const [collecting, setCollecting] = useState<string | null>(null);
   const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [discountBusy, setDiscountBusy] = useState<string | null>(null);
   const [showDiscountForm, setShowDiscountForm] = useState(false);
@@ -619,8 +613,8 @@ export default function AdminPage() {
   }, []);
 
   const fetchBookings = useCallback(
-    async (date: string, authPin: string) => {
-      setLoading(true);
+    async (date: string, authPin: string, quiet = false) => {
+      if (!quiet) setLoading(true);
       setError("");
       try {
         const res = await fetch(
@@ -629,9 +623,10 @@ export default function AdminPage() {
         const data = await res.json();
         if (data.error) {
           setError(data.error);
-          if (res.status === 401) setAuthenticated(false);
+          if (res.status === 401) setRole(null);
         } else {
           setBookings(data.bookings);
+          setDetails(data.details ?? {});
           setWalkins(Array.isArray(data.walkins) ? data.walkins : []);
           setStats(data.stats);
           checkAllWaivers(data.bookings);
@@ -644,8 +639,21 @@ export default function AdminPage() {
     [checkAllWaivers]
   );
 
+  const refresh = () => {
+    fetchBookings(selectedDate, pin);
+    setCalendarVersion((v) => v + 1);
+  };
+
+  const [loginError, setLoginError] = useState<string | null>(null);
   const handleLogin = async () => {
-    setAuthenticated(true);
+    const r = await checkPin(pin);
+    if (r !== "owner" && r !== "staff") {
+      setLoginError(r === null ? "Couldn't verify — try again" : "Incorrect PIN");
+      return;
+    }
+    setLoginError(null);
+    setRole(r);
+    setActiveTab("bookings");
     fetchBookings(selectedDate, pin);
     fetchGameStatuses(pin);
   };
@@ -671,7 +679,7 @@ export default function AdminPage() {
       });
       const data = await res.json();
       if (data.success) {
-        fetchBookings(selectedDate, pin);
+        refresh();
       } else {
         setError(data.error || "Failed to cancel");
       }
@@ -681,30 +689,72 @@ export default function AdminPage() {
     setCancelling(null);
   };
 
-  // Marks the counter balance as collected — customer paid the remainder in
-  // cash/UPI at the arena. Sets amountPaid = total, balanceDue = 0.
-  const markBalancePaid = async (bookingId: string) => {
-    if (!confirm(`Mark the remaining balance for ${bookingId} as collected at the counter?`)) return;
+  // Admin booking actions (collect balance, check-in, no-show) share one
+  // POST shape; the server records the payment method for the cash count.
+  const bookingAction = async (bookingId: string, payload: Record<string, unknown>, then = refresh) => {
     setMarkingPaid(bookingId);
+    setNotice("");
+    let data = null;
     try {
       const res = await fetch("/api/admin/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin, action: "mark_balance_paid", bookingId }),
+        body: JSON.stringify({ pin, bookingId, ...payload }),
       });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        fetchBookings(selectedDate, pin);
-      } else {
-        setError(data.error || "Failed to mark paid");
+      data = await res.json();
+      if (res.ok && data.success) then();
+      else {
+        setError(data.error || "Action failed");
+        data = null;
       }
     } catch {
-      setError("Failed to mark paid");
+      setError("Action failed");
     }
     setMarkingPaid(null);
+    setCollecting(null);
+    return data;
   };
 
-  if (!authenticated) {
+  // A card payment can carry the machine's approval code for reconciliation.
+  const markBalancePaid = (bookingId: string, method: CollectedVia) =>
+    bookingAction(bookingId, {
+      action: "mark_balance_paid",
+      method,
+      ref: method === "card" ? prompt("Card machine approval code (optional)") ?? "" : "",
+    });
+
+  const saveGames = async (bookingId: string, games: Record<string, number>, checkIn: boolean) => {
+    setGamesFor(null);
+    await bookingAction(bookingId, { action: "set_games", games }, () => {});
+    if (checkIn) await bookingAction(bookingId, { action: "set_status", status: "checked_in" });
+    else refresh();
+  };
+
+  const prepareBill = async (bookingId: string) => {
+    const data = await bookingAction(bookingId, { action: "bill" }, () => {});
+    if (data) setBills((b) => ({ ...b, [bookingId]: data }));
+  };
+
+  const paymentLink = async (bookingId: string) => {
+    const data = await bookingAction(bookingId, { action: "payment_link" }, () => {});
+    if (data) setNotice(`Razorpay sent a ₹${data.amount.toLocaleString("en-IN")} payment link to ${bookingId}: ${data.url}`);
+  };
+
+  const openPage = (p: Page) => {
+    setActiveTab(p);
+    if (p === "games") fetchGameStatuses(pin);
+    if (p === "schedule") fetchSchedule(scheduleDate);
+    if (p === "discounts") fetchDiscounts(pin);
+  };
+
+  // Kiosk check-ins and website bookings show up without a manual refresh.
+  useEffect(() => {
+    if (!role || activeTab !== "bookings") return;
+    const id = setInterval(() => fetchBookings(selectedDate, pin, true), 30_000);
+    return () => clearInterval(id);
+  }, [role, activeTab, selectedDate, pin, fetchBookings]);
+
+  if (!role) {
     return (
       <div className="pt-24 pb-16 px-4 min-h-screen flex items-center justify-center">
         <motion.div
@@ -725,8 +775,8 @@ export default function AdminPage() {
             onKeyDown={(e) => e.key === "Enter" && handleLogin()}
             className="bg-card/60 border-white/10 text-center text-lg tracking-widest mb-4"
           />
-          {error && (
-            <p className="text-xs text-destructive mb-4">{error}</p>
+          {(loginError || error) && (
+            <p className="text-xs text-destructive mb-4">{loginError || error}</p>
           )}
           <Button
             onClick={handleLogin}
@@ -758,16 +808,14 @@ export default function AdminPage() {
               <span className="gradient-text">Admin Panel</span>
             </h1>
             <p className="text-[11px] text-muted-foreground mt-1">
-              {ownerAuthed
-                ? "Signed in as owner — full access"
-                : "Signed in as staff"}
+              {isOwner ? "Signed in as owner" : "Signed in as staff"}
             </p>
           </div>
           <Button
             variant="outline"
             size="sm"
             onClick={() => {
-              setAuthenticated(false);
+              setRole(null);
               setPin("");
             }}
             className="border-white/20 text-xs shrink-0"
@@ -777,129 +825,55 @@ export default function AdminPage() {
           </Button>
         </div>
 
-        {/* Tab switcher */}
-        <div className="flex justify-center gap-2 mb-8">
-          <button
-            onClick={() => setActiveTab("bookings")}
-            className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-              activeTab === "bookings"
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Calendar size={16} />
-            Bookings
-          </button>
-          <button
-            onClick={() => setActiveTab("callbacks")}
-            className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-              activeTab === "callbacks"
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <PhoneCall size={16} />
-            Callbacks
-          </button>
-          <button
-            onClick={() => { setActiveTab("games"); fetchGameStatuses(pin); }}
-            className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-              activeTab === "games"
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Gamepad2 size={16} />
-            Games
-          </button>
-          <button
-            onClick={() => setActiveTab("services")}
-            className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-              activeTab === "services"
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Settings size={16} />
-            Services
-            {!ownerAuthed && <Lock size={11} className="opacity-60" />}
-          </button>
-          <button
-            onClick={() => { setActiveTab("schedule"); fetchSchedule(scheduleDate); }}
-            className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-              activeTab === "schedule"
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Clock size={16} />
-            Schedule
-          </button>
-          <button
-            onClick={() => { setActiveTab("discounts"); fetchDiscounts(pin); }}
-            className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-              activeTab === "discounts"
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Tag size={16} />
-            Discounts
-          </button>
-          <button
-            onClick={() => setActiveTab("revenue")}
-            className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-              activeTab === "revenue"
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <TrendingUp size={16} />
-            Revenue
-            {!ownerAuthed && <Lock size={11} className="opacity-60" />}
-          </button>
-          <button
-            onClick={() => setActiveTab("settings")}
-            className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-              activeTab === "settings"
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Settings size={16} />
-            Settings
-          </button>
+        <nav className="flex flex-wrap justify-center gap-2 mb-3" aria-label="Admin sections">
+          {GROUPS.filter((g) => !g.owner || isOwner).map(({ label, icon: Icon, pages }) => (
+            <button
+              key={label}
+              onClick={() => openPage(pages[0])}
+              aria-current={pages.includes(activeTab) ? "page" : undefined}
+              className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                pages.includes(activeTab)
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Icon size={16} />
+              {label}
+            </button>
+          ))}
+        </nav>
+        <div className="flex flex-wrap justify-center gap-1.5 mb-8">
+          {GROUPS.find((g) => g.pages.includes(activeTab))!
+            .pages.filter((p) => isOwner || !OWNER_PAGES.has(p))
+            .map((p) => (
+              <button
+                key={p}
+                onClick={() => openPage(p)}
+                aria-current={p === activeTab ? "page" : undefined}
+                className={`px-3 py-1 rounded-full border text-xs transition-colors ${
+                  p === activeTab
+                    ? "border-primary bg-primary/15 text-foreground"
+                    : "border-white/10 text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {PAGE_LABEL[p]}
+              </button>
+            ))}
         </div>
 
         {activeTab === "settings" && <SettingsTab pin={pin} />}
 
-        {activeTab === "revenue" && (
-          ownerAuthed ? (
-            <RevenueTab ownerPin={ownerPin} />
-          ) : (
-            <OwnerGate
-              title="Revenue"
-              subtitle="Finance dashboard — enter the owner PIN to view."
-              busy={checkingOwner}
-              error={ownerCheckError}
-              onSubmit={verifyOwnerPin}
-            />
-          )
-        )}
+        {activeTab === "revenue" && isOwner && <OwnerOverview pin={pin} />}
+        {activeTab === "ledger" && isOwner && <RevenueTab ownerPin={pin} />}
+        {activeTab === "expenses" && <ExpensesPanel pin={pin} isOwner={isOwner} />}
 
         {activeTab === "callbacks" && <CallbacksTab pin={pin} />}
 
-        {activeTab === "services" && !ownerAuthed && (
-          <OwnerGate
-            title="Services"
-            subtitle="Integration credentials & external dashboards — owner PIN required."
-            busy={checkingOwner}
-            error={ownerCheckError}
-            onSubmit={verifyOwnerPin}
-          />
-        )}
+        {activeTab === "customers" && <CustomersTab pin={pin} />}
 
-        {activeTab === "services" && ownerAuthed && (
+        {activeTab === "pricing" && isOwner && <PricingTab ownerPin={pin} />}
+
+        {activeTab === "services" && isOwner && (
           <div className="space-y-6 mb-8">
             <div>
               <h2 className="font-heading text-lg font-bold mb-2">Service Dashboard</h2>
@@ -1675,12 +1649,19 @@ export default function AdminPage() {
         )}
 
         {activeTab === "bookings" && <>
-        {/* Walk-in logger — for counter customers who paid without booking online */}
+        <MonthCalendar
+          pin={pin}
+          selectedDate={selectedDate}
+          refreshKey={calendarVersion}
+          onSelect={(date) => {
+            setSelectedDate(date);
+            fetchBookings(date, pin);
+          }}
+        />
+
+        {/* Walk-ins, phone bookings and birthday blocks made at the counter */}
         <div className="mb-6">
-          <WalkinLogger
-            pin={pin}
-            onSaved={() => fetchBookings(selectedDate, pin)}
-          />
+          <CounterBookingForm pin={pin} date={selectedDate} onSaved={refresh} />
         </div>
 
         {/* Date navigation — chevrons step ±1 day, the pretty label opens
@@ -1757,14 +1738,14 @@ export default function AdminPage() {
             <div className="glass-card p-4 text-center">
               <IndianRupee size={18} className="mx-auto mb-2 text-primary" />
               <p className="text-2xl font-bold">
-                ₹{stats.totalRevenue.toLocaleString("en-IN")}
+                ₹{withGST(stats.totalRevenue).toLocaleString("en-IN")}
               </p>
-              <p className="text-xs text-muted-foreground">Revenue</p>
+              <p className="text-xs text-muted-foreground">Booked (incl. GST)</p>
             </div>
             <div className="glass-card p-4 text-center">
               <CheckCircle2 size={18} className="mx-auto mb-2 text-primary" />
-              <p className="text-2xl font-bold">{stats.paid}</p>
-              <p className="text-xs text-muted-foreground">Paid Online</p>
+              <p className="text-2xl font-bold">₹{withGST(stats.collected ?? 0).toLocaleString("en-IN")}</p>
+              <p className="text-xs text-muted-foreground">Collected (incl. GST)</p>
             </div>
           </div>
         )}
@@ -1774,6 +1755,7 @@ export default function AdminPage() {
             {error}
           </div>
         )}
+        {notice && <div className="glass-card p-4 mb-6 text-sm text-green-400 text-center break-all">{notice}</div>}
 
         {loading ? (
           <div className="flex items-center justify-center py-16">
@@ -1796,11 +1778,11 @@ export default function AdminPage() {
                 {activeBookings.map((booking) => (
                   <div
                     key={booking.bookingId}
-                    className="glass-card p-4 sm:p-5"
+                    className="glass-card p-4 sm:p-5 relative has-[details[open]]:z-30"
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
                           <span className="font-heading text-sm font-bold text-primary">
                             {booking.bookingId}
                           </span>
@@ -1815,6 +1797,21 @@ export default function AdminPage() {
                               ? "Paid"
                               : "Pay at Center"}
                           </Badge>
+                          <Badge className="bg-secondary text-muted-foreground text-[10px] capitalize">
+                            {booking.source}
+                            {booking.slots > 1 ? ` · ${booking.slots}h` : ""}
+                          </Badge>
+                          {booking.status === "checked_in" && (
+                            <Badge className="bg-primary/20 text-primary text-[10px]">Checked in</Badge>
+                          )}
+                          {booking.status === "completed" && (
+                            <Badge className="bg-green-500/20 text-green-400 text-[10px]">
+                              Completed{details[booking.bookingId]?.invoiceNo ? ` · ${details[booking.bookingId].invoiceNo}` : ""}
+                            </Badge>
+                          )}
+                          {booking.status === "no_show" && (
+                            <Badge className="bg-red-500/20 text-red-400 text-[10px]">No-show</Badge>
+                          )}
                           {/* Waiver status */}
                           {waiverCheck[booking.email] === undefined ? (
                             <Badge className="bg-muted/30 text-muted-foreground text-[10px]">
@@ -1848,17 +1845,26 @@ export default function AdminPage() {
                         </div>
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] mt-1.5">
                           <span className="text-green-400">
-                            Paid ₹{booking.amountPaid.toLocaleString("en-IN")}
+                            Paid ₹{inclGst(booking, booking.amountPaid).toLocaleString("en-IN")}
                           </span>
                           <span className={booking.balanceDue > 0 ? "text-amber-400" : "text-muted-foreground"}>
                             {booking.balanceDue > 0
-                              ? `Balance ₹${booking.balanceDue.toLocaleString("en-IN")} due at counter`
+                              ? `Balance ₹${inclGst(booking, booking.balanceDue).toLocaleString("en-IN")} incl. GST due at counter`
                               : "Balance ₹0 · fully paid"}
                           </span>
                         </div>
+                        {(() => {
+                          const d = details[booking.bookingId];
+                          const food = d?.food?.length
+                            ? `Food: ${d.eaters} × ${d.food.map((f) => FOOD_MENU.find((m) => m.id === f)?.label).join(" + ")}`
+                            : "";
+                          const played = d?.games ? `Played: ${Object.entries(d.games).map(([g, n]) => `${allGames.find((x) => x.id === g)?.title ?? g} × ${n}`).join(", ")}` : "";
+                          const text = [d?.company, food, d?.cake === "custom" ? "Custom cake" : "", played].filter(Boolean).join(" · ");
+                          return text && <p className="text-xs text-muted-foreground mt-1">{text}</p>;
+                        })()}
                         {booking.gamePreference && (
                           <p className="text-xs text-muted-foreground mt-1">
-                            Game: {booking.gamePreference}
+                            Game: {allGames.find((g) => g.id === booking.gamePreference)?.title ?? "Decide at counter"}
                           </p>
                         )}
                         {booking.specialRequests && (
@@ -1869,54 +1875,119 @@ export default function AdminPage() {
                         )}
                       </div>
 
-                      <div className="flex flex-col sm:flex-row gap-2 shrink-0">
-                        {booking.balanceDue > 0 && (
+                      <div className="flex flex-wrap gap-2 shrink-0">
+                        {booking.balanceDue > 0 && (collecting === booking.bookingId ? (
+                          <div className="flex flex-wrap gap-1">
+                            {(Object.keys(COLLECTED_VIA) as CollectedVia[]).map((m) => (
+                              <Button
+                                key={m}
+                                onClick={() => markBalancePaid(booking.bookingId, m)}
+                                disabled={markingPaid === booking.bookingId}
+                                variant="outline"
+                                className="border-green-500/30 text-green-400 hover:bg-green-500/10 text-xs px-2"
+                              >
+                                {COLLECTED_VIA[m]}
+                              </Button>
+                            ))}
+                          </div>
+                        ) : (
                           <Button
-                            onClick={() => setDiscountModal(booking)}
-                            variant="outline"
-                            className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10 text-xs"
-                          >
-                            <Tag size={14} className="mr-1" />
-                            Apply discount
-                          </Button>
-                        )}
-                        {booking.balanceDue > 0 && (
-                          <Button
-                            onClick={() => markBalancePaid(booking.bookingId)}
-                            disabled={markingPaid === booking.bookingId}
+                            onClick={() => setCollecting(booking.bookingId)}
                             variant="outline"
                             className="border-green-500/30 text-green-400 hover:bg-green-500/10 text-xs"
                           >
-                            {markingPaid === booking.bookingId ? (
-                              <Loader2 size={14} className="animate-spin mr-1" />
-                            ) : (
-                              <CheckCircle2 size={14} className="mr-1" />
-                            )}
-                            Mark ₹{booking.balanceDue.toLocaleString("en-IN")} collected
+                            <CheckCircle2 size={14} className="mr-1" />
+                            Collect ₹{inclGst(booking, booking.balanceDue).toLocaleString("en-IN")}
+                          </Button>
+                        ))}
+                        {isEvent(booking) && (
+                          <Button onClick={() => setEventOpen(booking)} variant="outline" className="border-white/20 text-xs">
+                            Open event
                           </Button>
                         )}
-                        <Button
-                          onClick={() => handleCancel(booking.bookingId)}
-                          disabled={cancelling === booking.bookingId}
-                          variant="outline"
-                          className="border-destructive/30 text-destructive hover:bg-destructive/10 text-xs"
-                        >
-                          {cancelling === booking.bookingId ? (
-                            <Loader2 size={14} className="animate-spin mr-1" />
+                        {booking.status === "confirmed" && (
+                          <Button
+                            onClick={() => setGamesFor({ id: booking.bookingId, checkIn: true })}
+                            disabled={markingPaid === booking.bookingId}
+                            variant="outline"
+                            className="border-primary/30 text-primary hover:bg-primary/10 text-xs"
+                          >
+                            Check in
+                          </Button>
+                        )}
+                        {booking.status === "checked_in" && booking.balanceDue === 0 && (
+                          <Button
+                            onClick={() => bookingAction(booking.bookingId, { action: "set_status", status: "completed" })}
+                            disabled={markingPaid === booking.bookingId}
+                            className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs"
+                          >
+                            Complete
+                          </Button>
+                        )}
+                        {booking.status === "completed" &&
+                          (bills[booking.bookingId] ? (
+                            <>
+                              <a href={bills[booking.bookingId].whatsapp} target="_blank" rel="noopener" className="h-9 px-3 inline-flex items-center rounded-md border border-green-500/30 text-green-400 text-xs">
+                                Send on WhatsApp
+                              </a>
+                              <a href={bills[booking.bookingId].url} target="_blank" rel="noopener" className="h-9 px-3 inline-flex items-center rounded-md border border-white/20 text-xs">
+                                View bill
+                              </a>
+                              {booking.email && (
+                                <Button
+                                  onClick={() => bookingAction(booking.bookingId, { action: "email_bill" }, () => setNotice(`Bill emailed to ${booking.email}`))}
+                                  variant="outline"
+                                  className="border-white/20 text-xs"
+                                >
+                                  Email bill
+                                </Button>
+                              )}
+                            </>
                           ) : (
-                            <XCircle size={14} className="mr-1" />
-                          )}
-                          Cancel
-                        </Button>
+                            <Button onClick={() => prepareBill(booking.bookingId)} className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs">
+                              Send bill
+                            </Button>
+                          ))}
+                        <MoreMenu
+                          items={[
+                            ...(booking.status === "checked_in" || booking.status === "completed"
+                              ? [["Games played", () => setGamesFor({ id: booking.bookingId, checkIn: false })] as [string, () => void]]
+                              : []),
+                            ...(booking.balanceDue > 0 && !isEvent(booking)
+                              ? [
+                                  ["Apply discount", () => setDiscountModal(booking)] as [string, () => void],
+                                  ["Send Razorpay link", () => paymentLink(booking.bookingId)] as [string, () => void],
+                                ]
+                              : []),
+                            booking.status === "confirmed"
+                              ? ["No-show", () => bookingAction(booking.bookingId, { action: "set_status", status: "no_show" })]
+                              : [
+                                  `Undo ${booking.status === "completed" ? "complete" : booking.status === "checked_in" ? "check-in" : "no-show"}`,
+                                  () => bookingAction(booking.bookingId, { action: "set_status", status: booking.status === "completed" ? "checked_in" : "confirmed" }),
+                                ],
+                            [cancelling === booking.bookingId ? "Cancelling…" : "Cancel booking", () => handleCancel(booking.bookingId), "text-destructive"],
+                          ]}
+                        />
                       </div>
                     </div>
+                    {gamesFor?.id === booking.bookingId && (
+                      <div className="mt-3">
+                        <GamesPicker
+                          partySize={booking.partySize}
+                          initial={details[booking.bookingId]?.games ?? {}}
+                          saveLabel={gamesFor.checkIn ? "Check in" : "Save games"}
+                          onSave={(g) => saveGames(booking.bookingId, g, gamesFor.checkIn)}
+                          onCancel={() => setGamesFor(null)}
+                        />
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             )}
 
             {/* Walk-ins for this date — counter sessions logged via
-                WalkinLogger. Stored in the Revenue sheet (not Sheet1)
+                the old walk-in logger. Stored in the Revenue sheet (not Sheet1)
                 because they don't take a slot, but shown here so staff
                 see the full day's traffic in one place. Revenue column
                 is ex-GST; inc-GST total is derived for display. */}
@@ -1927,7 +1998,7 @@ export default function AdminPage() {
                 </h3>
                 <div className="space-y-2">
                   {walkins.map((w) => {
-                    const incGST = Math.round(w.revenue * (1 + GST_PERCENT / 100));
+                    const incGST = withGST(w.revenue);
                     return (
                       <div key={w.id} className="glass-card p-3 sm:p-4 bg-amber-500/5 border-amber-500/10">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -2001,14 +2072,27 @@ export default function AdminPage() {
       {/* Rep-applied discount modal — opened per booking from the
           bookings tab. Sits at page root so the framer-motion overlay
           renders above the tab content without any z-index gymnastics. */}
+      {eventOpen && (
+        <EventEditor
+          pin={pin}
+          booking={eventOpen}
+          details={details[eventOpen.bookingId] ?? {}}
+          onClose={() => setEventOpen(null)}
+          onSaved={() => {
+            setEventOpen(null);
+            refresh();
+          }}
+        />
+      )}
+
       {discountModal && (
         <DiscountModal
           booking={discountModal}
           staffPin={pin}
-          ownerAuthed={ownerAuthed}
-          ownerPin={ownerPin}
+          ownerAuthed={isOwner}
+          ownerPin={pin}
           onClose={() => setDiscountModal(null)}
-          onApplied={() => fetchBookings(selectedDate, pin)}
+          onApplied={refresh}
         />
       )}
     </div>

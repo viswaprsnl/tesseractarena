@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { roleForPin } from "@/lib/admin-auth";
 import { google } from "googleapis";
 
 function getAuth() {
@@ -54,8 +55,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const pin = searchParams.get("pin");
-    const adminPin = process.env.ADMIN_PIN || "1234";
-    if (pin !== adminPin) {
+    if (!roleForPin(pin)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -135,8 +135,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { pin, gameId, status, note, videoUrl, hidden, action, newGame } = body;
 
-    const adminPin = process.env.ADMIN_PIN || "1234";
-    if (pin !== adminPin) {
+    if (!roleForPin(pin)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

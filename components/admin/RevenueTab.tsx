@@ -345,7 +345,7 @@ export function RevenueTab({ ownerPin }: { ownerPin: string }) {
             {savingCost ? "Saving…" : "Save"}
           </Button>
           <span className="text-[11px] text-muted-foreground">
-            Falls back to ₹{DEFAULT_MONTHLY_COST.toLocaleString("en-IN")} when unset.
+            Falls back to ₹{DEFAULT_MONTHLY_COST.toLocaleString("en-IN")} when unset. Months with logged expenses use those instead.
           </span>
         </div>
       </div>

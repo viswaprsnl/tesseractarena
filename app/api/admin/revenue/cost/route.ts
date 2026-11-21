@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { roleForPin } from "@/lib/admin-auth";
 import { z } from "zod";
 import { listMonthlyCosts, setMonthlyCost } from "@/lib/revenue-sheets";
 
@@ -9,10 +10,7 @@ const costBodySchema = z.object({
 
 // Monthly cost is an owner-side setting — staff shouldn't rewrite it.
 function checkPin(request: NextRequest): boolean {
-  const pin = new URL(request.url).searchParams.get("pin");
-  const ownerPin = process.env.OWNER_PIN;
-  if (!ownerPin) return false;
-  return pin === ownerPin;
+  return roleForPin(new URL(request.url).searchParams.get("pin")) === "owner";
 }
 
 export async function GET(request: NextRequest) {
