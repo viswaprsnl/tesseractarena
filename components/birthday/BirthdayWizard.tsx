@@ -22,12 +22,12 @@ import { TimeSlotGrid } from "@/components/booking/TimeSlotGrid";
 import {
   BIRTHDAY_PACKAGES,
   BIRTHDAY_ADDONS,
-  BIRTHDAY_ADVANCE_PERCENT,
-  birthdayAdvance,
   birthdayRequiredSlots,
   whatsappBirthdayLink,
   type BirthdayPackageId,
 } from "@/data/birthday";
+import { usePricing } from "@/hooks/use-pricing";
+import { birthdayAdvanceOf, birthdayCatalog } from "@/lib/pricing";
 import { withGST, gstOn, GST_PERCENT } from "@/lib/booking-config";
 import type { TimeSlot } from "@/lib/booking-types";
 import { formatTimeDisplay } from "@/lib/booking-config";
@@ -162,7 +162,8 @@ export function BirthdayWizard() {
     error: null,
   });
 
-  const pkg = BIRTHDAY_PACKAGES.find((p) => p.id === state.packageId)!;
+  const pricing = usePricing();
+  const { pkg, addons } = birthdayCatalog(pricing);
 
   // Hide the global Call-me-back FAB throughout the birthday wizard.
   // On the Details step (4) and slot grid (3) the FAB sits directly
@@ -185,13 +186,13 @@ export function BirthdayWizard() {
 
   // Add-ons: flat add-ons priced once; per-kid add-ons priced against
   // the guest count. Mirrors /api/birthday.
-  const addonTotal = BIRTHDAY_ADDONS.reduce((sum, def) => {
+  const addonTotal = addons.reduce((sum, def) => {
     const picked = (state.addonQty[def.id] ?? 0) > 0;
     if (!picked) return sum;
     return sum + (def.unit === "per-kid" ? def.price * guestCountNum : def.price);
   }, 0);
   const total = packageSubtotal + addonTotal;
-  const advance = birthdayAdvance(total);
+  const advance = birthdayAdvanceOf(pricing, total);
   // Slot requirement depends on whether the morning-buyout add-on was
   // picked. Computed once per render; used by the step-3 slot filter
   // and the summary line.
@@ -598,7 +599,7 @@ export function BirthdayWizard() {
                 Add-ons (optional)
               </h3>
               <div className="space-y-2">
-                {BIRTHDAY_ADDONS.map((a) => {
+                {addons.map((a) => {
                   const qty = state.addonQty[a.id] ?? 0;
                   return (
                     <div
@@ -740,6 +741,7 @@ function BirthdaySummary({
   total: number;
   advance: number;
 }) {
+  const { birthdayAdvancePercent } = usePricing();
   // Flat per-kid rate — same math the parent wizard and /api/birthday
   // use, so this summary line never disagrees with the total.
   const guestCountNum = Number(state.guestCount || pkg.minKids);
@@ -803,7 +805,7 @@ function BirthdaySummary({
       </div>
       <hr className="border-white/10" />
       <div className="flex items-center justify-between">
-        <span className="text-primary">Pay online now ({BIRTHDAY_ADVANCE_PERCENT}% advance)</span>
+        <span className="text-primary">Pay online now ({birthdayAdvancePercent}% advance)</span>
         <span className="font-bold text-primary">
           ₹{withGST(advance).toLocaleString("en-IN")}
         </span>

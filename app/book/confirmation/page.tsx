@@ -32,10 +32,7 @@ function ConfirmationContent() {
   const isPayAtCenter = payment === "pay_at_center";
 
   const total = parseInt(amount) || 0;
-  const playerCount = parseInt(players) || 0;
-  const advance = advanceParam
-    ? parseInt(advanceParam)
-    : Math.min(500 * playerCount, total);
+  const advance = advanceParam ? parseInt(advanceParam) : 0;
   const balance = total - advance;
 
   // Google Calendar link

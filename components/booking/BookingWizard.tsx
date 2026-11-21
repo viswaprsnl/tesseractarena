@@ -3,47 +3,49 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft } from "lucide-react";
+import { format } from "date-fns";
+import { Check, CalendarDays, Gamepad2, UserRound } from "lucide-react";
 import { useBooking } from "@/hooks/use-booking";
+import { useDiscount } from "@/hooks/use-discount";
 import {
   calculateSessionPrice,
   getTodayISTString,
   formatTimeDisplay,
+  withGST,
 } from "@/lib/booking-config";
 import { DECIDE_AT_VENUE_ID } from "@/lib/booking-types";
-import { allGames, availableGames } from "@/data/games";
+import { allGames } from "@/data/games";
+import { usePricing } from "@/hooks/use-pricing";
+import { gamePrice, maxGamePrice, sessionAdvance } from "@/lib/pricing";
 import { trackEvent, partySizeBucket } from "@/lib/analytics";
-import { StepIndicator } from "./StepIndicator";
 import { DatePicker } from "./DatePicker";
 import { TimeSlotGrid } from "./TimeSlotGrid";
+import { GamePicker } from "./GamePicker";
+import { BookingPanel } from "./BookingPanel";
+import {
+  EMPTY_DETAILS,
+  TURNSTILE_SITEKEY,
+  detailsSchema,
+  type Details,
+} from "./details-schema";
 
-// Heavy per-step panels are code-split: only the step currently on
-// screen pulls down its JS. Shaved roughly half the initial /book
-// bundle (and the Razorpay/Turnstile sub-scripts load only once the
-// user actually reaches those steps). ssr: false is fine — the whole
-// wizard is already a client component. Fallbacks are minimal because
-// each panel renders inside the wizard's existing animated frame; a
-// 1-tick skeleton beats a layout shift.
-const StepPanelFallback = () => (
-  <div className="h-48 rounded-xl bg-secondary/30 animate-pulse" />
-);
-const PackageSelector = dynamic(
-  () => import("./PackageSelector").then((m) => m.PackageSelector),
-  { loading: StepPanelFallback, ssr: false }
-);
+// The details form pulls in Turnstile; it's below the fold on every
+// viewport, so load it separately to keep the first paint light.
 const PersonalDetailsForm = dynamic(
   () => import("./PersonalDetailsForm").then((m) => m.PersonalDetailsForm),
-  { loading: StepPanelFallback, ssr: false }
+  { loading: () => <div className="h-56 rounded-xl bg-secondary/30 animate-pulse" />, ssr: false }
 );
-const PaymentStep = dynamic(
-  () => import("./PaymentStep").then((m) => m.PaymentStep),
-  { loading: StepPanelFallback, ssr: false }
-);
-const BookingSummary = dynamic(
-  () => import("./BookingSummary").then((m) => m.BookingSummary),
-  { loading: StepPanelFallback, ssr: false }
-);
+
+type SectionId = "when" | "game" | "details";
+
+const isDesktop = () =>
+  typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
+
+function scrollToEl(el: HTMLElement | null, offset = 96) {
+  if (!el) return;
+  const top = el.getBoundingClientRect().top + window.scrollY - offset;
+  window.scrollTo({ top, behavior: "smooth" });
+}
 
 export function BookingWizard({
   preselectedGame,
@@ -53,61 +55,62 @@ export function BookingWizard({
   isKiosk?: boolean;
 }) {
   const router = useRouter();
-  // Seed selectedGame on the first render so step 3 already shows the
-  // /games modal's choice ticked when the user arrives. Seed isKiosk so
-  // downstream components (PackageSelector pricing display, PaymentStep
-  // button) can branch without extra prop drilling.
   const { state, dispatch } = useBooking({
     initialGame: preselectedGame,
     initialKiosk: isKiosk,
   });
 
-  // Pre-select today's IST date on mount so the time-slot pane renders
-  // with real slots instead of a "pick a date" placeholder. Kiosk mode
-  // additionally LOCKS the date (handled in DatePicker via the
-  // isKiosk prop), but the pre-select behavior is now the same for
-  // both flows — a customer landing on /book should see what today's
-  // availability looks like without having to click the calendar first.
-  // Guards: skip if a date is already selected (e.g. after a RESET
-  // dispatch) so we don't overwrite an existing choice. If today has
-  // no slots the TimeSlotGrid shows its empty-state message and the
-  // user picks another date, same as before.
-  useEffect(() => {
-    // Fire the funnel entry event regardless of pre-selection — this
-    // is the "visitor landed on /book" counter and the denominator for
-    // every downstream rate. is_kiosk lets us slice walk-ins vs
-    // genuine online traffic (kiosk sessions should NOT be counted
-    // against the online conversion rate).
-    trackEvent("funnel_landed_book", { is_kiosk: isKiosk });
-    if (state.selectedDate) return;
-    const today = getTodayISTString();
-    dispatch({ type: "SET_DATE", date: today });
-    fetchSlots(today);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const [details, setDetails] = useState<Details>(EMPTY_DETAILS);
+  const [turnstileToken, setTurnstileToken] = useState<string | undefined>();
+  // Flips true the first time the customer taps Pay with something
+  // missing — from then on every outstanding field error is shown.
+  const [attempted, setAttempted] = useState(false);
+  const [processing, setProcessing] = useState(false);
 
-  // Toggles a body class while the mobile sticky-Continue bar is
-  // showing (step 3, game picked). The global Call-me-back FAB
-  // normally lives at bottom-right with z-50 and would otherwise
-  // overlap the right side of the sticky bar's Continue button on
-  // phone-width viewports. The CSS rule in globals.css hides the
-  // FAB only when this class is on body, so the FAB stays available
-  // everywhere else. Cleaner than cross-component coordination.
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    const show = state.step === 3 && !!state.selectedGame;
-    document.body.classList.toggle("has-booking-sticky-cta", show);
-    return () => {
-      document.body.classList.remove("has-booking-sticky-cta");
-    };
-  }, [state.step, state.selectedGame]);
+  const sectionRefs = {
+    when: useRef<HTMLElement | null>(null),
+    game: useRef<HTMLElement | null>(null),
+    details: useRef<HTMLElement | null>(null),
+  };
+  const timeSlotRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
 
-  // Public settings — currently just the advance_required flag that
-  // controls whether the Razorpay advance is enforced on online
-  // bookings. Default to true (historical behaviour) if the fetch
-  // fails so a transient settings-sheet outage never silently
-  // flips the pricing experience to "no advance".
-  const [advanceRequired, setAdvanceRequired] = useState<boolean>(true);
+  // ── Derived pricing ────────────────────────────────────────────────
+  const isDecideAtVenue = state.selectedGame === DECIDE_AT_VENUE_ID;
+  const game = allGames.find((g) => g.id === state.selectedGame) ?? null;
+  const pricing = usePricing();
+  // "Decide at venue" holds the slot at the priciest game, like the server.
+  const perPerson = isDecideAtVenue ? maxGamePrice(pricing) : game ? gamePrice(pricing, game.id) : 0;
+  const baseTotal = perPerson ? calculateSessionPrice(perPerson, state.partySize) : 0;
+  const { amount, activeDiscount, couponCode, coupon } = useDiscount({
+    sessionDate: state.selectedDate,
+    packageType: state.packageType,
+    baseTotal,
+  });
+  const gameLabel = isDecideAtVenue
+    ? isKiosk
+      ? "Staff pick at the counter"
+      : "Decide at the arena"
+    : game?.title ?? null;
+
+  // ── Completeness ───────────────────────────────────────────────────
+  const needsTurnstile = !isKiosk && !!TURNSTILE_SITEKEY;
+  const whenDone = !!state.selectedDate && !!state.selectedSlot;
+  const gameDone = !!state.selectedGame && baseTotal > 0;
+  const detailsValid = detailsSchema.safeParse(details).success;
+  const detailsDone = detailsValid && (!needsTurnstile || !!turnstileToken);
+  const ready = whenDone && gameDone && detailsDone;
+  const firstMissing: SectionId | null = !whenDone
+    ? "when"
+    : !gameDone
+    ? "game"
+    : !detailsDone
+    ? "details"
+    : null;
+
+  // ── Settings: is the online advance enforced right now? ────────────
+  // Defaults to true so a settings outage never silently drops the advance.
+  const [advanceRequired, setAdvanceRequired] = useState(true);
   useEffect(() => {
     let cancelled = false;
     fetch("/api/settings", { cache: "no-store" })
@@ -123,43 +126,7 @@ export function BookingWizard({
     };
   }, []);
 
-  // Kiosk-only shortcut: once today's slots have loaded, auto-pick
-  // the earliest available one and jump straight to step 3 (Package).
-  // A walk-in customer at the counter almost always wants the nearest
-  // slot — this collapses what would otherwise be two taps (pick date
-  // → pick time) into zero. If NO slots are available today the
-  // effect no-ops and leaves the customer on step 1 so staff can
-  // either pick another date or send them away.
-  //
-  // Guarded by state.step <= 2 so we only auto-advance from the
-  // Date & Time step — if a kiosk customer manually went Back to
-  // step 1 to change their time, the slots re-fetch would re-trigger
-  // this effect and we'd fight them, so we only run it before they've
-  // moved past step 2.
-  //
-  // didKioskAutoAdvanceRef locks it to once-per-mount — once we've
-  // jumped, subsequent slot refetches don't re-advance.
-  const didKioskAutoAdvanceRef = useRef(false);
-  useEffect(() => {
-    if (!state.isKiosk) return;
-    if (didKioskAutoAdvanceRef.current) return;
-    if (state.step > 2) return;
-    if (state.availableSlots.length === 0) return;
-    const earliest = state.availableSlots.find(
-      (s) => s.status === "available"
-    );
-    if (!earliest) return;
-    didKioskAutoAdvanceRef.current = true;
-    dispatch({
-      type: "SET_SLOT",
-      slot: earliest.time,
-      displayTime: earliest.displayTime,
-    });
-    dispatch({ type: "GO_TO_STEP", step: 3 });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.isKiosk, state.availableSlots, state.step]);
-
-  // Fetch slots when date is selected
+  // ── Slots ──────────────────────────────────────────────────────────
   const fetchSlots = async (date: string) => {
     dispatch({ type: "SET_LOADING", loading: true });
     try {
@@ -176,239 +143,138 @@ export function BookingWizard({
     dispatch({ type: "SET_LOADING", loading: false });
   };
 
-  // Step 1 is now "Date & Time" — DatePicker and TimeSlotGrid render
-  // side by side. Picking a date fetches slots and populates the right
-  // pane; picking a slot advances straight to step 3 (Package), skipping
-  // the old step 2. state.step=2 is never reached in the new flow but
-  // the type union keeps it around for safe GO_TO_STEP calls elsewhere.
+  // Land on today's availability, and count the funnel entry.
+  useEffect(() => {
+    trackEvent("funnel_landed_book", { is_kiosk: isKiosk });
+    if (state.selectedDate) return;
+    const today = getTodayISTString();
+    dispatch({ type: "SET_DATE", date: today });
+    fetchSlots(today);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Kiosk: a walk-in almost always wants the next slot — pick it for them
+  // once, as soon as today's slots arrive. They can still change it.
+  const didKioskAutoPick = useRef(false);
+  useEffect(() => {
+    if (!isKiosk || didKioskAutoPick.current || state.selectedSlot) return;
+    const earliest = state.availableSlots.find((s) => s.status === "available");
+    if (!earliest) return;
+    didKioskAutoPick.current = true;
+    dispatch({ type: "SET_SLOT", slot: earliest.time, displayTime: earliest.displayTime });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isKiosk, state.availableSlots]);
+
   const handleDateSelect = (date: string) => {
     dispatch({ type: "SET_DATE", date });
     fetchSlots(date);
-    // Analytics: user explicitly picked a date (not the mount-time
-    // auto-select — that one doesn't go through this handler).
-    trackEvent("funnel_date_picked", { is_kiosk: state.isKiosk });
-    // No NEXT_STEP here — we stay on step 1 so the time grid appears
-    // beside the calendar.
+    trackEvent("funnel_date_picked", { is_kiosk: isKiosk });
+    // On phones the slots stack under the calendar — bring them into view.
+    if (!isDesktop()) requestAnimationFrame(() => scrollToEl(timeSlotRef.current, 80));
   };
-
-  // On mobile the time grid stacks BELOW the calendar instead of
-  // sitting beside it. Users were reporting that picking a date felt
-  // like nothing happened — the slots were rendered off-screen below
-  // the fold. Scroll them into view when a USER picks a date, but
-  // only on viewports where the two panes aren't already visible
-  // together (lg: and up are side-by-side, no scroll needed).
-  //
-  // didInitialSelectRef guards against the auto-select-today effect
-  // triggering this scroll on page load — otherwise a mobile visitor
-  // landing on /book would immediately get scrolled past the hero/
-  // calendar before they'd even seen them. We mark the first run as
-  // "the mount-time auto-select" and only start scrolling on
-  // subsequent date changes (which are user clicks).
-  const timeSlotRef = useRef<HTMLDivElement | null>(null);
-  const didInitialSelectRef = useRef(false);
-  useEffect(() => {
-    if (!state.selectedDate) return;
-    if (typeof window === "undefined") return;
-    if (!didInitialSelectRef.current) {
-      didInitialSelectRef.current = true;
-      return;
-    }
-    if (window.matchMedia("(min-width: 1024px)").matches) return;
-    const raf = window.requestAnimationFrame(() => {
-      // 80px top offset leaves the sticky navbar + a bit of breathing
-      // room above the "Available slots" header, instead of pinning
-      // the first chip flush against the chrome.
-      const el = timeSlotRef.current;
-      if (!el) return;
-      const top = el.getBoundingClientRect().top + window.scrollY - 80;
-      window.scrollTo({ top, behavior: "smooth" });
-    });
-    return () => window.cancelAnimationFrame(raf);
-  }, [state.selectedDate]);
 
   const handleSlotSelect = (time: string, displayTime: string) => {
     dispatch({ type: "SET_SLOT", slot: time, displayTime });
-    dispatch({ type: "GO_TO_STEP", step: 3 });
-    trackEvent("funnel_slot_picked", { is_kiosk: state.isKiosk });
+    trackEvent("funnel_slot_picked", { is_kiosk: isKiosk });
+    // Guide phones to the next thing still missing. On desktop the
+    // sections are visible enough that jumping would feel jarring.
+    if (!isDesktop() && !gameDone) {
+      requestAnimationFrame(() => scrollToEl(sectionRefs.game.current));
+    }
   };
 
-  // Step 3: Package confirmed (auto-advance via button)
-  const handlePackageConfirm = () => {
-    // Price is derived from the chosen game — perHead × tier × partySize.
-    // Falls back to the legacy per-package pricing if no game is set (only
-    // possible on stale state; UI blocks Continue without a game).
-    // "Decide at venue" uses the highest ex-GST game price as the ceiling —
-    // customer sees the upper-bound; staff adjusts at the counter based on
-    // the title they actually play.
-    const isDecideAtVenue = state.selectedGame === DECIDE_AT_VENUE_ID;
-    const game = allGames.find((g) => g.id === state.selectedGame);
-    // Flat per-game pricing (post-2026-11-05) — no tier multiplier.
-    // "Decide at venue" uses the highest ex-GST game price as the
-    // ceiling; staff adjusts at the counter based on the title finally
-    // played.
-    const priceBasis = isDecideAtVenue
-      ? Math.max(...availableGames.map((g) => g.pricePerPerson))
-      : game?.pricePerPerson;
-    const base = priceBasis
-      ? calculateSessionPrice(priceBasis, state.partySize)
-      : 0;
-    const amount = state.discount ? base - state.discount.amountOff : base;
-    dispatch({ type: "SET_AMOUNT", amount });
-    dispatch({ type: "NEXT_STEP" });
-    // Analytics: step 3 → 4 means the user accepted the price. Carry
-    // enough context to see where the drop is — party size bucket,
-    // whether they picked a specific game or deferred, whether a
-    // discount applied.
+  const handleGameChange = (gameId: string) => {
+    dispatch({ type: "SET_GAME", gameId });
+    trackEvent("funnel_game_picked", {
+      game_id: gameId,
+      decide_at_venue: gameId === DECIDE_AT_VENUE_ID,
+    });
+  };
+
+  // ── Funnel milestones ──────────────────────────────────────────────
+  // There's no "Continue" click any more, so the old step events fire the
+  // first time each milestone is reached. Event names are unchanged so the
+  // GA4 funnel keeps working.
+  const firedPackage = useRef(false);
+  useEffect(() => {
+    if (firedPackage.current || !whenDone || !gameDone) return;
+    firedPackage.current = true;
     trackEvent("funnel_package_confirmed", {
       party_size: partySizeBucket(state.partySize),
       package: state.packageType,
       decide_at_venue: isDecideAtVenue,
-      has_discount: !!state.discount,
+      has_discount: !!activeDiscount,
       amount_bucket:
         amount < 2000 ? "lt_2k" : amount < 5000 ? "2k_5k" : amount < 10000 ? "5k_10k" : "gt_10k",
     });
-  };
+  }, [whenDone, gameDone, state.partySize, state.packageType, isDecideAtVenue, activeDiscount, amount]);
 
-  // Step 4: Details submitted. gamePreference is not a form field anymore —
-  // it comes from state.selectedGame (picked in step 3) and gets injected
-  // here so the downstream POST body still carries it.
-  //
-  // turnstileToken: Cloudflare bot-check token issued by the widget on
-  // the Details form. Stashed here so the eventual /api/bookings POST
-  // can forward it to the server-side siteverify check. Tokens expire
-  // in a few minutes, so this gets re-captured on each submit rather
-  // than cached in the wizard reducer.
-  const turnstileTokenRef = useRef<string | undefined>(undefined);
-  const handleDetailsSubmit = (
-    details: {
-      name: string;
-      email: string;
-      phone: string;
-      specialRequests?: string;
-    },
-    turnstileToken?: string
-  ) => {
-    turnstileTokenRef.current = turnstileToken;
-    dispatch({
-      type: "SET_DETAILS",
-      details: {
-        ...details,
-        gamePreference: state.selectedGame || "",
-        specialRequests: details.specialRequests || "",
-      },
-    });
-    // Same calc as handlePackageConfirm — "Decide at venue" uses the
-    // max-priced Available game as the ceiling.
-    const isDecideAtVenueDetail = state.selectedGame === DECIDE_AT_VENUE_ID;
-    const game = allGames.find((g) => g.id === state.selectedGame);
-    const priceBasis = isDecideAtVenueDetail
-      ? Math.max(...availableGames.map((g) => g.pricePerPerson))
-      : game?.pricePerPerson;
-    const base = priceBasis
-      ? calculateSessionPrice(priceBasis, state.partySize)
-      : 0;
-    const amount = state.discount ? base - state.discount.amountOff : base;
-    dispatch({ type: "SET_AMOUNT", amount });
-    dispatch({ type: "NEXT_STEP" });
-    // Analytics: user got past the Turnstile + personal details.
-    // This is usually the step with the highest drop in the funnel —
-    // Turnstile fails, form validation errors, people change their
-    // mind at "I need to type my email." Carries no PII; just the
-    // fact that it happened.
+  const firedDetails = useRef(false);
+  useEffect(() => {
+    if (firedDetails.current || !detailsDone) return;
+    firedDetails.current = true;
     trackEvent("funnel_details_submitted", {
-      is_kiosk: state.isKiosk,
+      is_kiosk: isKiosk,
       has_special_requests: !!details.specialRequests?.trim(),
     });
+  }, [detailsDone, isKiosk, details.specialRequests]);
+
+  // ── Booking submission ─────────────────────────────────────────────
+  const createBooking = async (paymentMethod: "razorpay" | "pay_at_center") => {
+    const res = await fetch("/api/bookings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: details.name.trim(),
+        email: details.email.trim(),
+        phone: details.phone.trim(),
+        date: state.selectedDate,
+        timeSlot: state.selectedSlot,
+        partySize: state.partySize,
+        package: state.packageType,
+        gamePreference: state.selectedGame || "",
+        paymentMethod,
+        specialRequests: details.specialRequests?.trim() || "",
+        // Only when the coupon beat every auto-apply campaign; the server
+        // re-validates independently.
+        ...(couponCode ? { couponCode } : {}),
+        ...(turnstileToken ? { turnstileToken } : {}),
+        // Kiosk bookings are exempt from the server's no-advance rewrite.
+        ...(isKiosk ? { isKiosk: true } : {}),
+      }),
+    });
+    return res.json();
   };
 
-  // Step 5: Pay advance online via Razorpay
+  const fail = (error: string) => {
+    dispatch({ type: "SET_ERROR", error });
+    setProcessing(false);
+  };
+
   const handlePayOnline = async () => {
-    if (!state.personalDetails || !state.selectedDate || !state.selectedSlot) return;
-
-    // Analytics: fires the moment the user chooses "Pay Online" —
-    // BEFORE the booking POST, so if the server rejects (quota,
-    // Turnstile, slot grab) we still see intent. The booking_created
-    // event below is what counts as a confirmed online booking.
-    trackEvent("funnel_pay_online_clicked", { is_kiosk: state.isKiosk });
-
-    dispatch({ type: "SET_LOADING", loading: true });
+    trackEvent("funnel_pay_online_clicked", { is_kiosk: isKiosk });
+    setProcessing(true);
+    dispatch({ type: "SET_ERROR", error: null });
     try {
-      // 1. Create booking
-      const bookingRes = await fetch("/api/bookings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: state.personalDetails.name,
-          email: state.personalDetails.email,
-          phone: state.personalDetails.phone,
-          date: state.selectedDate,
-          timeSlot: state.selectedSlot,
-          partySize: state.partySize,
-          package: state.packageType,
-          gamePreference: state.personalDetails.gamePreference,
-          paymentMethod: "razorpay",
-          specialRequests: state.personalDetails.specialRequests,
-          // Only sent when the customer redeemed a coupon that actually
-          // beat the auto-apply pool. Server re-validates independently.
-          ...(state.couponCode ? { couponCode: state.couponCode } : {}),
-          // Cloudflare Turnstile bot-check token issued on the Details
-          // step. The server runs it through siteverify; a missing or
-          // invalid token returns 403 in production.
-          ...(turnstileTokenRef.current
-            ? { turnstileToken: turnstileTokenRef.current }
-            : {}),
-          // Marks a kiosk/counter booking so the server exempts it
-          // from the no-advance rewrite — a walk-in who taps "Pay
-          // Online" at the counter actually wants Razorpay to open.
-          ...(state.isKiosk ? { isKiosk: true } : {}),
-        }),
-      });
+      const bookingData = await createBooking("razorpay");
+      if (!bookingData.success) return fail(bookingData.error || "Booking failed");
 
-      const bookingData = await bookingRes.json();
-      if (!bookingData.success) {
-        dispatch({ type: "SET_ERROR", error: bookingData.error || "Booking failed" });
-        dispatch({ type: "SET_LOADING", loading: false });
-        return;
-      }
+      const bookingId: string = bookingData.booking.bookingId;
+      const total: number = bookingData.booking.amount;
+      trackEvent("funnel_booking_created", { payment_method: "razorpay", is_kiosk: isKiosk });
 
-      const bookingId = bookingData.booking.bookingId;
-      // Total session cost — displayed on the confirmation page. The advance
-      // Razorpay actually charges is derived server-side from bookingId, so
-      // no amount is sent here to keep the client tamper-proof.
-      const amount = bookingData.booking.amount;
-
-      // Analytics: the sheet row exists now. For online payment this
-      // isn't the finish line (verify is), but it's a critical
-      // milestone — a visitor who got this far committed real
-      // information. If funnel_pay_online_clicked >> funnel_booking_created
-      // the loss is in the /api/bookings guard (quota, Turnstile).
-      trackEvent("funnel_booking_created", {
-        payment_method: "razorpay",
-        is_kiosk: state.isKiosk,
-      });
-
-      // 2. Create Razorpay order. In kiosk mode we charge the full
-      // ticket (customer is already at the counter — the advance /
-      // balance split only exists for remote bookings). payFull=true
-      // tells both create and verify to use booking.amount instead of
-      // calculateAdvance().
+      // Kiosk charges the full ticket; online charges the advance. The
+      // amount is derived server-side from bookingId (tamper-proof).
       const payRes = await fetch("/api/payments/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookingId, payFull: state.isKiosk }),
+        body: JSON.stringify({ bookingId, payFull: isKiosk }),
       });
-
       const payData = await payRes.json();
-      if (!payData.orderId) {
-        dispatch({ type: "SET_ERROR", error: "Failed to create payment order" });
-        dispatch({ type: "SET_LOADING", loading: false });
-        return;
-      }
+      if (!payData.orderId) return fail("Failed to create payment order");
 
-      dispatch({ type: "SET_LOADING", loading: false });
-
-      // 3. Open Razorpay checkout
-      const options = {
+      setProcessing(false);
+      const rzp = new window.Razorpay({
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: payData.amount,
         currency: payData.currency,
@@ -422,337 +288,302 @@ export function BookingWizard({
           razorpay_payment_id: string;
           razorpay_signature: string;
         }) => {
-          // 4. Verify payment
           try {
             const verifyRes = await fetch("/api/payments/verify", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                ...response,
-                bookingId,
-                payFull: state.isKiosk,
-              }),
+              body: JSON.stringify({ ...response, bookingId, payFull: isKiosk }),
             });
-
             const verifyData = await verifyRes.json();
-            if (verifyData.success) {
-              // Advance paid depends on whether this was a full-payment
-              // kiosk flow or the regular ₹500/head advance online.
-              const advancePaid = state.isKiosk
-                ? amount
-                : Math.min(500 * state.partySize, amount);
-              // Analytics: the money cleared. This is the TRUE
-              // conversion event for the online funnel.
-              trackEvent("funnel_payment_verified", {
-                is_kiosk: state.isKiosk,
-                party_size: partySizeBucket(state.partySize),
-              });
-              router.push(`/book/confirmation?id=${bookingId}&amount=${amount}&date=${state.selectedDate}&time=${state.selectedSlotDisplay}&players=${state.partySize}&package=${state.packageType}&payment=paid&advance=${advancePaid}`);
-            } else {
+            if (!verifyData.success) {
               dispatch({ type: "SET_ERROR", error: "Payment verification failed" });
+              return;
             }
+            // The server decides what was charged; fall back to the full
+            // amount only if an older deploy didn't return it.
+            const advancePaid: number = verifyData.amountPaid ?? total;
+            trackEvent("funnel_payment_verified", {
+              is_kiosk: isKiosk,
+              party_size: partySizeBucket(state.partySize),
+            });
+            router.push(
+              `/book/confirmation?id=${bookingId}&amount=${total}&date=${state.selectedDate}&time=${state.selectedSlotDisplay}&players=${state.partySize}&package=${state.packageType}&payment=paid&advance=${advancePaid}`
+            );
           } catch {
             dispatch({ type: "SET_ERROR", error: "Payment verification failed" });
           }
         },
         modal: {
           ondismiss: () => {
-            // Analytics: user opened Razorpay but closed without
-            // paying. If this is a big chunk of pay_online_clicked
-            // the Razorpay sheet itself is where we lose them —
-            // worth A/B'ing the "pay at center" fallback copy.
             trackEvent("funnel_payment_cancelled");
-            dispatch({ type: "SET_ERROR", error: "Payment cancelled. Your slot is reserved — you can try again or pay at the center." });
+            dispatch({
+              type: "SET_ERROR",
+              error: "Payment cancelled. Your slot is reserved — you can try again or pay at the center.",
+            });
           },
         },
-      };
-
-      const rzp = new window.Razorpay(options);
+      });
       rzp.open();
     } catch {
-      dispatch({ type: "SET_ERROR", error: "Something went wrong. Please try again." });
-      dispatch({ type: "SET_LOADING", loading: false });
+      fail("Something went wrong. Please try again.");
     }
   };
 
-  // Kiosk pay-at-counter flow. No Razorpay round-trip: just create the
-  // booking with paymentMethod="pay_at_center" and route the customer
-  // to the confirmation screen. The /api/bookings route already fires
-  // customer + arena emails on pay-at-center at create time, so this
-  // path is final the moment the sheet write returns.
   const handlePayAtCenter = async () => {
-    if (!state.personalDetails || !state.selectedDate || !state.selectedSlot) return;
-    // Analytics: a user who picks "Pay at Counter" over Razorpay
-    // tells us something structural — low trust in online payment,
-    // small group deciding on the fly, or walk-in intent. Worth
-    // watching the ratio against pay_online_clicked.
-    trackEvent("funnel_pay_at_center_clicked", { is_kiosk: state.isKiosk });
-    dispatch({ type: "SET_LOADING", loading: true });
+    trackEvent("funnel_pay_at_center_clicked", { is_kiosk: isKiosk });
+    setProcessing(true);
+    dispatch({ type: "SET_ERROR", error: null });
     try {
-      const bookingRes = await fetch("/api/bookings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: state.personalDetails.name,
-          email: state.personalDetails.email,
-          phone: state.personalDetails.phone,
-          date: state.selectedDate,
-          timeSlot: state.selectedSlot,
-          partySize: state.partySize,
-          package: state.packageType,
-          gamePreference: state.personalDetails.gamePreference,
-          paymentMethod: "pay_at_center",
-          specialRequests: state.personalDetails.specialRequests,
-          ...(state.couponCode ? { couponCode: state.couponCode } : {}),
-          ...(turnstileTokenRef.current
-            ? { turnstileToken: turnstileTokenRef.current }
-            : {}),
-          ...(state.isKiosk ? { isKiosk: true } : {}),
-        }),
-      });
-      const bookingData = await bookingRes.json();
+      const bookingData = await createBooking("pay_at_center");
       if (!bookingData.success) {
-        dispatch({
-          type: "SET_ERROR",
-          error: bookingData.error || "Could not confirm the booking. Please ask the counter staff.",
-        });
-        dispatch({ type: "SET_LOADING", loading: false });
-        return;
+        return fail(bookingData.error || "Could not confirm the booking. Please ask the counter staff.");
       }
       const bookingId = bookingData.booking.bookingId;
-      const amount = bookingData.booking.amount;
-      // Analytics: pay-at-center bookings finish here — no Razorpay
-      // verify step. This IS the terminal conversion for that path.
-      trackEvent("funnel_booking_created", {
-        payment_method: "pay_at_center",
-        is_kiosk: state.isKiosk,
-      });
-      const timeDisplay = state.selectedSlotDisplay || formatTimeDisplay(state.selectedSlot);
+      const total = bookingData.booking.amount;
+      trackEvent("funnel_booking_created", { payment_method: "pay_at_center", is_kiosk: isKiosk });
+      const timeDisplay = state.selectedSlotDisplay || formatTimeDisplay(state.selectedSlot!);
       router.push(
-        `/book/confirmation?id=${bookingId}&amount=${amount}&date=${state.selectedDate}&time=${encodeURIComponent(timeDisplay)}&players=${state.partySize}&package=${state.packageType}&payment=pay_at_center&advance=0`
+        `/book/confirmation?id=${bookingId}&amount=${total}&date=${state.selectedDate}&time=${encodeURIComponent(timeDisplay)}&players=${state.partySize}&package=${state.packageType}&payment=pay_at_center&advance=0`
       );
     } catch {
-      dispatch({ type: "SET_ERROR", error: "Something went wrong. Please try again or ask the counter staff." });
-      dispatch({ type: "SET_LOADING", loading: false });
+      fail("Something went wrong. Please try again or ask the counter staff.");
     }
   };
 
+  // One button for everything: if something's missing, take the customer
+  // straight to it; otherwise pay (or confirm, when no advance is needed).
+  const handlePrimary = () => {
+    if (processing) return;
+    if (firstMissing) {
+      setAttempted(true);
+      scrollToEl(sectionRefs[firstMissing].current);
+      return;
+    }
+    if (isKiosk || advanceRequired) handlePayOnline();
+    else handlePayAtCenter();
+  };
+
+  // ── Mobile sticky bar ──────────────────────────────────────────────
+  // Shown on phones until the summary panel itself scrolls into view
+  // (at which point it would just duplicate the panel's button).
+  const [panelVisible, setPanelVisible] = useState(false);
+  useEffect(() => {
+    const el = panelRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([entry]) => setPanelVisible(entry.isIntersecting), {
+      threshold: 0.15,
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  const showStickyBar = !panelVisible;
+
+  // Hides the global "Call me back" FAB while the sticky bar is up, so it
+  // doesn't sit on top of the bar's button (rule lives in globals.css).
+  useEffect(() => {
+    document.body.classList.toggle("has-booking-sticky-cta", showStickyBar);
+    return () => document.body.classList.remove("has-booking-sticky-cta");
+  }, [showStickyBar]);
+
+  const total = withGST(amount);
+  const dueNow = isKiosk || !advanceRequired ? total : withGST(sessionAdvance(pricing, state.partySize, amount));
+
   return (
-    <div className="max-w-4xl mx-auto">
-      <StepIndicator currentStep={state.step} advanceRequired={advanceRequired} />
-
-      {/* Back button. In kiosk mode we skip step 1 (date is forced to
-          today), so "Back" from step 2 would land on an empty date
-          picker. Gate the back button to steps 3+ in kiosk mode. */}
-      {state.step > (state.isKiosk ? 2 : 1) && (
-        <button
-          onClick={() => dispatch({ type: "PREV_STEP" })}
-          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-6 transition-colors"
-        >
-          <ChevronLeft size={16} />
-          Back
-        </button>
-      )}
-
-      {/* Error message */}
-      {state.error && (
-        <div className="glass-card p-4 mb-6 border-destructive/30 text-sm text-destructive text-center">
-          {state.error}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main content */}
-        <div className="lg:col-span-2">
-          <AnimatePresence mode="wait">
-            {(state.step === 1 || state.step === 2) && (
-              <div key="date-time" className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8">
-                <div className="lg:col-span-3">
-                  <DatePicker
-                    selectedDate={state.selectedDate}
-                    onSelectDate={handleDateSelect}
+    <div className="max-w-6xl mx-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-6 lg:gap-8 items-start">
+        <div className="space-y-6">
+          <Section
+            id="when"
+            ref={sectionRefs.when}
+            icon={CalendarDays}
+            title={isKiosk ? "Your slot today" : "When are you coming?"}
+            done={whenDone}
+            recap={
+              whenDone && state.selectedDate
+                ? `${format(new Date(state.selectedDate + "T00:00:00"), "EEE, d MMM")} · ${state.selectedSlotDisplay}`
+                : null
+            }
+            hint={attempted && !whenDone ? "Pick a date and a time slot" : null}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-6 md:gap-8">
+              <DatePicker selectedDate={state.selectedDate} onSelectDate={handleDateSelect} />
+              <div ref={timeSlotRef} className="scroll-mt-24">
+                {state.selectedDate ? (
+                  <TimeSlotGrid
+                    date={state.selectedDate}
+                    slots={state.availableSlots}
+                    selectedSlot={state.selectedSlot}
+                    isLoading={state.isLoading}
+                    onSelectSlot={handleSlotSelect}
                   />
-                </div>
-                <div className="lg:col-span-2" ref={timeSlotRef}>
-                  {state.selectedDate ? (
-                    <TimeSlotGrid
-                      date={state.selectedDate}
-                      slots={state.availableSlots}
-                      selectedSlot={state.selectedSlot}
-                      isLoading={state.isLoading}
-                      onSelectSlot={handleSlotSelect}
-                    />
-                  ) : (
-                    // Empty-state placeholder for the right column so the
-                    // layout doesn't collapse before a date is picked.
-                    <div className="glass-card p-6 text-center text-sm text-muted-foreground min-h-[220px] flex items-center justify-center">
-                      Pick a date on the calendar to see available time slots.
-                    </div>
-                  )}
-                </div>
+                ) : (
+                  <div className="h-full min-h-[220px] flex items-center justify-center text-sm text-muted-foreground text-center">
+                    Pick a date to see open slots.
+                  </div>
+                )}
               </div>
-            )}
-            {state.step === 3 && (
-              <div key="package">
-                <PackageSelector
-                  partySize={state.partySize}
-                  packageType={state.packageType}
-                  sessionDate={state.selectedDate}
-                  selectedGame={state.selectedGame}
-                  onPartySizeChange={(size) =>
-                    dispatch({ type: "SET_PARTY_SIZE", size })
-                  }
-                  onPackageChange={(pkg) =>
-                    dispatch({ type: "SET_PACKAGE", pkg })
-                  }
-                  onGameChange={(gameId) => {
-                    dispatch({ type: "SET_GAME", gameId });
-                    // Analytics: fires on EVERY game change in the
-                    // grid, including deselect (null) and the
-                    // "Decide at venue" sentinel. Dedup/last-click
-                    // behavior is handled in the dashboard — raw
-                    // events give us insight into "picked, changed
-                    // their mind, changed again."
-                    trackEvent("funnel_game_picked", {
-                      game_id: gameId || "cleared",
-                      decide_at_venue: gameId === DECIDE_AT_VENUE_ID,
-                    });
-                    // Mobile feedback: a game pick currently gives
-                    // the user no visible confirmation (the Continue
-                    // button sits ~1250px below the fold). Scroll
-                    // the Players stepper into view so they see
-                    // forward progress; the mobile sticky bar below
-                    // then gives them a one-tap route to Continue.
-                    // Desktop sidebar summary already updates in
-                    // place so the scroll is phone-only.
-                    if (gameId && typeof window !== "undefined" &&
-                        !window.matchMedia("(min-width: 1024px)").matches) {
-                      requestAnimationFrame(() => {
-                        const stepper = document.querySelector(
-                          "[data-players-stepper]"
-                        );
-                        if (stepper) {
-                          const top =
-                            stepper.getBoundingClientRect().top +
-                            window.scrollY - 100;
-                          window.scrollTo({ top, behavior: "smooth" });
-                        }
-                      });
-                    }
-                  }}
-                  onDiscountChange={(discount) =>
-                    dispatch({ type: "SET_DISCOUNT", discount })
-                  }
-                  onCouponChange={(code) =>
-                    dispatch({ type: "SET_COUPON_CODE", code })
-                  }
-                  isKiosk={state.isKiosk}
-                  advanceRequired={advanceRequired}
-                  preselectedGame={preselectedGame}
-                />
-                <div className="flex flex-col items-center gap-2 mt-6 pb-24 lg:pb-0">
-                  {/* pb-24 on mobile reserves room for the sticky
-                      Continue bar so it never covers THIS inline
-                      Continue button on short scrolls. Desktop
-                      doesn't render the sticky bar so no padding. */}
-                  <button
-                    onClick={handlePackageConfirm}
-                    disabled={!state.selectedGame}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-2.5 rounded-lg font-medium transition-colors glow-violet disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-primary"
-                  >
-                    Continue
-                  </button>
-                  {!state.selectedGame && (
-                    <p className="text-[11px] text-muted-foreground">
-                      Pick a game above to see pricing and continue.
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-            {state.step === 4 && (
-              <PersonalDetailsForm
-                key="details"
-                onSubmit={handleDetailsSubmit}
-                initialValues={
-                  state.personalDetails
-                    ? {
-                        name: state.personalDetails.name,
-                        email: state.personalDetails.email,
-                        phone: state.personalDetails.phone,
-                        specialRequests: state.personalDetails.specialRequests,
-                      }
-                    : null
-                }
-                advanceRequired={advanceRequired}
-                isKiosk={state.isKiosk}
-              />
-            )}
-            {state.step === 5 && (
-              <PaymentStep
-                key="payment"
-                state={state}
-                onPayOnline={handlePayOnline}
-                onPayAtCenter={handlePayAtCenter}
-                advanceRequired={advanceRequired}
-              />
-            )}
-          </AnimatePresence>
+            </div>
+          </Section>
+
+          <Section
+            id="game"
+            ref={sectionRefs.game}
+            icon={Gamepad2}
+            title="Who's playing what?"
+            done={gameDone}
+            recap={gameDone ? `${state.partySize} × ${gameLabel}` : null}
+            hint={attempted && !gameDone ? "Choose a game, or pick it at the arena" : null}
+          >
+            <GamePicker
+              partySize={state.partySize}
+              selectedGame={state.selectedGame}
+              onPartySizeChange={(size) => dispatch({ type: "SET_PARTY_SIZE", size })}
+              onGameChange={handleGameChange}
+              isKiosk={isKiosk}
+              advanceRequired={advanceRequired}
+              preselectedGame={preselectedGame}
+            />
+          </Section>
+
+          <Section
+            id="details"
+            ref={sectionRefs.details}
+            icon={UserRound}
+            title="Your details"
+            done={detailsDone}
+            recap={detailsDone ? details.name.trim() : null}
+            hint={
+              attempted && !detailsDone
+                ? detailsValid && needsTurnstile && !turnstileToken
+                  ? "Waiting for the quick security check below"
+                  : "Fill in your name, phone and email"
+                : null
+            }
+          >
+            <PersonalDetailsForm
+              values={details}
+              onChange={setDetails}
+              showAllErrors={attempted}
+              isKiosk={isKiosk}
+              onTurnstileToken={setTurnstileToken}
+            />
+          </Section>
         </div>
 
-        {/* Sidebar summary */}
-        <div className="hidden lg:block">
-          <BookingSummary state={state} />
-        </div>
+        <aside ref={panelRef} className="lg:sticky lg:top-24 scroll-mt-24">
+          <BookingPanel
+            date={state.selectedDate}
+            slotDisplay={state.selectedSlotDisplay}
+            partySize={state.partySize}
+            gameLabel={gameLabel}
+            isDecideAtVenue={isDecideAtVenue}
+            baseTotal={baseTotal}
+            amount={amount}
+            discount={activeDiscount}
+            coupon={coupon}
+            checklist={{ when: whenDone, game: gameDone, details: detailsDone }}
+            isKiosk={isKiosk}
+            advanceRequired={advanceRequired}
+            processing={processing}
+            error={state.error}
+            onPrimary={handlePrimary}
+            onPayAtCounter={handlePayAtCenter}
+          />
+        </aside>
       </div>
 
-      {/* Mobile sticky Continue bar — step 3 only, after a game is
-          picked. The actual Continue button on step 3 sits ~1250px
-          below the fold on mobile because the game grid + stepper +
-          package cards + pricing card + coupon field all stack
-          above it. GA4 confirmed users were picking games but not
-          scrolling to Continue; this bar makes that unnecessary.
-          lg:hidden because the desktop sidebar summary + inline
-          Continue button already work on wider screens. */}
-      {state.step === 3 && state.selectedGame && (() => {
-        const isDecideAtVenue = state.selectedGame === DECIDE_AT_VENUE_ID;
-        const game = allGames.find((g) => g.id === state.selectedGame);
-        const priceBasis = isDecideAtVenue
-          ? Math.max(...availableGames.map((g) => g.pricePerPerson))
-          : game?.pricePerPerson;
-        const base = priceBasis
-          ? calculateSessionPrice(priceBasis, state.partySize)
-          : 0;
-        const subtotal = state.discount ? base - state.discount.amountOff : base;
-        // Mirror the GST display logic in PackageSelector — all
-        // ticket amounts stored are ex-GST, customer-facing total
-        // adds 18%.
-        const total = Math.round(subtotal * 1.18);
-        const label = isDecideAtVenue
-          ? "Decide at venue"
-          : game?.title || "Your game";
-        return (
-          <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-white/10 bg-background/95 backdrop-blur-md px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex items-center gap-3 shadow-[0_-8px_24px_rgba(0,0,0,0.35)]">
-            <div className="flex-1 min-w-0">
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground/80">
-                {label}
-              </p>
-              <p className="text-base font-semibold tabular-nums">
-                ₹{total.toLocaleString("en-IN")}
-                <span className="text-[11px] text-muted-foreground font-normal ml-1">
-                  total
-                </span>
-              </p>
-            </div>
-            <button
-              onClick={handlePackageConfirm}
-              className="shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground px-5 h-11 rounded-lg font-medium transition-colors glow-violet"
-            >
-              Continue →
-            </button>
+      {/* Phone-only bottom bar: running total + one button that either
+          jumps to what's missing or to the summary to pay. */}
+      {showStickyBar && (
+        <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-white/10 bg-background/95 backdrop-blur-md px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex items-center gap-3 shadow-[0_-8px_24px_rgba(0,0,0,0.35)]">
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground/80 truncate">
+              {ready ? "Ready to book" : `${[whenDone, gameDone, detailsDone].filter(Boolean).length}/3 ready`}
+            </p>
+            <p className="text-base font-semibold tabular-nums">
+              {baseTotal > 0 ? (
+                <>
+                  ₹{dueNow.toLocaleString("en-IN")}
+                  <span className="text-[11px] text-muted-foreground font-normal ml-1">
+                    {isKiosk || !advanceRequired ? "total" : "due now"}
+                  </span>
+                </>
+              ) : (
+                <span className="text-sm text-muted-foreground font-normal">Pick a game for price</span>
+              )}
+            </p>
           </div>
-        );
-      })()}
+          <button
+            type="button"
+            onClick={() => {
+              if (firstMissing) {
+                scrollToEl(sectionRefs[firstMissing].current);
+              } else {
+                scrollToEl(panelRef.current);
+              }
+            }}
+            className="shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground px-5 h-11 rounded-lg font-medium transition-colors glow-violet"
+          >
+            {firstMissing ? "Next →" : "Review & pay →"}
+          </button>
+        </div>
+      )}
+      {/* Room for the sticky bar so it never covers the last field. */}
+      <div className="h-20 lg:hidden" aria-hidden />
     </div>
+  );
+}
+
+// A booking section card: numbered by icon rather than step, with a tick
+// and one-line recap once it's complete so the page reads as a checklist.
+function Section({
+  id,
+  ref,
+  icon: Icon,
+  title,
+  done,
+  recap,
+  hint,
+  children,
+}: {
+  id: SectionId;
+  ref: React.Ref<HTMLElement>;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  title: string;
+  done: boolean;
+  recap: string | null;
+  hint: string | null;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      id={`book-${id}`}
+      ref={ref}
+      aria-labelledby={`book-${id}-title`}
+      className={`glass-card p-5 sm:p-6 scroll-mt-24 transition-colors ${
+        hint ? "border-destructive/40" : done ? "border-primary/25" : ""
+      }`}
+    >
+      <header className="flex items-center gap-3 mb-5">
+        <div
+          className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+            done ? "bg-primary text-primary-foreground" : "bg-primary/10 border border-primary/30 text-primary"
+          }`}
+        >
+          {done ? <Check size={16} /> : <Icon size={16} />}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h2 id={`book-${id}-title`} className="font-heading text-base sm:text-lg font-bold leading-tight">
+            {title}
+          </h2>
+          {hint ? (
+            <p className="text-xs text-destructive mt-0.5">{hint}</p>
+          ) : recap ? (
+            <p className="text-xs text-muted-foreground mt-0.5 truncate">{recap}</p>
+          ) : null}
+        </div>
+      </header>
+      {children}
+    </section>
   );
 }

@@ -1,11 +1,7 @@
 "use client";
 
 import { useReducer } from "react";
-import type {
-  PackageType,
-  PaymentMethod,
-  TimeSlot,
-} from "@/lib/booking-types";
+import type { PackageType, TimeSlot } from "@/lib/booking-types";
 import { STANDARD_PACKAGE } from "@/lib/booking-types";
 
 export interface ActiveDiscount {
@@ -17,41 +13,25 @@ export interface ActiveDiscount {
   amountOff: number;
 }
 
+// Single-page booking state. There is no step machine any more — every
+// section of /book is on screen at once, and "can the customer pay yet?"
+// is derived from which fields are filled (see BookingWizard). Pricing
+// and discounts are derived too (useDiscount), so they never go stale.
 export interface BookingState {
-  step: 1 | 2 | 3 | 4 | 5;
   selectedDate: string | null;
   selectedSlot: string | null;
   selectedSlotDisplay: string | null;
   partySize: number;
   // packageType was Solo/Squad/Party pre-2026-11-05 — now always
   // STANDARD_PACKAGE for regular bookings, and only varies for birthday
-  // flows. Kept in state so the sheet writer and legacy consumers keep
-  // compiling; UI no longer dispatches SET_PACKAGE for regular bookings.
+  // flows. Kept so the booking POST and sheet writer keep their shape.
   packageType: PackageType;
-  // Chosen game id (matches Game.id in data/games.ts). Picked on the
-  // Package step so the customer sees the per-game price live before
-  // continuing.
+  // Chosen game id (matches Game.id in data/games.ts), or the
+  // DECIDE_AT_VENUE_ID sentinel.
   selectedGame: string | null;
-  personalDetails: {
-    name: string;
-    email: string;
-    phone: string;
-    gamePreference: string;
-    specialRequests: string;
-  } | null;
-  paymentMethod: PaymentMethod | null;
-  bookingId: string | null;
-  amount: number;
-  discount: ActiveDiscount | null;
-  // Coupon code the customer has redeemed on the pricing step. Stored so
-  // the eventual /api/bookings POST can send it and the server can
-  // independently verify + re-apply the discount server-side.
-  couponCode: string | null;
-  // True when the wizard was entered from the arena's counter kiosk
-  // (via QR scan to /book?kiosk=1). Drives the "pay at counter" UX:
-  // skip Razorpay, skip the advance / balance split, land on today's
-  // date, and route the final confirm straight to the pay-at-center
-  // booking endpoint.
+  // True when entered from the arena's counter kiosk (/book?kiosk=1).
+  // Drives the "pay at counter" UX: no Turnstile, no advance split,
+  // and both "pay online" and "pay at counter" are offered.
   isKiosk: boolean;
   isLoading: boolean;
   error: string | null;
@@ -63,36 +43,18 @@ type Action =
   | { type: "SET_DATE"; date: string }
   | { type: "SET_SLOT"; slot: string; displayTime: string }
   | { type: "SET_PARTY_SIZE"; size: number }
-  | { type: "SET_PACKAGE"; pkg: PackageType }
   | { type: "SET_GAME"; gameId: string | null }
-  | { type: "SET_DETAILS"; details: BookingState["personalDetails"] }
-  | { type: "SET_PAYMENT_METHOD"; method: PaymentMethod }
-  | { type: "SET_BOOKING_ID"; id: string }
-  | { type: "SET_AMOUNT"; amount: number }
-  | { type: "SET_DISCOUNT"; discount: ActiveDiscount | null }
-  | { type: "SET_COUPON_CODE"; code: string | null }
   | { type: "SET_LOADING"; loading: boolean }
   | { type: "SET_ERROR"; error: string | null }
-  | { type: "SET_SLOTS"; slots: TimeSlot[] }
-  | { type: "NEXT_STEP" }
-  | { type: "PREV_STEP" }
-  | { type: "GO_TO_STEP"; step: BookingState["step"] }
-  | { type: "RESET" };
+  | { type: "SET_SLOTS"; slots: TimeSlot[] };
 
 const initialState: BookingState = {
-  step: 1,
   selectedDate: null,
   selectedSlot: null,
   selectedSlotDisplay: null,
   partySize: 2,
   packageType: STANDARD_PACKAGE,
   selectedGame: null,
-  personalDetails: null,
-  paymentMethod: null,
-  bookingId: null,
-  amount: 0,
-  discount: null,
-  couponCode: null,
   isKiosk: false,
   isLoading: false,
   error: null,
@@ -120,22 +82,8 @@ function reducer(state: BookingState, action: Action): BookingState {
       };
     case "SET_PARTY_SIZE":
       return { ...state, partySize: action.size };
-    case "SET_PACKAGE":
-      return { ...state, packageType: action.pkg };
     case "SET_GAME":
       return { ...state, selectedGame: action.gameId };
-    case "SET_DETAILS":
-      return { ...state, personalDetails: action.details };
-    case "SET_PAYMENT_METHOD":
-      return { ...state, paymentMethod: action.method };
-    case "SET_BOOKING_ID":
-      return { ...state, bookingId: action.id };
-    case "SET_AMOUNT":
-      return { ...state, amount: action.amount };
-    case "SET_DISCOUNT":
-      return { ...state, discount: action.discount };
-    case "SET_COUPON_CODE":
-      return { ...state, couponCode: action.code };
     case "SET_LOADING":
       return { ...state, isLoading: action.loading };
     case "SET_ERROR":
@@ -146,31 +94,14 @@ function reducer(state: BookingState, action: Action): BookingState {
         availableSlots: action.slots,
         slotsFetchedAt: Date.now(),
       };
-    case "NEXT_STEP":
-      return {
-        ...state,
-        step: Math.min(state.step + 1, 5) as BookingState["step"],
-        error: null,
-      };
-    case "PREV_STEP":
-      return {
-        ...state,
-        step: Math.max(state.step - 1, 1) as BookingState["step"],
-        error: null,
-      };
-    case "GO_TO_STEP":
-      return { ...state, step: action.step, error: null };
-    case "RESET":
-      return initialState;
     default:
       return state;
   }
 }
 
-// Pass initialGame when the wizard is entered via /book?game=xxx so the
-// game is set on the very first render rather than through a follow-up
-// useEffect (which can no-op in React StrictMode's second render pass and
-// leave the state null).
+// Pass initialGame when entered via /book?game=xxx so the game is set on
+// the very first render rather than through a follow-up useEffect (which
+// can no-op in React StrictMode's second render pass).
 export function useBooking(options?: {
   initialGame?: string | null;
   initialKiosk?: boolean;

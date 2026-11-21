@@ -7,14 +7,11 @@ import { Cake, Users, Clock, Check, Sparkles, ChevronRight, Minus, Plus, Pizza }
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { Button } from "@/components/ui/button";
 import {
-  BIRTHDAY_PACKAGES,
-  BIRTHDAY_ADDONS,
-  BIRTHDAY_ADVANCE_PERCENT,
-  birthdayAdvance,
   whatsappBirthdayLink,
-  type BirthdayPackage,
 } from "@/data/birthday";
 import { withGST } from "@/lib/booking-config";
+import { usePricing } from "@/hooks/use-pricing";
+import { birthdayAdvanceOf, birthdayCatalog, type Pricing } from "@/lib/pricing";
 import { fadeInUp, staggerContainer } from "@/lib/animations";
 
 // Birthday landing page — post-2026-11-05 Option B rewrite. One flat
@@ -32,7 +29,9 @@ function encodeAddons(qty: Record<string, number>): string {
 }
 
 export default function BirthdayPage() {
-  const pkg = BIRTHDAY_PACKAGES[0];
+  const pricing = usePricing();
+  const { pkg, addons } = birthdayCatalog(pricing);
+  const advancePercent = pricing.birthdayAdvancePercent;
 
   // Add-on selections. For flat add-ons we store 0 or 1; per-kid add-ons
   // are stored as the requested quantity but priced against the actual
@@ -49,14 +48,14 @@ export default function BirthdayPage() {
 
   // Live preview total — mirrors the /api/birthday math so parents see
   // the same number here and in the wizard.
-  const addonsTotal = BIRTHDAY_ADDONS.reduce((sum, a) => {
+  const addonsTotal = addons.reduce((sum, a) => {
     const picked = (addonQty[a.id] ?? 0) > 0;
     if (!picked) return sum;
     return sum + (a.unit === "per-kid" ? a.price * guestCount : a.price);
   }, 0);
   const packageTotal = pkg.pricePerKid * guestCount;
   const grandTotal = packageTotal + addonsTotal;
-  const advance = birthdayAdvance(grandTotal);
+  const advance = birthdayAdvanceOf(pricing, grandTotal);
   const perKidEffective = Math.round(grandTotal / guestCount);
   const addonsPickedCount = Object.values(addonQty).filter((n) => n > 0).length;
 
@@ -93,7 +92,7 @@ export default function BirthdayPage() {
             className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-8"
           >
             One flat per-kid rate, with a branded cake and a full food combo
-            available as add-ons. Pay {BIRTHDAY_ADVANCE_PERCENT}% online to
+            available as add-ons. Pay {advancePercent}% online to
             hold your slot; settle the rest at the arena.
           </motion.p>
           <motion.div variants={fadeInUp} className="mb-6">
@@ -228,7 +227,7 @@ export default function BirthdayPage() {
                   Add-ons
                 </h3>
                 <div className="space-y-2">
-                  {BIRTHDAY_ADDONS.map((a) => {
+                  {addons.map((a) => {
                     const picked = (addonQty[a.id] ?? 0) > 0;
                     const lineCost =
                       a.unit === "per-kid" ? a.price * guestCount : a.price;
@@ -320,7 +319,7 @@ export default function BirthdayPage() {
                     <strong className="text-primary">
                       ₹{withGST(advance).toLocaleString("en-IN")}
                     </strong>{" "}
-                    online now ({BIRTHDAY_ADVANCE_PERCENT}%). Balance of{" "}
+                    online now ({advancePercent}%). Balance of{" "}
                     ₹{withGST(grandTotal - advance).toLocaleString("en-IN")} at
                     the arena.
                   </p>
@@ -368,7 +367,7 @@ export default function BirthdayPage() {
             Frequently <span className="gradient-text">asked</span>
           </motion.h2>
           <div className="space-y-3">
-            {FAQ.map((f) => (
+            {faqFor(pricing).map((f) => (
               <motion.details
                 key={f.q}
                 variants={fadeInUp}
@@ -418,18 +417,18 @@ export default function BirthdayPage() {
   );
 }
 
-const FAQ: { q: string; a: string }[] = [
+const faqFor = (p: Pricing): { q: string; a: string }[] => [
   {
     q: `What ages does the party work for?`,
     a: `Ages 8 and up. Kids between 8 and 14 need a waiver signed by a parent or guardian. We'll steer younger groups toward gentler titles like Monkey Madness; horror titles (City Z, Dead Ahead) are recommended 14+.`,
   },
   {
-    q: `How does the ${BIRTHDAY_ADVANCE_PERCENT}% advance work?`,
-    a: `You pay ${BIRTHDAY_ADVANCE_PERCENT}% of the total online via Razorpay to hold your date and time slot. The remaining ${100 - BIRTHDAY_ADVANCE_PERCENT}% is settled in cash / UPI / card at the counter on the day of the party. Full refund if you cancel more than 48 hours before the party.`,
+    q: `How does the ${p.birthdayAdvancePercent}% advance work?`,
+    a: `You pay ${p.birthdayAdvancePercent}% of the total online via Razorpay to hold your date and time slot. The remaining ${100 - p.birthdayAdvancePercent}% is settled in cash / UPI / card at the counter on the day of the party. Full refund if you cancel more than 48 hours before the party.`,
   },
   {
     q: `Can I bring my own cake?`,
-    a: `Yes, absolutely — BYO cake is welcome with no extra fee. If you'd rather we arrange one, add the "Branded custom cake" add-on for ₹1,999 and our bakery partner handles it.`,
+    a: `Yes, absolutely — BYO cake is welcome with no extra fee. If you'd rather we arrange one, add the "Branded custom cake" add-on for ₹${(p.birthdayAddons["custom-cake"] ?? 0).toLocaleString("en-IN")} and our bakery partner handles it.`,
   },
   {
     q: `Why is there a minimum of 8 kids?`,

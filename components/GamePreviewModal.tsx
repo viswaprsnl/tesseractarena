@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { trackEvent } from "@/lib/analytics";
 import type { Game } from "@/data/games";
+import { usePricing } from "@/hooks/use-pricing";
+import { gamePrice } from "@/lib/pricing";
 
 interface GamePreviewModalProps {
   game: Game | null;
@@ -43,6 +45,8 @@ export function GamePreviewModal({
   statusInfo,
   onClose,
 }: GamePreviewModalProps) {
+  const pricing = usePricing();
+  const price = game ? gamePrice(pricing, game.id) : 0;
   // Lock body scroll when modal is open
   useEffect(() => {
     if (game) {
@@ -194,9 +198,9 @@ export function GamePreviewModal({
                   <Swords size={14} className="text-primary" />
                   {game.difficulty}
                 </span>
-                {game.pricePerPerson > 0 && (
+                {price > 0 && (
                   <span className="flex items-center gap-1.5 text-primary font-medium">
-                    ₹{game.pricePerPerson.toLocaleString("en-IN")}/person
+                    ₹{price.toLocaleString("en-IN")}/person
                     <span className="text-muted-foreground font-normal">+ GST</span>
                   </span>
                 )}

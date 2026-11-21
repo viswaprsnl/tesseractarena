@@ -27,7 +27,7 @@ function BookPageContent() {
         <p className="text-muted-foreground max-w-md mx-auto text-sm">
           {isKiosk
             ? "Finish your booking on your phone, pay at the counter."
-            : "Reserve your VR experience in just a few steps"}
+            : "Pick a time, choose your game, lock it in — all on one page."}
         </p>
       </motion.div>
 

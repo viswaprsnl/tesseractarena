@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { withGST } from "@/lib/booking-config";
 import {
   ArrowLeft,
   ArrowRight,
@@ -158,7 +159,7 @@ export function KioskPayList() {
 
         <div className="grid gap-3">
           {unpaid.map((b) => {
-            const balanceIncGST = Math.round(b.balanceDue * 1.18);
+            const balanceIncGST = withGST(b.balanceDue);
             return (
               <Link
                 key={b.bookingId}
