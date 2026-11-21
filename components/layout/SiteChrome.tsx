@@ -25,7 +25,8 @@ interface SiteChromeProps {
 
 export function SiteChrome({ children }: SiteChromeProps) {
   const pathname = usePathname();
-  const isKiosk = pathname.startsWith("/kiosk");
+  // Kiosk tablets and printable bills render without the site header/footer.
+  const isKiosk = pathname.startsWith("/kiosk") || pathname.startsWith("/bill");
 
   if (isKiosk) {
     // Bare-body kiosk mode. Give the child the full viewport by
