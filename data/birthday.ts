@@ -56,7 +56,7 @@ export const BIRTHDAY_PACKAGES: BirthdayPackage[] = [
     tagline:
       "One flat per-kid rate, every perk à la carte. Build the party your kid actually wants.",
     includes: [
-      "One flat per-kid rate (ex-GST) — minimum 8, up to 24 across staggered waves",
+      "₹1,499 per kid (ex-GST) — minimum 8, up to 24 across staggered waves",
       "1 Anvio rotation + 1 HeroZone rotation per kid (our host picks age-appropriate titles)",
       "2-hour arena block for the whole party",
       "Dedicated party host for the whole booking",

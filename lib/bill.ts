@@ -3,17 +3,18 @@ import type { BookingRow } from "./booking-types";
 import type { Ops } from "./ops-config";
 
 // Bills are shared as an unguessable link: /bill/<id>?t=<hmac>. Rendered
-// on request from the booking, so nothing is stored. BILL_SECRET signs
-// them; without it, bill links are disabled.
+// on request from the booking, so nothing is stored. Signed with BILL_SECRET,
+// or the existing Razorpay secret so no new setting is needed.
+const secret = () => process.env.BILL_SECRET || process.env.RAZORPAY_KEY_SECRET || "";
 const sign = (bookingId: string) =>
-  crypto.createHmac("sha256", process.env.BILL_SECRET || "").update(bookingId).digest("hex").slice(0, 24);
+  crypto.createHmac("sha256", `bill:${secret()}`).update(bookingId).digest("hex").slice(0, 24);
 
 export function billUrl(origin: string, bookingId: string): string | null {
-  return process.env.BILL_SECRET ? `${origin}/bill/${bookingId}?t=${sign(bookingId)}` : null;
+  return secret() ? `${origin}/bill/${bookingId}?t=${sign(bookingId)}` : null;
 }
 
 export function verifyBill(bookingId: string, token: string): boolean {
-  if (!process.env.BILL_SECRET || token.length !== 24) return false;
+  if (!secret() || token.length !== 24) return false;
   return crypto.timingSafeEqual(Buffer.from(sign(bookingId)), Buffer.from(token));
 }
 

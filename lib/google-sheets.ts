@@ -56,11 +56,7 @@ export async function getBookedSlotsForDate(
   date: string,
   arenaId: string = "arena-1"
 ): Promise<string[]> {
-  // Unpaid online checkouts stop holding the slot after 30 minutes, so an
-  // abandoned Razorpay sheet can't block a slot forever.
-  const bookings = (await getBookingsForDate(date, arenaId)).filter(
-    (b) => b.paymentStatus !== "pending" || !isStaleHold(b.createdAt)
-  );
+  const bookings = await getBookingsForDate(date, arenaId);
   const slotsInDay = getSlotsForDate(date);
   const blocked = new Set<string>();
   for (const b of bookings) {
@@ -76,12 +72,6 @@ export async function getBookedSlotsForDate(
     }
   }
   return [...blocked];
-}
-
-const HOLD_MINUTES = 30;
-function isStaleHold(createdAt: string): boolean {
-  const t = Date.parse(createdAt);
-  return Number.isFinite(t) && Date.now() - t > HOLD_MINUTES * 60_000;
 }
 
 export async function getActiveBookingsByContact(

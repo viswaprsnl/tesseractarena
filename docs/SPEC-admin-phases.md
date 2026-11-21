@@ -13,7 +13,7 @@ Tick the boxes as items land. Open questions sit under the phase that needs them
 - Single-page `/book`; pricing in one place (`lib/pricing.ts`, Setup → Pricing).
 - Counter bookings for walk-in, phone and kiosk, plus a month calendar.
 - Payments and Expenses sheets; Customers tab.
-- `roleForPin` (OWNER_PIN / ADMIN_PIN, no fallback) and `POST /api/admin/auth`.
+- `roleForPin` (OWNER_PIN / ADMIN_PIN, same defaults as before) and `POST /api/admin/auth`.
 
 ## Phase 1 · Layout and roles
 
@@ -43,7 +43,7 @@ Done when:
 - the owner sees everything;
 - `tsc`, `eslint` and the Playwright admin tests pass.
 
-**Deploy note:** OWNER_PIN and ADMIN_PIN must be different, both locally and in Vercel.
+**Deploy note:** no new settings. The existing OWNER_PIN and ADMIN_PIN are reused; if they're the same value, everyone signs in as owner, as before.
 
 ## Phase 2 · Events: birthday and corporate
 
@@ -129,7 +129,8 @@ Open:
 - [ ] **Log** sent, failed and resent attempts on the booking.
 
 Needs before go-live:
-- `BILL_SECRET` (any long random string) and `BUSINESS_GSTIN` set in Vercel.
+- Optional: `BUSINESS_GSTIN` to print the GSTIN on bills. Bill links are signed with the existing Razorpay secret (or `BILL_SECRET` if set).
+- Optional: subscribe the Razorpay webhook to `payment_link.paid` so paid links update bookings automatically; otherwise staff mark them paid with Collect.
 - SAC codes on the bill (not printed yet).
 
 Open:
